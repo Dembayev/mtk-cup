@@ -13,6 +13,7 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
     let notifyField = "";
     if (type === "live") notifyField = "notify_live";
     else if (type === "result") notifyField = "notify_result";
+    else if (type === "hour_before") notifyField = "notify_hour_before";
     else return;
     
     // Получаем пользователей с включёнными уведомлениями
@@ -30,6 +31,8 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
       message = `🔴 МАТЧ НАЧАЛСЯ!\n\n🏐 ${team1Name} vs ${team2Name}\n\nСмотрите трансляцию в приложении!`;
     } else if (type === "result") {
       message = `🏆 МАТЧ ЗАВЕРШЁН!\n\n🏐 ${team1Name} ${score} ${team2Name}`;
+    } else if (type === "hour_before") {
+      message = `⏰ МАТЧ ЧЕРЕЗ 1 ЧАС!\n\n🏐 ${team1Name} vs ${team2Name}\n\nНе пропустите!`;
     }
     
     // Отправляем уведомления
@@ -1617,6 +1620,18 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
                               <Badge variant={match.status === "finished" ? "default" : match.status === "live" ? "live" : "gold"}>
                                 {match.status === "finished" ? "✓" : match.status === "live" ? "LIVE" : "○"}
                               </Badge>
+                              {match.status === "upcoming" && (
+                                <button 
+                                  onClick={() => { 
+                                    sendNotification("hour_before", team1?.name, team2?.name);
+                                    alert("Уведомление отправлено!");
+                                  }} 
+                                  style={{ background: "none", border: "none", cursor: "pointer", color: "#d97706", padding: "4px", fontSize: "16px" }}
+                                  title="Отправить напоминание"
+                                >
+                                  🔔
+                                </button>
+                              )}
                               <button onClick={() => startEditMatch(match)} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }}>
                                 <Icons.Edit />
                               </button>
