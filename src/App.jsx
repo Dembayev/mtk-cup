@@ -4,6 +4,53 @@ import { supabase } from "./lib/supabase";
 // Supabase URL for edge functions
 const SUPABASE_URL = "https://ecayfpszkleyxuhsekhu.supabase.co";
 
+// Telegram Bot for notifications
+const BOT_TOKEN = "8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI";
+
+const sendNotification = async (type, team1Name, team2Name, score = "") => {
+  try {
+    // Определяем поле для фильтра
+    let notifyField = "";
+    if (type === "live") notifyField = "notify_live";
+    else if (type === "result") notifyField = "notify_result";
+    else return;
+    
+    // Получаем пользователей с включёнными уведомлениями
+    const { data: users } = await supabase
+      .from("users")
+      .select("telegram_id")
+      .eq(notifyField, true)
+      .not("telegram_id", "is", null);
+    
+    if (!users || users.length === 0) return;
+    
+    // Формируем сообщение
+    let message = "";
+    if (type === "live") {
+      message = `🔴 МАТЧ НАЧАЛСЯ!\n\n🏐 ${team1Name} vs ${team2Name}\n\nСмотрите трансляцию в приложении!`;
+    } else if (type === "result") {
+      message = `🏆 МАТЧ ЗАВЕРШЁН!\n\n🏐 ${team1Name} ${score} ${team2Name}`;
+    }
+    
+    // Отправляем уведомления
+    for (const user of users) {
+      if (!user.telegram_id) continue;
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: user.telegram_id, text: message })
+        });
+      } catch (e) {
+        console.error("Failed to send notification:", e);
+      }
+    }
+  } catch (error) {
+    console.error("Error sending notifications:", error);
+  }
+};
+
+
 // Color scheme
 const colors = {
   bg: "#FFFFFF",
@@ -1828,8 +1875,30 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
   );
 };
 
-const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles }) => {
+const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications }) => {
   const displayName = getDisplayName(user);
+  const [showNotifySettings, setShowNotifySettings] = useState(false);
+  const [notifySettings, setNotifySettings] = useState({
+    notify_day_before: user?.notify_day_before !== false,
+    notify_hour_before: user?.notify_hour_before !== false,
+    notify_live: user?.notify_live !== false,
+    notify_result: user?.notify_result !== false,
+  });
+  
+  const handleToggle = async (field) => {
+    const newValue = !notifySettings[field];
+    setNotifySettings(prev => ({ ...prev, [field]: newValue }));
+    onUpdateNotifications && onUpdateNotifications(field, newValue);
+  };
+  
+  const Checkbox = ({ checked, onChange, label }) => (
+    <div onClick={onChange} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 0", cursor: "pointer", borderBottom: `1px solid ${colors.grayBorder}` }}>
+      <div style={{ width: "24px", height: "24px", borderRadius: "6px", border: `2px solid ${checked ? colors.gold : colors.grayBorder}`, background: checked ? colors.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {checked && <Icons.Check />}
+      </div>
+      <span style={{ fontSize: "15px", flex: 1 }}>{label}</span>
+    </div>
+  );
   
   return (
     <div style={{ paddingBottom: "100px" }}>
@@ -1873,15 +1942,13 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
 
           {!isGuest && (
             <>
-              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Настройки</h3>
-              {[{ label: "Редактировать профиль", icon: "✏️" }, { label: "Уведомления", icon: "🔔" }, { label: "О приложении", icon: "ℹ️" }].map((item, i) => (
-                <Card key={i} style={{ marginBottom: "8px", padding: "14px 16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <span style={{ fontSize: "20px" }}>{item.icon}</span>
-                    <span style={{ fontWeight: 500, fontSize: "15px" }}>{item.label}</span>
-                  </div>
-                </Card>
-              ))}
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Уведомления</h3>
+              <Card style={{ marginBottom: "20px" }}>
+                <Checkbox checked={notifySettings.notify_day_before} onChange={() => handleToggle("notify_day_before")} label="За 1 день до матча" />
+                <Checkbox checked={notifySettings.notify_hour_before} onChange={() => handleToggle("notify_hour_before")} label="За 1 час до матча" />
+                <Checkbox checked={notifySettings.notify_live} onChange={() => handleToggle("notify_live")} label="Начало матча (LIVE)" />
+                <Checkbox checked={notifySettings.notify_result} onChange={() => handleToggle("notify_result")} label="Результаты матчей" />
+              </Card>
             </>
           )}
 
@@ -2035,6 +2102,15 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleUpdateNotifications = async (field, value) => {
+    try {
+      await supabase.from("users").update({ [field]: value }).eq("id", user.id);
+      setUser(prev => ({ ...prev, [field]: value }));
+    } catch (error) {
+      console.error("Error updating notifications:", error);
+    }
+  };
+
   // Admin functions
   const handleUpdateMatch = async (matchId, data) => {
     try {
@@ -2092,6 +2168,14 @@ export default function MTKCupApp() {
           balls_won: (team2?.balls_won || 0) + balls2,
           balls_lost: (team2?.balls_lost || 0) + balls1,
         }).eq("id", match.team2_id);
+        
+        // Отправляем уведомление о результате
+        sendNotification("result", team1?.name, team2?.name, `${setsWon1}:${setsWon2}`);
+      }
+      
+      // Уведомление о начале матча (LIVE)
+      if (data.status === "live" && match.status !== "live") {
+        sendNotification("live", team1?.name, team2?.name);
       }
 
       await loadData();
@@ -2284,7 +2368,7 @@ export default function MTKCupApp() {
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
-      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} />;
+      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} />;
       case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
