@@ -1237,7 +1237,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdateMatch, onUpdateUserRole, onAssignCoach, onCreateTour, onCreateMatch, onUpdateMatchVideo, actionLoading, loadData }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, actionLoading, loadData }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ sets_team1: 0, sets_team2: 0, status: "upcoming" });
@@ -1722,6 +1722,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
                                   {player.positions?.map(p => positionLabels[p] || p).join(", ") || "—"}
                                 </span>
                                 {player.jersey_number && <span style={{ fontSize: "12px", fontWeight: 600, color: colors.gold }}>#{player.jersey_number}</span>}
+                                <button onClick={() => onSetCaptain(team.id, player.id, !player.is_captain)} style={{ background: player.is_captain ? "#f3e8ff" : colors.gray, border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: player.is_captain ? "#7c3aed" : colors.goldDark }}>{player.is_captain ? "Снять ©" : "Капитан"}</button>
                               </div>
                             )) : (
                               <div style={{ fontSize: "13px", color: colors.goldDark, fontStyle: "italic" }}>Нет игроков</div>
@@ -2024,6 +2025,24 @@ export default function MTKCupApp() {
     }
   };
 
+  // Set captain
+  const handleSetCaptain = async (teamId, playerId, isCaptain) => {
+    try {
+      setActionLoading(true);
+      if (isCaptain) {
+        await supabase.from("players").update({ is_captain: false }).eq("team_id", teamId);
+      }
+      await supabase.from("players").update({ is_captain: isCaptain }).eq("id", playerId);
+      await loadData();
+      alert(isCaptain ? "Капитан назначен!" : "Капитан снят!");
+    } catch (error) {
+      console.error("Error setting captain:", error);
+      alert("Ошибка назначения капитана");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Create tour
   const handleCreateTour = async (tourData) => {
     try {
@@ -2159,7 +2178,7 @@ export default function MTKCupApp() {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} actionLoading={actionLoading} loadData={loadData} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
   };
