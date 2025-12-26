@@ -824,6 +824,7 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
                     <th style={{ padding: "12px 8px", textAlign: "center", fontSize: "12px", fontWeight: 600 }}>В</th>
                     <th style={{ padding: "12px 8px", textAlign: "center", fontSize: "12px", fontWeight: 600 }}>П</th>
                     <th style={{ padding: "12px 8px", textAlign: "center", fontSize: "12px", fontWeight: 600 }}>Партии</th>
+                    <th style={{ padding: "12px 8px", textAlign: "center", fontSize: "12px", fontWeight: 600 }}>Мячи</th>
                     <th style={{ padding: "12px 8px", textAlign: "center", fontSize: "12px", fontWeight: 600 }}>О</th>
                   </tr>
                 </thead>
@@ -845,6 +846,7 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
                       <td style={{ padding: "12px 8px", textAlign: "center", fontSize: "14px", color: "#16a34a" }}>{team.wins || 0}</td>
                       <td style={{ padding: "12px 8px", textAlign: "center", fontSize: "14px", color: "#dc2626" }}>{team.losses || 0}</td>
                       <td style={{ padding: "12px 8px", textAlign: "center", fontSize: "14px" }}>{team.sets_won || 0}:{team.sets_lost || 0}</td>
+                      <td style={{ padding: "12px 8px", textAlign: "center", fontSize: "14px" }}>{team.balls_lost ? ((team.balls_won || 0) / team.balls_lost).toFixed(3) : "—"}</td>
                       <td style={{ padding: "12px 8px", textAlign: "center", fontWeight: 700, fontSize: "14px", color: colors.gold }}>{team.points || 0}</td>
                     </tr>
                   ))}
@@ -852,7 +854,7 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
               </table>
             </div>
           </Card>
-          <div style={{ marginTop: "16px", fontSize: "12px", color: colors.goldDark }}>И — игры, В — победы, П — поражения, О — очки</div>
+          <div style={{ marginTop: "16px", fontSize: "12px", color: colors.goldDark }}>И — игры, В — победы, П — поражения, Мячи — коэффициент, О — очки</div>
         </div>
       </Container>
     </div>
@@ -1297,7 +1299,11 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
 const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, actionLoading, loadData }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
-  const [matchScore, setMatchScore] = useState({ sets_team1: 0, sets_team2: 0, status: "upcoming" });
+  const [matchScore, setMatchScore] = useState({ 
+    sets_team1: 0, sets_team2: 0, status: "upcoming",
+    set1_team1: 0, set1_team2: 0, set2_team1: 0, set2_team2: 0, set3_team1: 0, set3_team2: 0,
+    set4_team1: 0, set4_team2: 0, set5_team1: 0, set5_team2: 0
+  });
   const [editingUser, setEditingUser] = useState(null);
   const [userRole, setUserRole] = useState("fan");
   const [editingTeam, setEditingTeam] = useState(null);
@@ -1318,7 +1324,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
 
   const startEditMatch = (match) => {
     setEditingMatch(match);
-    setMatchScore({ sets_team1: match.sets_team1 || 0, sets_team2: match.sets_team2 || 0, status: match.status || "upcoming" });
+    setMatchScore({
+      sets_team1: match.sets_team1 || 0, sets_team2: match.sets_team2 || 0, status: match.status || "upcoming",
+      set1_team1: match.set1_team1 || 0, set1_team2: match.set1_team2 || 0,
+      set2_team1: match.set2_team1 || 0, set2_team2: match.set2_team2 || 0,
+      set3_team1: match.set3_team1 || 0, set3_team2: match.set3_team2 || 0,
+      set4_team1: match.set4_team1 || 0, set4_team2: match.set4_team2 || 0,
+      set5_team1: match.set5_team1 || 0, set5_team2: match.set5_team2 || 0,
+    });
   };
 
   const saveMatch = async () => {
@@ -1494,18 +1507,34 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
                         <Card key={match.id} style={{ marginBottom: "8px", padding: "12px" }}>
                           {isEditing ? (
                             <div>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                                <span style={{ flex: 1, fontSize: "14px", fontWeight: 600 }}>{team1?.name}</span>
-                                <input type="number" min="0" max="3" value={matchScore.sets_team1}
-                                  onChange={e => setMatchScore(prev => ({ ...prev, sets_team1: parseInt(e.target.value) || 0 }))}
-                                  style={{ width: "50px", padding: "8px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }}
-                                />
-                                <span>:</span>
-                                <input type="number" min="0" max="3" value={matchScore.sets_team2}
-                                  onChange={e => setMatchScore(prev => ({ ...prev, sets_team2: parseInt(e.target.value) || 0 }))}
-                                  style={{ width: "50px", padding: "8px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }}
-                                />
-                                <span style={{ flex: 1, fontSize: "14px", fontWeight: 600, textAlign: "right" }}>{team2?.name}</span>
+                              <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "12px", textAlign: "center" }}>
+                                {team1?.name} vs {team2?.name}
+                              </div>
+                              <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px" }}>Введите счёт по сетам:</div>
+                              {[1,2,3,4,5].map(setNum => (
+                                <div key={setNum} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                  <span style={{ width: "50px", fontSize: "13px", color: colors.goldDark }}>Сет {setNum}</span>
+                                  <input type="number" min="0" max="50" value={matchScore[`set${setNum}_team1`] || 0}
+                                    onChange={e => setMatchScore(prev => ({ ...prev, [`set${setNum}_team1`]: parseInt(e.target.value) || 0 }))}
+                                    style={{ width: "60px", padding: "8px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }}
+                                  />
+                                  <span>:</span>
+                                  <input type="number" min="0" max="50" value={matchScore[`set${setNum}_team2`] || 0}
+                                    onChange={e => setMatchScore(prev => ({ ...prev, [`set${setNum}_team2`]: parseInt(e.target.value) || 0 }))}
+                                    style={{ width: "60px", padding: "8px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }}
+                                  />
+                                </div>
+                              ))}
+                              <div style={{ background: colors.gray, padding: "8px 12px", borderRadius: "6px", marginTop: "12px", fontSize: "13px" }}>
+                                <strong>Итог:</strong> {
+                                  [1,2,3,4,5].reduce((acc, n) => acc + (matchScore[`set${n}_team1`] > matchScore[`set${n}_team2`] ? 1 : 0), 0)
+                                } : {
+                                  [1,2,3,4,5].reduce((acc, n) => acc + (matchScore[`set${n}_team2`] > matchScore[`set${n}_team1`] ? 1 : 0), 0)
+                                } (сеты) | Мячи: {
+                                  [1,2,3,4,5].reduce((acc, n) => acc + (matchScore[`set${n}_team1`] || 0), 0)
+                                }:{
+                                  [1,2,3,4,5].reduce((acc, n) => acc + (matchScore[`set${n}_team2`] || 0), 0)
+                                }
                               </div>
                               <Select label="Статус" value={matchScore.status} onChange={v => setMatchScore(prev => ({ ...prev, status: v }))}
                                 options={[
@@ -2014,33 +2043,54 @@ export default function MTKCupApp() {
       const team1 = teams.find(t => t.id === match.team1_id);
       const team2 = teams.find(t => t.id === match.team2_id);
       
+      // Считаем мячи из сетов
+      const balls1 = (data.set1_team1 || 0) + (data.set2_team1 || 0) + (data.set3_team1 || 0) + (data.set4_team1 || 0) + (data.set5_team1 || 0);
+      const balls2 = (data.set1_team2 || 0) + (data.set2_team2 || 0) + (data.set3_team2 || 0) + (data.set4_team2 || 0) + (data.set5_team2 || 0);
+      
+      // Считаем выигранные сеты
+      let setsWon1 = 0, setsWon2 = 0;
+      if (data.set1_team1 > data.set1_team2) setsWon1++; else if (data.set1_team2 > data.set1_team1) setsWon2++;
+      if (data.set2_team1 > data.set2_team2) setsWon1++; else if (data.set2_team2 > data.set2_team1) setsWon2++;
+      if (data.set3_team1 > data.set3_team2) setsWon1++; else if (data.set3_team2 > data.set3_team1) setsWon2++;
+      if (data.set4_team1 > data.set4_team2) setsWon1++; else if (data.set4_team2 > data.set4_team1) setsWon2++;
+      if (data.set5_team1 > data.set5_team2) setsWon1++; else if (data.set5_team2 > data.set5_team1) setsWon2++;
+      
       await supabase.from("matches").update({
-        sets_team1: data.sets_team1,
-        sets_team2: data.sets_team2,
+        sets_team1: setsWon1,
+        sets_team2: setsWon2,
+        set1_team1: data.set1_team1 || 0, set1_team2: data.set1_team2 || 0,
+        set2_team1: data.set2_team1 || 0, set2_team2: data.set2_team2 || 0,
+        set3_team1: data.set3_team1 || 0, set3_team2: data.set3_team2 || 0,
+        set4_team1: data.set4_team1 || 0, set4_team2: data.set4_team2 || 0,
+        set5_team1: data.set5_team1 || 0, set5_team2: data.set5_team2 || 0,
         status: data.status,
       }).eq("id", matchId);
 
       if (data.status === "finished" && match.status !== "finished") {
-        const team1Wins = data.sets_team1 > data.sets_team2;
-        const points1 = team1Wins ? (data.sets_team2 === 0 ? 3 : data.sets_team2 === 1 ? 3 : 2) : (data.sets_team1 === 2 ? 1 : 0);
-        const points2 = !team1Wins ? (data.sets_team1 === 0 ? 3 : data.sets_team1 === 1 ? 3 : 2) : (data.sets_team2 === 2 ? 1 : 0);
+        const team1Wins = setsWon1 > setsWon2;
+        const points1 = team1Wins ? (setsWon2 === 0 ? 3 : setsWon2 === 1 ? 3 : 2) : (setsWon1 === 2 ? 1 : 0);
+        const points2 = !team1Wins ? (setsWon1 === 0 ? 3 : setsWon1 === 1 ? 3 : 2) : (setsWon2 === 2 ? 1 : 0);
 
         await supabase.from("teams").update({
           games_played: (team1?.games_played || 0) + 1,
           wins: (team1?.wins || 0) + (team1Wins ? 1 : 0),
           losses: (team1?.losses || 0) + (team1Wins ? 0 : 1),
-          sets_won: (team1?.sets_won || 0) + data.sets_team1,
-          sets_lost: (team1?.sets_lost || 0) + data.sets_team2,
+          sets_won: (team1?.sets_won || 0) + setsWon1,
+          sets_lost: (team1?.sets_lost || 0) + setsWon2,
           points: (team1?.points || 0) + points1,
+          balls_won: (team1?.balls_won || 0) + balls1,
+          balls_lost: (team1?.balls_lost || 0) + balls2,
         }).eq("id", match.team1_id);
 
         await supabase.from("teams").update({
           games_played: (team2?.games_played || 0) + 1,
           wins: (team2?.wins || 0) + (!team1Wins ? 1 : 0),
           losses: (team2?.losses || 0) + (!team1Wins ? 0 : 1),
-          sets_won: (team2?.sets_won || 0) + data.sets_team2,
-          sets_lost: (team2?.sets_lost || 0) + data.sets_team1,
+          sets_won: (team2?.sets_won || 0) + setsWon2,
+          sets_lost: (team2?.sets_lost || 0) + setsWon1,
           points: (team2?.points || 0) + points2,
+          balls_won: (team2?.balls_won || 0) + balls2,
+          balls_lost: (team2?.balls_lost || 0) + balls1,
         }).eq("id", match.team2_id);
       }
 
