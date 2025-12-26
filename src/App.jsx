@@ -48,7 +48,7 @@ const getUserRoles = (user, players, teams) => {
   if (isAdmin) roles.push("admin");
   if (isCoach) roles.push("coach");
   if (isCaptain) roles.push("captain");
-  if (isPlayer && !isCaptain) roles.push("player");
+  if (isPlayer) roles.push("player");
   if (isFan) roles.push("fan");
   
   return { isGuest: false, isFan, isPlayer, isCaptain, isCoach, isAdmin, roles, playerRecord };
@@ -1281,7 +1281,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
 
   const startEditUser = (u) => {
     setEditingUser(u);
-    setUserRole(u.role || "fan");
+    setUserRole(u.role === "admin" ? "admin" : "fan");
   };
 
   const saveUser = async () => {
@@ -1338,7 +1338,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
             ))}
           </div>
 
-          {/* Tours tab - НОВЫЙ */}
+          {/* Tours tab */}
           {tab === "tours" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
@@ -1490,7 +1490,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
             </>
           )}
 
-          {/* Videos tab - НОВЫЙ */}
+          {/* Videos tab */}
           {tab === "videos" && (
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Управление трансляциями и записями</h3>
@@ -1575,38 +1575,48 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
             </>
           )}
 
-          {/* Users tab */}
+          {/* Users tab - ИСПРАВЛЕННЫЙ */}
           {tab === "users" && (
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Управление пользователями ({users.length})</h3>
+              <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "16px" }}>
+                Роли вычисляются автоматически: Тренер — если назначен на команду, Капитан — если отмечен в составе, Игрок — если есть в players
+              </p>
               {users.map(u => {
                 const isEditing = editingUser?.id === u.id;
                 const userPlayerRecord = players.find(p => p.user_id === u.id);
                 const userCoachTeam = teams.find(t => t.coach_id === u.id);
                 
+                // Вычисляем все роли пользователя
                 const displayRoles = [];
                 if (u.role === "admin") displayRoles.push({ label: "Админ", variant: "admin" });
-                if (userCoachTeam) displayRoles.push({ label: "Тренер", variant: "gold" });
+                if (userCoachTeam) displayRoles.push({ label: `Тренер (${userCoachTeam.name})`, variant: "gold" });
                 if (userPlayerRecord?.is_captain) displayRoles.push({ label: "Капитан", variant: "captain" });
-                if (userPlayerRecord && !userPlayerRecord.is_captain) displayRoles.push({ label: "Игрок", variant: "free" });
+                if (userPlayerRecord) displayRoles.push({ label: "Игрок", variant: "free" });
                 if (displayRoles.length === 0) displayRoles.push({ label: "Болельщик", variant: "default" });
                 
                 return (
                   <Card key={u.id} style={{ marginBottom: "8px", padding: "12px" }}>
                     {isEditing ? (
                       <div>
-                        <div style={{ fontWeight: 600, marginBottom: "12px" }}>{u.first_name || u.username}</div>
-                        <Select label="Базовая роль" value={userRole} onChange={setUserRole}
+                        <div style={{ fontWeight: 600, marginBottom: "8px" }}>{u.first_name || u.username} {u.last_name || ""}</div>
+                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "12px" }}>
+                          {displayRoles.map((role, i) => (
+                            <Badge key={i} variant={role.variant}>{role.label}</Badge>
+                          ))}
+                        </div>
+                        <Select label="Права администратора" value={userRole} onChange={setUserRole}
                           options={[
-                            { value: "fan", label: "Болельщик" },
-                            { value: "player", label: "Игрок" },
-                            { value: "coach", label: "Тренер" },
+                            { value: "fan", label: "Обычный пользователь" },
                             { value: "admin", label: "Администратор" },
                           ]}
                         />
-                        <p style={{ fontSize: "12px", color: colors.goldDark, margin: "8px 0" }}>
-                          Капитан назначается через команду, тренер — через назначение на команду
-                        </p>
+                        <div style={{ fontSize: "12px", color: colors.goldDark, margin: "8px 0", padding: "8px", background: colors.gray, borderRadius: "6px" }}>
+                          <div style={{ marginBottom: "4px" }}>📌 Как назначить роли:</div>
+                          <div>• <strong>Игрок</strong> — создать запись в players</div>
+                          <div>• <strong>Капитан</strong> — отметить is_captain в players</div>
+                          <div>• <strong>Тренер</strong> — назначить на команду (вкладка Команды)</div>
+                        </div>
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                           <Button onClick={saveUser} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                             <Icons.Save /> Сохранить
@@ -1623,7 +1633,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
                           <div style={{ fontWeight: 600, fontSize: "14px" }}>{u.first_name || "—"} {u.last_name || ""}</div>
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>@{u.username || "—"}</div>
                         </div>
-                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", maxWidth: "200px", justifyContent: "flex-end" }}>
                           {displayRoles.map((role, i) => (
                             <Badge key={i} variant={role.variant}>{role.label}</Badge>
                           ))}
@@ -1639,10 +1649,13 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
             </>
           )}
 
-          {/* Teams tab */}
+          {/* Teams tab - ИСПРАВЛЕННЫЙ */}
           {tab === "teams" && (
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Управление командами ({teams.length})</h3>
+              <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "16px" }}>
+                Назначьте тренера для команды. Любой пользователь может быть тренером.
+              </p>
               {teams.map(team => {
                 const coach = users.find(u => u.id === team.coach_id);
                 const isEditing = editingTeam?.id === team.id;
@@ -1654,12 +1667,12 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
                     {isEditing ? (
                       <div>
                         <div style={{ fontWeight: 600, marginBottom: "12px" }}>{team.name}</div>
-                        <Select label="Тренер" value={teamCoach} onChange={setTeamCoach}
+                        <Select label="Тренер команды" value={teamCoach} onChange={setTeamCoach}
                           options={[
                             { value: "", label: "Не назначен" },
-                            ...users.filter(u => u.role === "coach" || u.role === "admin").map(u => ({
+                            ...users.map(u => ({
                               value: u.id,
-                              label: `${u.first_name || u.username} ${u.last_name || ""}`.trim()
+                              label: `${u.first_name || u.username || "—"} ${u.last_name || ""}`.trim()
                             }))
                           ]}
                         />
@@ -1681,7 +1694,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 600, fontSize: "14px" }}>{team.name}</div>
                             <div style={{ fontSize: "12px", color: colors.goldDark }}>
-                              Тренер: {coach ? `${coach.first_name || coach.username}` : "Не назначен"} • {teamPlayers.length} игроков
+                              Тренер: {coach ? `${coach.first_name || coach.username} ${coach.last_name || ""}`.trim() : "Не назначен"} • {teamPlayers.length} игроков
                             </div>
                           </div>
                           <button 
@@ -1987,14 +2000,6 @@ export default function MTKCupApp() {
     try {
       setActionLoading(true);
       await supabase.from("users").update({ role }).eq("id", userId);
-      
-      if (role === "player") {
-        const existingPlayer = players.find(p => p.user_id === userId);
-        if (!existingPlayer) {
-          await supabase.from("players").insert({ user_id: userId, is_free_agent: true });
-        }
-      }
-      
       await loadData();
       alert("Роль обновлена!");
     } catch (error) {
@@ -2019,7 +2024,7 @@ export default function MTKCupApp() {
     }
   };
 
-  // NEW: Create tour
+  // Create tour
   const handleCreateTour = async (tourData) => {
     try {
       setActionLoading(true);
@@ -2040,7 +2045,7 @@ export default function MTKCupApp() {
     }
   };
 
-  // NEW: Create match
+  // Create match
   const handleCreateMatch = async (matchData) => {
     try {
       setActionLoading(true);
@@ -2064,7 +2069,7 @@ export default function MTKCupApp() {
     }
   };
 
-  // NEW: Update match video URLs
+  // Update match video URLs
   const handleUpdateMatchVideo = async (matchId, videoData) => {
     try {
       setActionLoading(true);
