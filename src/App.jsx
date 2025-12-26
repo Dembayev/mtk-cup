@@ -39,7 +39,15 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: user.telegram_id, text: message })
+          body: JSON.stringify({ 
+            chat_id: user.telegram_id, 
+            text: message,
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "📱 Открыть приложение", web_app: { url: "https://mtk-cup.vercel.app" } }
+              ]]
+            }
+          })
         });
       } catch (e) {
         console.error("Failed to send notification:", e);
