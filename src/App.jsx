@@ -1012,7 +1012,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   );
 };
 
-const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam }) => {
+const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerStats, matches }) => {
   const team = teams.find(t => t.id === player?.team_id);
   
   const getAge = (birthDate) => {
@@ -1026,6 +1026,28 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam }) => {
   };
   
   const age = getAge(player?.birth_date);
+  
+  // Агрегируем статистику игрока
+  const stats = (playerStats || []).filter(s => s.player_id === player?.id);
+  const totalStats = stats.reduce((acc, s) => ({
+    games: acc.games + 1,
+    aces: acc.aces + (s.aces || 0),
+    serve_errors: acc.serve_errors + (s.serve_errors || 0),
+    receive_errors: acc.receive_errors + (s.receive_errors || 0),
+    attack_points: acc.attack_points + (s.attack_points || 0),
+    attack_errors: acc.attack_errors + (s.attack_errors || 0),
+    block_points: acc.block_points + (s.block_points || 0),
+    block_errors: acc.block_errors + (s.block_errors || 0),
+  }), { games: 0, aces: 0, serve_errors: 0, receive_errors: 0, attack_points: 0, attack_errors: 0, block_points: 0, block_errors: 0 });
+  
+  // Считаем победы/поражения
+  const playerMatches = stats.map(s => matches?.find(m => m.id === s.match_id)).filter(Boolean);
+  const wins = playerMatches.filter(m => {
+    if (m.status !== "finished") return false;
+    const isTeam1 = m.team1_id === player?.team_id;
+    return isTeam1 ? m.sets_team1 > m.sets_team2 : m.sets_team2 > m.sets_team1;
+  }).length;
+  const losses = totalStats.games - wins;
   
   return (
     <div style={{ paddingBottom: "100px" }}>
@@ -1098,6 +1120,51 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam }) => {
                 </div>
               )}
             </div>
+          </Card>
+
+          {/* Статистика */}
+          <Card style={{ marginBottom: "20px" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>СТАТИСТИКА</h3>
+            {totalStats.games > 0 ? (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", textAlign: "center", marginBottom: "16px" }}>
+                  <div>
+                    <div style={{ fontSize: "24px", fontWeight: 700 }}>{totalStats.games}</div>
+                    <div style={{ fontSize: "11px", color: colors.goldDark }}>Игр</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "24px", fontWeight: 700, color: "#16a34a" }}>{wins}</div>
+                    <div style={{ fontSize: "11px", color: colors.goldDark }}>Побед</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "24px", fontWeight: 700, color: "#dc2626" }}>{losses}</div>
+                    <div style={{ fontSize: "11px", color: colors.goldDark }}>Поражений</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+                    <span style={{ color: colors.goldDark }}>Подача</span>
+                    <span><span style={{ color: "#16a34a", fontWeight: 600 }}>{totalStats.aces} эйсов</span> / <span style={{ color: "#dc2626" }}>{totalStats.serve_errors} ош.</span></span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+                    <span style={{ color: colors.goldDark }}>Приём</span>
+                    <span style={{ color: "#dc2626" }}>{totalStats.receive_errors} ошибок</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+                    <span style={{ color: colors.goldDark }}>Атака</span>
+                    <span><span style={{ color: "#16a34a", fontWeight: 600 }}>{totalStats.attack_points} очков</span> / <span style={{ color: "#dc2626" }}>{totalStats.attack_errors} ош.</span></span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+                    <span style={{ color: colors.goldDark }}>Блок</span>
+                    <span><span style={{ color: "#16a34a", fontWeight: 600 }}>{totalStats.block_points} очков</span> / <span style={{ color: "#dc2626" }}>{totalStats.block_errors} ош.</span></span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", color: colors.goldDark, padding: "12px 0" }}>
+                Статистика пока не заполнена
+              </div>
+            )}
           </Card>
 
           {player?.bio && (
@@ -2002,6 +2069,7 @@ export default function MTKCupApp() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [playerStats, setPlayerStats] = useState([]);
 
   const userRoles = getUserRoles(user, players, teams);
   const currentPlayer = userRoles.playerRecord;
@@ -2031,6 +2099,7 @@ export default function MTKCupApp() {
       const { data: playersData } = await supabase.from("players").select("*");
       const { data: usersData } = await supabase.from("users").select("*");
       const { data: offersData } = await supabase.from("offers").select("*").order("created_at", { ascending: false });
+      const { data: playerStatsData } = await supabase.from("player_stats").select("*");
 
       const playersWithDetails = (playersData || []).map(player => ({
         ...player,
@@ -2044,6 +2113,7 @@ export default function MTKCupApp() {
       setPlayers(playersWithDetails);
       setOffers(offersData || []);
       setUsers(usersData || []);
+      setPlayerStats(playerStatsData || []);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -2385,7 +2455,7 @@ export default function MTKCupApp() {
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} />;
-      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} />;
+      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} />;
