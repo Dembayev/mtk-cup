@@ -19,7 +19,7 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
     const { data: users } = await supabase
       .from("users")
       .select("telegram_id")
-      .eq(notifyField, true)
+      .not(notifyField, "eq", false)
       .not("telegram_id", "is", null);
     
     if (!users || users.length === 0) return;
