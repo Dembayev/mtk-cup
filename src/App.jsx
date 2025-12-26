@@ -1420,8 +1420,103 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   );
 };
 
+// Player Stat Input Component
+const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [stat, setStat] = useState({
+    aces: existingStat?.aces || 0,
+    serve_errors: existingStat?.serve_errors || 0,
+    receive_errors: existingStat?.receive_errors || 0,
+    attack_points: existingStat?.attack_points || 0,
+    attack_errors: existingStat?.attack_errors || 0,
+    block_points: existingStat?.block_points || 0,
+    block_errors: existingStat?.block_errors || 0,
+  });
+  
+  const handleSave = async () => {
+    await onSave(player.id, matchId, stat, existingStat?.id);
+    setIsEditing(false);
+  };
+  
+  const StatField = ({ label, field, color }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
+      <input 
+        type="number" 
+        min="0" 
+        value={stat[field]} 
+        onChange={e => setStat(prev => ({ ...prev, [field]: parseInt(e.target.value) || 0 }))}
+        style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
+      />
+    </div>
+  );
+  
+  if (!isEditing) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+        <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
+        <span style={{ fontSize: "13px", flex: 1 }}>{player.users?.first_name || player.users?.username}</span>
+        {existingStat ? (
+          <span style={{ fontSize: "11px", color: colors.goldDark }}>
+            А:{existingStat.aces}/{existingStat.serve_errors} | Ат:{existingStat.attack_points}/{existingStat.attack_errors} | Б:{existingStat.block_points}
+          </span>
+        ) : (
+          <span style={{ fontSize: "11px", color: colors.goldDark }}>—</span>
+        )}
+        <button onClick={() => setIsEditing(true)} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }}>
+          <Icons.Edit />
+        </button>
+      </div>
+    );
+  }
+  
+  return (
+    <div style={{ padding: "12px", background: colors.gray, borderRadius: "8px", marginBottom: "8px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+        <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
+        <span style={{ fontSize: "13px", fontWeight: 600 }}>{player.users?.first_name || player.users?.username}</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+        <div>
+          <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Подача</div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <StatField label="Эйс" field="aces" />
+            <StatField label="Ош" field="serve_errors" />
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Приём</div>
+          <StatField label="Ош" field="receive_errors" />
+        </div>
+        <div>
+          <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Атака</div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <StatField label="Очк" field="attack_points" />
+            <StatField label="Ош" field="attack_errors" />
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Блок</div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <StatField label="Очк" field="block_points" />
+            <StatField label="Ош" field="block_errors" />
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <Button onClick={handleSave} style={{ flex: 1, padding: "8px", fontSize: "12px" }}>
+          <Icons.Save /> Сохранить
+        </Button>
+        <Button variant="outline" onClick={() => setIsEditing(false)} style={{ padding: "8px", fontSize: "12px" }}>
+          Отмена
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, actionLoading, loadData }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, actionLoading, loadData }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -1434,6 +1529,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
   const [editingTeam, setEditingTeam] = useState(null);
   const [teamCoach, setTeamCoach] = useState("");
   const [expandedTeam, setExpandedTeam] = useState(null);
+  const [expandedMatch, setExpandedMatch] = useState(null);
   
   // Создание тура
   const [showCreateTour, setShowCreateTour] = useState(false);
@@ -1520,6 +1616,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
             {[
               { id: "tours", label: "Туры" },
               { id: "matches", label: "Матчи" },
+              { id: "stats", label: "Статистика" },
               { id: "videos", label: "Видео" },
               { id: "users", label: "Пользователи" },
               { id: "teams", label: "Команды" },
@@ -1713,7 +1810,90 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, onUpdat
             </>
           )}
 
-          {/* Videos tab */}
+          
+          {/* Stats tab */}
+          {tab === "stats" && (
+            <>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Статистика игроков по матчам</h3>
+              <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "16px" }}>
+                Выберите матч и введите статистику для каждого игрока
+              </p>
+              
+              {tours.map(tour => {
+                const tourMatches = matches.filter(m => m.tour_id === tour.id && m.status === "finished");
+                if (tourMatches.length === 0) return null;
+                return (
+                  <div key={tour.id} style={{ marginBottom: "20px" }}>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>
+                      Тур {tour.number}
+                    </div>
+                    {tourMatches.map(match => {
+                      const team1 = teams.find(t => t.id === match.team1_id);
+                      const team2 = teams.find(t => t.id === match.team2_id);
+                      const team1Players = players.filter(p => p.team_id === match.team1_id);
+                      const team2Players = players.filter(p => p.team_id === match.team2_id);
+                      const isExpanded = expandedMatch === match.id;
+                      
+                      return (
+                        <Card key={match.id} style={{ marginBottom: "8px", padding: "12px" }}>
+                          <div 
+                            style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}
+                            onClick={() => setExpandedMatch(isExpanded ? null : match.id)}
+                          >
+                            <span style={{ flex: 1, fontSize: "14px", fontWeight: 600 }}>
+                              {team1?.name} {match.sets_team1}:{match.sets_team2} {team2?.name}
+                            </span>
+                            <span style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.2s" }}>
+                              <Icons.ChevronRight />
+                            </span>
+                          </div>
+                          
+                          {isExpanded && (
+                            <div style={{ marginTop: "16px", borderTop: `1px solid ${colors.grayBorder}`, paddingTop: "16px" }}>
+                              {/* Team 1 */}
+                              <div style={{ marginBottom: "16px" }}>
+                                <div style={{ fontSize: "13px", fontWeight: 600, color: colors.gold, marginBottom: "8px" }}>{team1?.name}</div>
+                                {team1Players.map(player => {
+                                  const existingStat = playerStats.find(s => s.player_id === player.id && s.match_id === match.id);
+                                  return (
+                                    <PlayerStatInput 
+                                      key={player.id}
+                                      player={player}
+                                      matchId={match.id}
+                                      existingStat={existingStat}
+                                      onSave={onSavePlayerStat}
+                                    />
+                                  );
+                                })}
+                              </div>
+                              {/* Team 2 */}
+                              <div>
+                                <div style={{ fontSize: "13px", fontWeight: 600, color: colors.gold, marginBottom: "8px" }}>{team2?.name}</div>
+                                {team2Players.map(player => {
+                                  const existingStat = playerStats.find(s => s.player_id === player.id && s.match_id === match.id);
+                                  return (
+                                    <PlayerStatInput 
+                                      key={player.id}
+                                      player={player}
+                                      matchId={match.id}
+                                      existingStat={existingStat}
+                                      onSave={onSavePlayerStat}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+{/* Videos tab */}
           {tab === "videos" && (
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Управление трансляциями и записями</h3>
@@ -2390,7 +2570,30 @@ export default function MTKCupApp() {
     }
   };
 
-  const handleTelegramLogin = async (tgUser) => {
+  
+  const handleSavePlayerStat = async (playerId, matchId, stat, existingId) => {
+    try {
+      setActionLoading(true);
+      if (existingId) {
+        await supabase.from("player_stats").update(stat).eq("id", existingId);
+      } else {
+        await supabase.from("player_stats").insert({
+          player_id: playerId,
+          match_id: matchId,
+          ...stat
+        });
+      }
+      await loadData();
+      alert("Статистика сохранена!");
+    } catch (error) {
+      console.error("Error saving player stat:", error);
+      alert("Ошибка сохранения статистики");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+const handleTelegramLogin = async (tgUser) => {
     try {
       const { data: existingUser } = await supabase.from("users").select("*").eq("telegram_id", tgUser.id).single();
       let currentUser;
@@ -2462,7 +2665,7 @@ export default function MTKCupApp() {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} actionLoading={actionLoading} loadData={loadData} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
   };
