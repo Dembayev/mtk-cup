@@ -952,8 +952,20 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   );
 };
 
-const PlayerDetailScreen = ({ setScreen, player, teams }) => {
+const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam }) => {
   const team = teams.find(t => t.id === player?.team_id);
+  
+  const getAge = (birthDate) => {
+    if (!birthDate) return null;
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  };
+  
+  const age = getAge(player?.birth_date);
   
   return (
     <div style={{ paddingBottom: "100px" }}>
@@ -976,12 +988,38 @@ const PlayerDetailScreen = ({ setScreen, player, teams }) => {
             </div>
           </Card>
 
+          {(player?.height || age) && (
+            <Card style={{ marginBottom: "20px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: player?.height && age ? "1fr 1fr" : "1fr", gap: "16px", textAlign: "center" }}>
+                {player?.height && (
+                  <div>
+                    <div style={{ fontSize: "28px", fontWeight: 700, color: colors.gold }}>{player.height}</div>
+                    <div style={{ fontSize: "12px", color: colors.goldDark }}>Рост (см)</div>
+                  </div>
+                )}
+                {age && (
+                  <div>
+                    <div style={{ fontSize: "28px", fontWeight: 700, color: colors.gold }}>{age}</div>
+                    <div style={{ fontSize: "12px", color: colors.goldDark }}>Возраст</div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
           <Card style={{ marginBottom: "20px" }}>
             <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>ИНФОРМАЦИЯ</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ color: colors.goldDark }}>Команда</span>
-                <span style={{ fontWeight: 600 }}>{team?.name || "Без команды"}</span>
+                {team ? (
+                  <span style={{ fontWeight: 600, cursor: "pointer", color: colors.gold, display: "flex", alignItems: "center", gap: "4px" }}
+                    onClick={() => { setSelectedTeam && setSelectedTeam(team); setScreen("teamDetail"); }}>
+                    {team.name} <Icons.ChevronRight />
+                  </span>
+                ) : (
+                  <span style={{ fontWeight: 600 }}>Без команды</span>
+                )}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: colors.goldDark }}>Амплуа</span>
@@ -993,8 +1031,27 @@ const PlayerDetailScreen = ({ setScreen, player, teams }) => {
                   <span style={{ fontWeight: 700, color: colors.gold }}>#{player.jersey_number}</span>
                 </div>
               )}
+              {player?.birth_date && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: colors.goldDark }}>Дата рождения</span>
+                  <span style={{ fontWeight: 600 }}>{new Date(player.birth_date).toLocaleDateString("ru-RU")}</span>
+                </div>
+              )}
             </div>
           </Card>
+
+          {player?.bio && (
+            <Card style={{ marginBottom: "20px" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>О СЕБЕ</h3>
+              <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: colors.text }}>{player.bio}</p>
+            </Card>
+          )}
+
+          {player?.users?.username && (
+            <Button variant="outline" onClick={() => window.open(`https://t.me/${player.users.username}`, '_blank')} style={{ width: "100%", marginTop: "8px" }}>
+              <Icons.Send /> Написать в Telegram
+            </Button>
+          )}
         </div>
       </Container>
     </div>
@@ -2171,7 +2228,7 @@ export default function MTKCupApp() {
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} />;
-      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} />;
+      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} />;
