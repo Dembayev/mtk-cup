@@ -699,30 +699,46 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
   );
 };
 
-const TeamsScreen = ({ setScreen, teams, setSelectedTeam }) => (
-  <div style={{ paddingBottom: "100px" }}>
-    <Header title="Команды" showBack onBack={() => setScreen("home")} />
-    <Container>
-      <div style={{ padding: "20px 0" }}>
-        <p style={{ color: colors.goldDark, marginBottom: "16px" }}>{teams.length} команд в турнире</p>
-        {teams.map(team => (
-          <Card key={team.id} onClick={() => { setSelectedTeam(team); setScreen("teamDetail"); }} style={{ marginBottom: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <div style={{ width: "56px", height: "56px", background: colors.goldLight, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px" }}>{team.logo_url || "🏐"}</div>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600 }}>{team.name}</h3>
-                <p style={{ margin: 0, fontSize: "13px", color: colors.goldDark }}>{team.wins}В {team.losses}П • {team.points} очков</p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "20px", fontWeight: 700, color: colors.gold }}>#{teams.indexOf(team) + 1}</div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </Container>
-  </div>
-);
+const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
+  // Сортируем: моя команда / любимая команда вверху
+  const sortedTeams = [...teams].sort((a, b) => {
+    const aIsMy = a.id === myTeamId || a.id === user?.favorite_team_id;
+    const bIsMy = b.id === myTeamId || b.id === user?.favorite_team_id;
+    if (aIsMy && !bIsMy) return -1;
+    if (!aIsMy && bIsMy) return 1;
+    return (b.points || 0) - (a.points || 0);
+  });
+  
+  return (
+    <div style={{ paddingBottom: "100px" }}>
+      <Header title="Команды" showBack onBack={() => setScreen("home")} />
+      <Container>
+        <div style={{ padding: "20px 0" }}>
+          <p style={{ color: colors.goldDark, marginBottom: "16px" }}>{teams.length} команд в турнире</p>
+          {sortedTeams.map((team, idx) => {
+            const isMy = team.id === myTeamId || team.id === user?.favorite_team_id;
+            return (
+              <Card key={team.id} onClick={() => { setSelectedTeam(team); setScreen("teamDetail"); }} style={{ marginBottom: "12px", border: isMy ? `2px solid ${colors.gold}` : "none" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  <div style={{ width: "56px", height: "56px", background: colors.goldLight, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px" }}>{team.logo_url || "🏐"}</div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600 }}>
+                      {team.name} {isMy && <span style={{ fontSize: "12px", color: colors.gold }}>★</span>}
+                    </h3>
+                    <p style={{ margin: 0, fontSize: "13px", color: colors.goldDark }}>{team.wins}В {team.losses}П • {team.points} очков</p>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "20px", fontWeight: 700, color: colors.gold }}>#{teams.sort((a,b) => (b.points||0)-(a.points||0)).indexOf(team) + 1}</div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </Container>
+    </div>
+  );
+}
 
 const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer }) => {
   const teamPlayers = players.filter(p => p.team_id === team?.id);
@@ -919,7 +935,7 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
   );
 };
 
-const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer }) => {
+const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId }) => {
   const [filter, setFilter] = useState("all");
   const [positionFilter, setPositionFilter] = useState("all");
   const [teamFilter, setTeamFilter] = useState("all");
@@ -932,6 +948,13 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
     if (positionFilter !== "all" && !p.positions?.includes(positionFilter)) return false;
     if (teamFilter !== "all" && p.team_id !== teamFilter) return false;
     return true;
+  }).sort((a, b) => {
+    // Мой игрок / игрок из моей команды вверху
+    const aIsMy = a.id === myPlayerId || a.team_id === user?.favorite_team_id;
+    const bIsMy = b.id === myPlayerId || b.team_id === user?.favorite_team_id;
+    if (aIsMy && !bIsMy) return -1;
+    if (!aIsMy && bIsMy) return 1;
+    return 0;
   });
   
   const hasPendingOffer = (playerId) => sentOffers.some(o => o.player_id === playerId && o.status === "pending");
@@ -2656,10 +2679,10 @@ const handleTelegramLogin = async (tgUser) => {
     switch (screen) {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
-      case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} />;
+      case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} />;
-      case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} />;
+      case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
