@@ -1552,6 +1552,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [editingTeam, setEditingTeam] = useState(null);
   const [teamCoach, setTeamCoach] = useState("");
   const [expandedTeam, setExpandedTeam] = useState(null);
+  const [teamMessage, setTeamMessage] = useState("");
   const [expandedMatch, setExpandedMatch] = useState(null);
   
   // Создание тура
@@ -2153,6 +2154,41 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             )) : (
                               <div style={{ fontSize: "13px", color: colors.goldDark, fontStyle: "italic" }}>Нет игроков</div>
                             )}
+                            
+                            {/* Массовая рассылка команде */}
+                            <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: `1px solid ${colors.grayBorder}` }}>
+                              <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>📢 Отправить сообщение команде:</div>
+                              <textarea
+                                value={teamMessage}
+                                onChange={e => setTeamMessage(e.target.value)}
+                                placeholder="Введите сообщение для всех игроков команды..."
+                                style={{ 
+                                  width: "100%", 
+                                  minHeight: "60px", 
+                                  padding: "10px", 
+                                  borderRadius: "8px", 
+                                  border: `1px solid ${colors.grayBorder}`,
+                                  fontSize: "13px",
+                                  resize: "vertical",
+                                  boxSizing: "border-box"
+                                }}
+                              />
+                              <Button 
+                                onClick={async () => {
+                                  if (!teamMessage.trim()) {
+                                    alert("Введите сообщение");
+                                    return;
+                                  }
+                                  const result = await sendTeamMessage(team.id, team.name, teamMessage);
+                                  setTeamMessage("");
+                                  alert(`Отправлено: ${result.sent}, ошибок: ${result.failed}`);
+                                }}
+                                style={{ marginTop: "8px", width: "100%", padding: "10px" }}
+                                disabled={!teamMessage.trim()}
+                              >
+                                <Icons.Send /> Отправить всем ({teamPlayers.length})
+                              </Button>
+                            </div>
                           </div>
                         )}
                       </div>
