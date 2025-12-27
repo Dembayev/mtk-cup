@@ -1539,7 +1539,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, actionLoading, loadData }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, actionLoading, loadData }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -2038,11 +2038,19 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             { value: "admin", label: "Администратор" },
                           ]}
                         />
+                        {!userPlayerRecord && (
+                          <Button 
+                            onClick={() => onMakePlayer(u.id)} 
+                            disabled={actionLoading}
+                            style={{ width: "100%", marginBottom: "8px", background: "#16a34a" }}
+                          >
+                            🏐 Сделать игроком (свободный агент)
+                          </Button>
+                        )}
                         <div style={{ fontSize: "12px", color: colors.goldDark, margin: "8px 0", padding: "8px", background: colors.gray, borderRadius: "6px" }}>
-                          <div style={{ marginBottom: "4px" }}>📌 Как назначить роли:</div>
-                          <div>• <strong>Игрок</strong> — создать запись в players</div>
-                          <div>• <strong>Капитан</strong> — отметить is_captain в players</div>
+                          <div style={{ marginBottom: "4px" }}>📌 Роли:</div>
                           <div>• <strong>Тренер</strong> — назначить на команду (вкладка Команды)</div>
+                          <div>• <strong>Капитан</strong> — назначить в составе команды</div>
                         </div>
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                           <Button onClick={saveUser} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
@@ -2534,6 +2542,32 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleMakePlayer = async (userId) => {
+    try {
+      setActionLoading(true);
+      // Проверяем, нет ли уже записи
+      const existing = players.find(p => p.user_id === userId);
+      if (existing) {
+        alert("Пользователь уже является игроком");
+        return;
+      }
+      // Создаём запись в players как свободный агент
+      await supabase.from("players").insert({
+        user_id: userId,
+        is_free_agent: true,
+        is_captain: false,
+        positions: [],
+      });
+      await loadData();
+      alert("Пользователь добавлен как свободный игрок!");
+    } catch (error) {
+      console.error("Error making player:", error);
+      alert("Ошибка создания игрока");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleAssignCoach = async (teamId, coachId) => {
     try {
       setActionLoading(true);
@@ -2724,7 +2758,7 @@ const handleTelegramLogin = async (tgUser) => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} actionLoading={actionLoading} loadData={loadData} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
   };
