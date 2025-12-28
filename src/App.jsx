@@ -90,7 +90,7 @@ const sendTeamMessage = async (teamId, teamName, message) => {
     
     const fullMessage = `📢 СООБЩЕНИЕ КОМАНДЕ "${teamName}"\n\n${message}`;
     
-    let sent = 0, failed = 0;
+    let sent = 0, failed = 0, lastError = "";
     for (const user of users) {
       if (!user.telegram_id) continue;
       try {
@@ -110,13 +110,13 @@ const sendTeamMessage = async (teamId, teamName, message) => {
         });
         const result = await response.json();
         console.log("Telegram response:", result);
-        if (response.ok) sent++; else failed++;
+        if (response.ok) sent++; else { failed++; lastError = result.description || "unknown"; }
       } catch (e) {
         console.error("Send error:", e);
         failed++;
       }
     }
-    return { sent, failed, playersFound: teamPlayers.length, usersFound: users.length, debug: "ok" };
+    return { sent, failed, playersFound: teamPlayers.length, usersFound: users.length, debug: lastError || "ok" };
   } catch (error) {
     console.error("Error sending team message:", error);
     return { sent: 0, failed: 0 };
