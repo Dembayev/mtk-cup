@@ -363,7 +363,7 @@ const Header = ({ title, showBack, onBack, rightElement }) => (
 const NavBar = ({ active, setScreen }) => {
   const items = [
     { id: "home", icon: Icons.Home, label: "Главная" },
-    { id: "teams", icon: Icons.Users, label: "Команды" },
+    { id: "teams", icon: Icons.Team, label: "Команды" },
     { id: "schedule", icon: Icons.Calendar, label: "Матчи" },
     { id: "table", icon: Icons.Trophy, label: "Таблица" },
     { id: "players", icon: Icons.Zap, label: "Игроки" },
