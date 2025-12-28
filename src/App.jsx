@@ -2778,7 +2778,8 @@ export default function MTKCupApp() {
       await supabase.from("users").update({ 
         role, 
         first_name: firstName,
-        last_name: lastName 
+        last_name: lastName,
+        name_edited_by_admin: true
       }).eq("id", userId);
       await loadData();
       alert("Пользователь обновлён!");
@@ -2940,11 +2941,15 @@ const handleTelegramLogin = async (tgUser) => {
       let currentUser;
       let isNewUser = false;
       if (existingUser) {
-        const { data: updatedUser } = await supabase.from("users").update({
-          first_name: tgUser.first_name || existingUser.first_name,
-          last_name: tgUser.last_name || "",
+        // Не перезаписываем имя если его редактировал админ
+        const updateData = {
           username: tgUser.username || existingUser.username,
-        }).eq("id", existingUser.id).select().single();
+        };
+        if (!existingUser.name_edited_by_admin) {
+          updateData.first_name = tgUser.first_name || existingUser.first_name;
+          updateData.last_name = tgUser.last_name || "";
+        }
+        const { data: updatedUser } = await supabase.from("users").update(updateData).eq("id", existingUser.id).select().single();
         currentUser = updatedUser || existingUser;
       } else {
         isNewUser = true;
