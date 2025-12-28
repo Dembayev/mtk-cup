@@ -2437,7 +2437,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   );
 };
 
-const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest }) => {
+const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone }) => {
   const displayName = getDisplayName(user);
   const [showNotifySettings, setShowNotifySettings] = useState(false);
   const [notifySettings, setNotifySettings] = useState({
@@ -2472,9 +2472,24 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
             <div style={{ marginTop: "16px" }}>
               <h2 style={{ margin: "0 0 4px", fontSize: "22px", fontWeight: 700 }}>{isGuest ? "Гость" : (user?.first_name ? `${user.first_name} ${user.last_name || ""}` : `@${user?.username || "user"}`)}</h2>
               {user?.username && user?.first_name && <p style={{ margin: "0 0 12px", color: colors.goldDark, fontSize: "14px" }}>@{user.username}</p>}
+              {user?.phone && <p style={{ margin: "0 0 12px", color: colors.goldDark, fontSize: "14px" }}>📞 {user.phone}</p>}
               <RoleBadges roles={userRoles.roles} />
             </div>
           </Card>
+
+          {/* Кнопка добавления номера телефона */}
+          {!isGuest && isTelegram && !user?.phone && (
+            <Card onClick={onRequestPhone} style={{ marginBottom: "20px", cursor: "pointer", background: colors.goldLight }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "40px", height: "40px", background: colors.gold, borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "18px" }}>📱</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600 }}>Добавить номер телефона</div>
+                  <div style={{ fontSize: "13px", color: colors.goldDark }}>Для связи с организаторами</div>
+                </div>
+                <Icons.ChevronRight />
+              </div>
+            </Card>
+          )}
 
           {userRoles.isAdmin && (
             <Card onClick={() => setScreen("admin")} style={{ marginBottom: "20px", cursor: "pointer" }}>
@@ -2705,6 +2720,29 @@ export default function MTKCupApp() {
       setUser(prev => ({ ...prev, [field]: value }));
     } catch (error) {
       console.error("Error updating notifications:", error);
+    }
+  };
+
+  const handleRequestPhone = async () => {
+    if (!tg) {
+      alert("Эта функция доступна только в Telegram");
+      return;
+    }
+    try {
+      // Запрашиваем контакт через Telegram WebApp API
+      tg.requestContact && tg.requestContact((success, event) => {
+        if (success && event?.responseUnsafe?.contact) {
+          const phone = event.responseUnsafe.contact.phone_number;
+          // Сохраняем в базу
+          supabase.from("users").update({ phone }).eq("id", user.id).then(() => {
+            setUser(prev => ({ ...prev, phone }));
+            alert("Номер телефона сохранён!");
+          });
+        }
+      });
+    } catch (error) {
+      console.error("Error requesting phone:", error);
+      alert("Не удалось запросить номер телефона");
     }
   };
 
@@ -3129,7 +3167,7 @@ const handleGuest = () => {
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
-      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} />;
+      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} />;
       case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
