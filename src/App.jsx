@@ -2251,7 +2251,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                   }
                                   const result = await sendTeamMessage(team.id, team.name, teamMessage);
                                   setTeamMessage("");
-                                  alert(`Отправлено: ${result.sent}, ошибок: ${result.failed}\nИгроков найдено: ${result.playersFound || 0}\nС telegram_id: ${result.usersFound || 0}\nОтладка: ${result.debug || ""}`);
+                                  alert(`Сообщение отправлено: ${result.sent} из ${result.usersFound || 0}`);
                                 }}
                                 style={{ marginTop: "8px", width: "100%", padding: "10px" }}
                                 disabled={!teamMessage.trim()}
