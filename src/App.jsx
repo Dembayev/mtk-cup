@@ -562,6 +562,75 @@ const Select = ({ label, value, onChange, options }) => (
 );
 
 // Screens
+// Onboarding Screen - выбор роли при первом входе
+const OnboardingScreen = ({ user, onComplete, onSubmitRequest }) => {
+  const [selectedRole, setSelectedRole] = useState("fan");
+  const [loading, setLoading] = useState(false);
+  
+  const handleSubmit = async () => {
+    setLoading(true);
+    if (selectedRole === "fan") {
+      await onComplete();
+    } else {
+      await onSubmitRequest(selectedRole);
+    }
+    setLoading(false);
+  };
+  
+  return (
+    <div style={{ minHeight: "100vh", background: colors.bg, padding: "20px" }}>
+      <Container>
+        <div style={{ paddingTop: "40px", textAlign: "center" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🏐</div>
+          <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "8px" }}>Добро пожаловать!</h1>
+          <p style={{ color: colors.goldDark, marginBottom: "32px" }}>
+            {user?.first_name || user?.username}, выберите вашу роль в турнире
+          </p>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "32px" }}>
+            {[
+              { id: "fan", icon: "👀", title: "Болельщик", desc: "Следить за матчами и командами" },
+              { id: "player", icon: "🏃", title: "Игрок", desc: "Участвовать в турнире (требует одобрения)" },
+              { id: "coach", icon: "📋", title: "Тренер", desc: "Управлять командой (требует одобрения)" },
+            ].map(role => (
+              <Card 
+                key={role.id}
+                onClick={() => setSelectedRole(role.id)}
+                style={{ 
+                  cursor: "pointer",
+                  border: selectedRole === role.id ? `2px solid ${colors.gold}` : `1px solid ${colors.grayBorder}`,
+                  background: selectedRole === role.id ? colors.goldLight : colors.bg,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  <div style={{ fontSize: "32px" }}>{role.icon}</div>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontWeight: 600, fontSize: "16px" }}>{role.title}</div>
+                    <div style={{ fontSize: "13px", color: colors.goldDark }}>{role.desc}</div>
+                  </div>
+                  {selectedRole === role.id && (
+                    <div style={{ marginLeft: "auto", color: colors.gold, fontSize: "20px" }}>✓</div>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+          
+          {selectedRole !== "fan" && (
+            <div style={{ background: colors.gray, padding: "12px", borderRadius: "8px", marginBottom: "16px", fontSize: "13px", color: colors.goldDark }}>
+              ℹ️ Заявка на роль "{selectedRole === "player" ? "Игрок" : "Тренер"}" будет отправлена администратору на одобрение
+            </div>
+          )}
+          
+          <Button onClick={handleSubmit} disabled={loading} style={{ width: "100%" }}>
+            {loading ? "Отправка..." : selectedRole === "fan" ? "Продолжить" : "Отправить заявку"}
+          </Button>
+        </div>
+      </Container>
+    </div>
+  );
+};
+
 const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => (
   <div style={{
     minHeight: "100vh",
@@ -1601,7 +1670,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, actionLoading, loadData }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onApproveRequest, onRejectRequest, actionLoading, loadData }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -2067,6 +2136,54 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           {/* Users tab - ИСПРАВЛЕННЫЙ */}
           {tab === "users" && (
             <>
+              {/* Заявки на роль */}
+              {roleRequests.filter(r => r.status === "pending").length > 0 && (
+                <Card style={{ marginBottom: "20px", background: "#fef3c7", border: "1px solid #f59e0b" }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px", color: "#92400e" }}>
+                    📋 Заявки на роль ({roleRequests.filter(r => r.status === "pending").length})
+                  </h3>
+                  {roleRequests.filter(r => r.status === "pending").map(request => {
+                    const requestUser = users.find(u => u.id === request.user_id);
+                    return (
+                      <div key={request.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "white", borderRadius: "8px", marginBottom: "8px" }}>
+                        <Avatar name={requestUser?.first_name || requestUser?.username} size={40} url={requestUser?.avatar_url} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600 }}>{requestUser?.first_name || requestUser?.username} {requestUser?.last_name || ""}</div>
+                          <div style={{ fontSize: "12px", color: colors.goldDark }}>
+                            Хочет стать: <strong>{request.requested_role === "player" ? "Игроком" : "Тренером"}</strong>
+                          </div>
+                          <div style={{ fontSize: "11px", color: colors.goldDark }}>
+                            {new Date(request.created_at).toLocaleDateString("ru-RU")}
+                          </div>
+                        </div>
+                        {requestUser?.username && (
+                          <button 
+                            onClick={() => window.open(`https://t.me/${requestUser.username}`, '_blank')}
+                            style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: "6px", padding: "6px 10px", fontSize: "12px", cursor: "pointer" }}
+                          >
+                            💬 Написать
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => onApproveRequest(request.id, request.user_id, request.requested_role)}
+                          disabled={actionLoading}
+                          style={{ background: "#16a34a", color: "white", border: "none", borderRadius: "6px", padding: "6px 12px", fontSize: "12px", cursor: "pointer" }}
+                        >
+                          ✓ Одобрить
+                        </button>
+                        <button 
+                          onClick={() => onRejectRequest(request.id)}
+                          disabled={actionLoading}
+                          style={{ background: "#dc2626", color: "white", border: "none", borderRadius: "6px", padding: "6px 12px", fontSize: "12px", cursor: "pointer" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                </Card>
+              )}
+              
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Управление пользователями ({users.length})</h3>
               <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "16px" }}>
                 Роли вычисляются автоматически: Тренер — если назначен на команду, Капитан — если отмечен в составе, Игрок — если есть в players
@@ -2379,6 +2496,8 @@ export default function MTKCupApp() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [playerStats, setPlayerStats] = useState([]);
+  const [roleRequests, setRoleRequests] = useState([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const userRoles = getUserRoles(user, players, teams);
   const currentPlayer = userRoles.playerRecord;
@@ -2409,6 +2528,7 @@ export default function MTKCupApp() {
       const { data: usersData } = await supabase.from("users").select("*");
       const { data: offersData } = await supabase.from("offers").select("*").order("created_at", { ascending: false });
       const { data: playerStatsData } = await supabase.from("player_stats").select("*");
+      const { data: roleRequestsData } = await supabase.from("role_requests").select("*").order("created_at", { ascending: false });
 
       const playersWithDetails = (playersData || []).map(player => ({
         ...player,
@@ -2423,6 +2543,7 @@ export default function MTKCupApp() {
       setOffers(offersData || []);
       setUsers(usersData || []);
       setPlayerStats(playerStatsData || []);
+      setRoleRequests(roleRequestsData || []);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -2752,6 +2873,7 @@ const handleTelegramLogin = async (tgUser) => {
     try {
       const { data: existingUser } = await supabase.from("users").select("*").eq("telegram_id", tgUser.id).single();
       let currentUser;
+      let isNewUser = false;
       if (existingUser) {
         const { data: updatedUser } = await supabase.from("users").update({
           first_name: tgUser.first_name || existingUser.first_name,
@@ -2760,18 +2882,28 @@ const handleTelegramLogin = async (tgUser) => {
         }).eq("id", existingUser.id).select().single();
         currentUser = updatedUser || existingUser;
       } else {
+        isNewUser = true;
         const { data: newUser, error } = await supabase.from("users").insert({
           telegram_id: tgUser.id,
           username: tgUser.username,
           first_name: tgUser.first_name,
           last_name: tgUser.last_name || "",
           role: "fan",
+          onboarding_completed: false,
         }).select().single();
         if (!error) currentUser = newUser;
       }
       setUser(currentUser);
       setIsGuest(false);
-      setScreen("home");
+      
+      // Показываем онбординг новым пользователям
+      if (isNewUser || !currentUser?.onboarding_completed) {
+        setShowOnboarding(true);
+        setScreen("onboarding");
+      } else {
+        setScreen("home");
+      }
+      
       if (currentUser?.telegram_id) {
         syncAvatar(currentUser.telegram_id).then(avatarUrl => {
           if (avatarUrl) setUser(prev => ({ ...prev, avatar_url: avatarUrl }));
@@ -2794,7 +2926,87 @@ const handleTelegramLogin = async (tgUser) => {
     }
   };
 
-  const handleGuest = () => {
+  
+  // Завершение онбординга (для болельщика)
+  const handleCompleteOnboarding = async () => {
+    if (!user?.id) return;
+    await supabase.from("users").update({ onboarding_completed: true }).eq("id", user.id);
+    setUser(prev => ({ ...prev, onboarding_completed: true }));
+    setShowOnboarding(false);
+    setScreen("home");
+  };
+
+  // Отправка заявки на роль
+  const handleSubmitRoleRequest = async (requestedRole) => {
+    if (!user?.id) return;
+    await supabase.from("role_requests").insert({
+      user_id: user.id,
+      requested_role: requestedRole,
+      status: "pending",
+    });
+    await supabase.from("users").update({ onboarding_completed: true }).eq("id", user.id);
+    setUser(prev => ({ ...prev, onboarding_completed: true }));
+    setShowOnboarding(false);
+    setScreen("home");
+    await loadData();
+    alert("Заявка отправлена! Ожидайте одобрения администратора.");
+  };
+
+  // Одобрение заявки (для админа)
+  const handleApproveRoleRequest = async (requestId, userId, role) => {
+    try {
+      setActionLoading(true);
+      // Обновляем статус заявки
+      await supabase.from("role_requests").update({ 
+        status: "approved", 
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user?.id 
+      }).eq("id", requestId);
+      
+      // Создаём игрока или назначаем тренера
+      if (role === "player") {
+        const existing = players.find(p => p.user_id === userId);
+        if (!existing) {
+          await supabase.from("players").insert({
+            user_id: userId,
+            is_free_agent: true,
+            is_captain: false,
+            positions: [],
+          });
+        }
+      }
+      // Для тренера - нужно будет назначить на команду отдельно
+      
+      await loadData();
+      alert("Заявка одобрена!");
+    } catch (error) {
+      console.error("Error approving request:", error);
+      alert("Ошибка");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Отклонение заявки
+  const handleRejectRoleRequest = async (requestId) => {
+    try {
+      setActionLoading(true);
+      await supabase.from("role_requests").update({ 
+        status: "rejected",
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user?.id
+      }).eq("id", requestId);
+      await loadData();
+      alert("Заявка отклонена");
+    } catch (error) {
+      console.error("Error rejecting request:", error);
+      alert("Ошибка");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+const handleGuest = () => {
     setUser({ first_name: "Гость", role: "fan" });
     setIsGuest(true);
     setScreen("home");
@@ -2810,6 +3022,7 @@ const handleTelegramLogin = async (tgUser) => {
     if (loading && screen !== "welcome") return <Loading />;
     switch (screen) {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
+      case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} />;
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} />;
@@ -2820,7 +3033,7 @@ const handleTelegramLogin = async (tgUser) => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} actionLoading={actionLoading} loadData={loadData} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
   };
