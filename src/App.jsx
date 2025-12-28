@@ -913,7 +913,7 @@ const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, o
               <Badge variant="gold">{team?.points || 0} очков</Badge>
             </div>
             {userRoles?.isFan && user?.favorite_team_id === team?.id && (
-              <Badge variant="gold" style={{ marginTop: "12px" }}>💛 Любимая команда</Badge>
+              <div style={{ marginTop: "16px" }}><Badge variant="gold">💛 Любимая команда</Badge></div>
             )}
             {userRoles?.isFan && user?.favorite_team_id !== team?.id && onSelectFavoriteTeam && (
               <Button 
