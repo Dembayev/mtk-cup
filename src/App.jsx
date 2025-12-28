@@ -340,7 +340,7 @@ const Icons = {
 // Components
 const Header = ({ title, showBack, onBack, rightElement }) => (
   <div style={{
-    padding: "16px 20px",
+    padding: "16px 20px", paddingTop: "50px",
     borderBottom: `1px solid ${colors.grayBorder}`,
     display: "flex",
     alignItems: "center",
@@ -898,7 +898,7 @@ const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
   );
 }
 
-const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer }) => {
+const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles }) => {
   const teamPlayers = players.filter(p => p.team_id === team?.id);
   return (
     <div style={{ paddingBottom: "100px" }}>
@@ -912,6 +912,18 @@ const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer }) => {
               <Badge>{team?.games_played || 0} игр</Badge>
               <Badge variant="gold">{team?.points || 0} очков</Badge>
             </div>
+            {userRoles?.isFan && user?.favorite_team_id === team?.id && (
+              <Badge variant="gold" style={{ marginTop: "12px" }}>💛 Любимая команда</Badge>
+            )}
+            {userRoles?.isFan && user?.favorite_team_id !== team?.id && onSelectFavoriteTeam && (
+              <Button 
+                variant="outline" 
+                onClick={() => onSelectFavoriteTeam(team?.id)} 
+                style={{ marginTop: "12px", width: "100%" }}
+              >
+                💛 Сделать любимой
+              </Button>
+            )}
           </Card>
 
           <Card style={{ marginBottom: "20px" }}>
@@ -2494,6 +2506,20 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
             </Card>
           )}
 
+          {/* Кнопка написать организаторам */}
+          {!isGuest && (
+            <Card onClick={() => window.open("https://t.me/mtkcup", "_blank")} style={{ marginBottom: "20px", cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "40px", height: "40px", background: "#e0f2fe", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>✉️</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600 }}>Написать организаторам</div>
+                  <div style={{ fontSize: "13px", color: colors.goldDark }}>Связаться через Telegram</div>
+                </div>
+                <Icons.ChevronRight />
+              </div>
+            </Card>
+          )}
+
           {userRoles.isAdmin && (
             <Card onClick={() => setScreen("admin")} style={{ marginBottom: "20px", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -2552,7 +2578,6 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Уведомления</h3>
               <Card style={{ marginBottom: "20px" }}>
-                <Checkbox checked={notifySettings.notify_day_before} onChange={() => handleToggle("notify_day_before")} label="За 1 день до матча" />
                 <Checkbox checked={notifySettings.notify_hour_before} onChange={() => handleToggle("notify_hour_before")} label="За 1 час до матча" />
                 <Checkbox checked={notifySettings.notify_live} onChange={() => handleToggle("notify_live")} label="Начало матча (LIVE)" />
                 <Checkbox checked={notifySettings.notify_result} onChange={() => handleToggle("notify_result")} label="Результаты матчей" />
@@ -3183,7 +3208,7 @@ const handleGuest = () => {
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} />;
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
-      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} />;
+      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} />;
