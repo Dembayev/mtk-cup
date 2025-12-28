@@ -2897,7 +2897,7 @@ const handleTelegramLogin = async (tgUser) => {
       setIsGuest(false);
       
       // Показываем онбординг новым пользователям
-      if (isNewUser || !currentUser?.onboarding_completed) {
+      if (isNewUser || currentUser?.onboarding_completed === false) {
         setShowOnboarding(true);
         setScreen("onboarding");
       } else {
