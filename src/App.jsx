@@ -363,7 +363,7 @@ const Header = ({ title, showBack, onBack, rightElement }) => (
 const NavBar = ({ active, setScreen }) => {
   const items = [
     { id: "home", icon: Icons.Home, label: "Главная" },
-    { id: "myteam", icon: Icons.Heart, label: "Моя команда" },
+    { id: "teams", icon: Icons.Users, label: "Команды" },
     { id: "schedule", icon: Icons.Calendar, label: "Матчи" },
     { id: "table", icon: Icons.Trophy, label: "Таблица" },
     { id: "players", icon: Icons.Zap, label: "Игроки" },
@@ -1697,7 +1697,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onApproveRequest, onRejectRequest, actionLoading, loadData }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -2301,6 +2301,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         <button onClick={() => startEditUser(u)} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }}>
                           <Icons.Edit />
                         </button>
+                        <button onClick={() => onDeleteUser(u.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }}>
+                          <Icons.X />
+                        </button>
                       </div>
                     )}
                   </Card>
@@ -2882,6 +2885,26 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleDeleteUser = async (userId) => {
+    if (!confirm("Удалить пользователя? Это действие нельзя отменить.")) return;
+    try {
+      setActionLoading(true);
+      // Удаляем связанные записи
+      await supabase.from("role_requests").delete().eq("user_id", userId);
+      await supabase.from("players").delete().eq("user_id", userId);
+      await supabase.from("offers").delete().eq("player_id", userId);
+      // Удаляем пользователя
+      await supabase.from("users").delete().eq("id", userId);
+      await loadData();
+      alert("Пользователь удалён");
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Ошибка удаления");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleAssignCoach = async (teamId, coachId) => {
     try {
       setActionLoading(true);
@@ -3168,7 +3191,7 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
   };
