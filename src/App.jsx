@@ -62,6 +62,58 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
 };
 
 
+const sendTeamMessage = async (teamId, teamName, message) => {
+  try {
+    // Получаем игроков команды с их user данными
+    const { data: teamPlayers } = await supabase
+      .from("players")
+      .select("user_id")
+      .eq("team_id", teamId);
+    
+    if (!teamPlayers || teamPlayers.length === 0) return { sent: 0, failed: 0 };
+    
+    // Получаем telegram_id для каждого игрока
+    const userIds = teamPlayers.map(p => p.user_id).filter(Boolean);
+    const { data: users } = await supabase
+      .from("users")
+      .select("telegram_id")
+      .in("id", userIds)
+      .not("telegram_id", "is", null);
+    
+    if (!users || users.length === 0) return { sent: 0, failed: 0 };
+    
+    const fullMessage = `📢 СООБЩЕНИЕ КОМАНДЕ "${teamName}"\n\n${message}`;
+    
+    let sent = 0, failed = 0;
+    for (const user of users) {
+      if (!user.telegram_id) continue;
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            chat_id: user.telegram_id, 
+            text: fullMessage,
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "📱 Открыть приложение", web_app: { url: "https://mtk-cup.vercel.app" } }
+              ]]
+            }
+          })
+        });
+        if (response.ok) sent++; else failed++;
+      } catch (e) {
+        failed++;
+      }
+    }
+    return { sent, failed };
+  } catch (error) {
+    console.error("Error sending team message:", error);
+    return { sent: 0, failed: 0 };
+  }
+};
+
+
 // Color scheme
 const colors = {
   bg: "#FFFFFF",
