@@ -72,7 +72,7 @@ const sendTeamMessage = async (teamId, teamName, message) => {
     
     console.log("Team players:", teamPlayers, "Error:", playersError);
     
-    if (!teamPlayers || teamPlayers.length === 0) return { sent: 0, failed: 0 };
+    if (!teamPlayers || teamPlayers.length === 0) return { sent: 0, failed: 0, playersFound: 0, usersFound: 0, debug: "no players" };
     
     // Получаем telegram_id для каждого игрока
     const userIds = teamPlayers.map(p => p.user_id).filter(Boolean);
@@ -86,7 +86,7 @@ const sendTeamMessage = async (teamId, teamName, message) => {
     
     console.log("Users with telegram:", users, "Error:", usersError);
     
-    if (!users || users.length === 0) return { sent: 0, failed: 0 };
+    if (!users || users.length === 0) return { sent: 0, failed: 0, playersFound: teamPlayers.length, usersFound: 0, debug: "no telegram_id" };
     
     const fullMessage = `📢 СООБЩЕНИЕ КОМАНДЕ "${teamName}"\n\n${message}`;
     
@@ -116,7 +116,7 @@ const sendTeamMessage = async (teamId, teamName, message) => {
         failed++;
       }
     }
-    return { sent, failed };
+    return { sent, failed, playersFound: teamPlayers.length, usersFound: users.length, debug: "ok" };
   } catch (error) {
     console.error("Error sending team message:", error);
     return { sent: 0, failed: 0 };
@@ -2251,7 +2251,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                   }
                                   const result = await sendTeamMessage(team.id, team.name, teamMessage);
                                   setTeamMessage("");
-                                  alert(`Отправлено: ${result.sent}, ошибок: ${result.failed}`);
+                                  alert(`Отправлено: ${result.sent}, ошибок: ${result.failed}\nИгроков найдено: ${result.playersFound || 0}\nС telegram_id: ${result.usersFound || 0}\nОтладка: ${result.debug || ""}`);
                                 }}
                                 style={{ marginTop: "8px", width: "100%", padding: "10px" }}
                                 disabled={!teamMessage.trim()}
