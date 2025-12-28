@@ -1670,7 +1670,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onApproveRequest, onRejectRequest, actionLoading, loadData }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onApproveRequest, onRejectRequest, actionLoading, loadData }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -1680,6 +1680,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   });
   const [editingUser, setEditingUser] = useState(null);
   const [userRole, setUserRole] = useState("fan");
+  const [userFirstName, setUserFirstName] = useState("");
+  const [userLastName, setUserLastName] = useState("");
   const [editingTeam, setEditingTeam] = useState(null);
   const [teamCoach, setTeamCoach] = useState("");
   const [expandedTeam, setExpandedTeam] = useState(null);
@@ -1728,10 +1730,12 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const startEditUser = (u) => {
     setEditingUser(u);
     setUserRole(u.role === "admin" ? "admin" : "fan");
+    setUserFirstName(u.first_name || "");
+    setUserLastName(u.last_name || "");
   };
 
   const saveUser = async () => {
-    await onUpdateUserRole(editingUser.id, userRole);
+    await onUpdateUser(editingUser.id, userRole, userFirstName, userLastName);
     setEditingUser(null);
   };
 
@@ -2205,11 +2209,26 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   <Card key={u.id} style={{ marginBottom: "8px", padding: "12px" }}>
                     {isEditing ? (
                       <div>
-                        <div style={{ fontWeight: 600, marginBottom: "8px" }}>{u.first_name || u.username} {u.last_name || ""}</div>
                         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "12px" }}>
                           {displayRoles.map((role, i) => (
                             <Badge key={i} variant={role.variant}>{role.label}</Badge>
                           ))}
+                        </div>
+                        <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                          <Input 
+                            label="Имя" 
+                            value={userFirstName} 
+                            onChange={setUserFirstName}
+                            placeholder="Имя"
+                            style={{ flex: 1 }}
+                          />
+                          <Input 
+                            label="Фамилия" 
+                            value={userLastName} 
+                            onChange={setUserLastName}
+                            placeholder="Фамилия"
+                            style={{ flex: 1 }}
+                          />
                         </div>
                         <Select label="Права администратора" value={userRole} onChange={setUserRole}
                           options={[
@@ -2753,6 +2772,24 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleUpdateUser = async (userId, role, firstName, lastName) => {
+    try {
+      setActionLoading(true);
+      await supabase.from("users").update({ 
+        role, 
+        first_name: firstName,
+        last_name: lastName 
+      }).eq("id", userId);
+      await loadData();
+      alert("Пользователь обновлён!");
+    } catch (error) {
+      console.error("Error updating user:", error);
+      alert("Ошибка обновления");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleMakePlayer = async (userId) => {
     try {
       setActionLoading(true);
@@ -3061,7 +3098,7 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
   };
