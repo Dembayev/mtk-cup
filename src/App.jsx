@@ -1405,7 +1405,7 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading })
   );
 };
 
-const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, actionLoading, userRoles }) => {
+const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, actionLoading, userRoles, setSelectedPlayer }) => {
   let myTeam = null;
   let teamRelation = null;
   
@@ -1546,7 +1546,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
           </div>
 
           {teamPlayers.length > 0 ? teamPlayers.map(player => (
-            <Card key={player.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
+            <Card key={player.id} onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }} style={{ marginBottom: "8px", padding: "12px 16px", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <Avatar name={player.users?.first_name || player.users?.username} size={44} url={player.users?.avatar_url} />
                 <div style={{ flex: 1 }}>
@@ -3029,7 +3029,7 @@ const handleGuest = () => {
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} />;
-      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} />;
+      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} />;
