@@ -1119,7 +1119,13 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
     if (teamFilter !== "all" && p.team_id !== teamFilter) return false;
     return true;
   }).sort((a, b) => {
-    // Мой игрок / игрок из моей команды вверху
+    // Любимые игроки вверху
+    const aIsFavorite = user?.favorite_players?.includes(a.id);
+    const bIsFavorite = user?.favorite_players?.includes(b.id);
+    if (aIsFavorite && !bIsFavorite) return -1;
+    if (!aIsFavorite && bIsFavorite) return 1;
+    
+    // Затем мой игрок / игрок из моей команды
     const aIsMy = a.id === myPlayerId || a.team_id === user?.favorite_team_id;
     const bIsMy = b.id === myPlayerId || b.team_id === user?.favorite_team_id;
     if (aIsMy && !bIsMy) return -1;
@@ -1183,7 +1189,10 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <Avatar name={player.users?.first_name || player.users?.username} size={48} url={player.users?.avatar_url} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "2px" }}>{player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}</div>
+                  <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "2px" }}>
+                    {user?.favorite_players?.includes(player.id) && <span style={{ color: colors.gold, marginRight: "4px" }}>★</span>}
+                    {player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}
+                  </div>
                   <div style={{ fontSize: "13px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ") || "Амплуа не указано"}</div>
                   <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{player.teams?.name || "Без команды"}</div>
                 </div>
@@ -1205,7 +1214,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   );
 };
 
-const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerStats, matches }) => {
+const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerStats, matches, user, onToggleFavorite }) => {
   const team = teams.find(t => t.id === player?.team_id);
   
   const getAge = (birthDate) => {
@@ -1261,6 +1270,15 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                 {player?.is_free_agent ? "Свободный игрок" : "В команде"}
               </Badge>
             </div>
+            {onToggleFavorite && user && (
+              <Button 
+                variant={user?.favorite_players?.includes(player?.id) ? "primary" : "outline"}
+                onClick={() => onToggleFavorite(player?.id)} 
+                style={{ marginTop: "16px", width: "100%" }}
+              >
+                {user?.favorite_players?.includes(player?.id) ? "★ В избранном" : "☆ В избранное"}
+              </Button>
+            )}
           </Card>
 
           {(player?.height || age) && (
@@ -2742,6 +2760,21 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleToggleFavoritePlayer = async (playerId) => {
+    try {
+      const currentFavorites = user?.favorite_players || [];
+      const isFavorite = currentFavorites.includes(playerId);
+      const newFavorites = isFavorite 
+        ? currentFavorites.filter(id => id !== playerId)
+        : [...currentFavorites, playerId];
+      
+      await supabase.from("users").update({ favorite_players: newFavorites }).eq("id", user.id);
+      setUser(prev => ({ ...prev, favorite_players: newFavorites }));
+    } catch (error) {
+      console.error("Error toggling favorite player:", error);
+    }
+  };
+
   const handleUpdateNotifications = async (field, value) => {
     try {
       await supabase.from("users").update({ [field]: value }).eq("id", user.id);
@@ -3132,6 +3165,28 @@ const handleTelegramLogin = async (tgUser) => {
     setShowOnboarding(false);
     setScreen("home");
     await loadData();
+    
+    // Отправляем уведомление админам
+    const roleName = requestedRole === "player" ? "игроком" : "тренером";
+    const userName = user.first_name || user.username || "Пользователь";
+    const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.\n\nПроверьте в админ-панели.`;
+    
+    // Получаем всех админов
+    const { data: admins } = await supabase.from("users").select("telegram_id").eq("role", "admin");
+    if (admins && admins.length > 0) {
+      for (const admin of admins) {
+        if (admin.telegram_id) {
+          try {
+            await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chat_id: admin.telegram_id, text: message }),
+            });
+          } catch (e) { console.error("Failed to notify admin:", e); }
+        }
+      }
+    }
+    
     alert("Заявка отправлена! Ожидайте одобрения администратора.");
   };
 
@@ -3209,7 +3264,7 @@ const handleGuest = () => {
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} />;
-      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} />;
+      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
