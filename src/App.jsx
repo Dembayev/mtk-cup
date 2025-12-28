@@ -668,7 +668,7 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => (
   </div>
 );
 
-const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles }) => {
+const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer }) => {
   const liveMatch = matches.find(m => m.status === "live");
   const upcomingMatches = matches.filter(m => m.status === "upcoming").slice(0, 2);
   const topPlayers = (players || []).filter(p => !p.is_free_agent).slice(0, 5);
@@ -762,7 +762,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
             <>
               <h3 style={{ fontSize: "18px", fontWeight: 700, margin: "0 0 12px" }}>Ближайшие матчи</h3>
               {upcomingMatches.map(match => (
-                <Card key={match.id} style={{ marginBottom: "12px" }}><MatchCard match={match} teams={teams} /></Card>
+                <Card key={match.id} onClick={() => setScreen("schedule")} style={{ marginBottom: "12px", cursor: "pointer" }}><MatchCard match={match} teams={teams} /></Card>
               ))}
               <Button variant="outline" onClick={() => setScreen("schedule")} style={{ width: "100%", marginTop: "8px" }}>Всё расписание</Button>
             </>
@@ -772,7 +772,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
             <>
               <h3 style={{ fontSize: "18px", fontWeight: 700, margin: "24px 0 12px" }}>Игроки</h3>
               {topPlayers.map(player => (
-                <Card key={player.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
+                <Card key={player.id} onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }} style={{ marginBottom: "8px", padding: "12px 16px", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <Avatar name={player.users?.first_name || player.users?.username} size={40} url={player.users?.avatar_url} />
                     <div style={{ flex: 1 }}>
@@ -3023,7 +3023,7 @@ const handleGuest = () => {
     switch (screen) {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} />;
-      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
+      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} />;
