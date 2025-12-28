@@ -65,20 +65,26 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
 const sendTeamMessage = async (teamId, teamName, message) => {
   try {
     // Получаем игроков команды с их user данными
-    const { data: teamPlayers } = await supabase
+    const { data: teamPlayers, error: playersError } = await supabase
       .from("players")
       .select("user_id")
       .eq("team_id", teamId);
+    
+    console.log("Team players:", teamPlayers, "Error:", playersError);
     
     if (!teamPlayers || teamPlayers.length === 0) return { sent: 0, failed: 0 };
     
     // Получаем telegram_id для каждого игрока
     const userIds = teamPlayers.map(p => p.user_id).filter(Boolean);
-    const { data: users } = await supabase
+    console.log("User IDs:", userIds);
+    
+    const { data: users, error: usersError } = await supabase
       .from("users")
       .select("telegram_id")
       .in("id", userIds)
       .not("telegram_id", "is", null);
+    
+    console.log("Users with telegram:", users, "Error:", usersError);
     
     if (!users || users.length === 0) return { sent: 0, failed: 0 };
     
@@ -88,6 +94,7 @@ const sendTeamMessage = async (teamId, teamName, message) => {
     for (const user of users) {
       if (!user.telegram_id) continue;
       try {
+        console.log("Sending to:", user.telegram_id);
         const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -101,8 +108,11 @@ const sendTeamMessage = async (teamId, teamName, message) => {
             }
           })
         });
+        const result = await response.json();
+        console.log("Telegram response:", result);
         if (response.ok) sent++; else failed++;
       } catch (e) {
+        console.error("Send error:", e);
         failed++;
       }
     }
