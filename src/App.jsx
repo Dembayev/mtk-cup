@@ -2391,7 +2391,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   );
 };
 
-const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications }) => {
+const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest }) => {
   const displayName = getDisplayName(user);
   const [showNotifySettings, setShowNotifySettings] = useState(false);
   const [notifySettings, setNotifySettings] = useState({
@@ -2453,6 +2453,34 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                 </div>
                 <Icons.ChevronRight />
               </div>
+            </Card>
+          )}
+
+          {/* Кнопки подачи заявки на роль для болельщиков */}
+          {!isGuest && !userRoles.isPlayer && !userRoles.isCoach && (
+            <Card style={{ marginBottom: "20px", background: colors.goldLight }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Хотите участвовать в турнире?</h4>
+              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+                <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button 
+                    onClick={() => onSubmitRoleRequest("player")} 
+                    style={{ flex: 1, background: "#16a34a" }}
+                  >
+                    🏃 Стать игроком
+                  </Button>
+                  <Button 
+                    onClick={() => onSubmitRoleRequest("coach")} 
+                    variant="outline"
+                    style={{ flex: 1 }}
+                  >
+                    📋 Стать тренером
+                  </Button>
+                </div>
+              )}
             </Card>
           )}
 
@@ -3032,7 +3060,7 @@ const handleGuest = () => {
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
-      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} />;
+      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} />;
       case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
     }
