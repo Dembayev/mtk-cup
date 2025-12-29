@@ -910,9 +910,11 @@ const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
   );
 }
 
-const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles, currentPlayer, onLeaveTeam }) => {
+const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles, currentPlayer, onLeaveTeam, onSendTeamRequest, teamRequests, actionLoading }) => {
   const teamPlayers = players.filter(p => p.team_id === team?.id);
   const isMyTeam = currentPlayer && currentPlayer.team_id === team?.id;
+  const isFreeAgent = currentPlayer && currentPlayer.is_free_agent;
+  const hasPendingRequest = teamRequests?.some(r => r.team_id === team?.id && r.player_id === currentPlayer?.id && r.status === "pending");
   
   return (
     <div style={{ paddingBottom: "100px" }}>
@@ -920,9 +922,15 @@ const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, o
         title={team?.name || "Команда"} 
         showBack 
         onBack={() => setScreen("teams")} 
-        rightElement={isMyTeam && onLeaveTeam && (
-          <button onClick={onLeaveTeam} style={{ background: "none", border: "none", color: "#dc2626", fontSize: "13px", cursor: "pointer" }}>Покинуть</button>
-        )}
+        rightElement={
+          isMyTeam && onLeaveTeam ? (
+            <button onClick={onLeaveTeam} style={{ background: "none", border: "none", color: "#dc2626", fontSize: "13px", cursor: "pointer" }}>Покинуть</button>
+          ) : isFreeAgent && onSendTeamRequest && !hasPendingRequest ? (
+            <button onClick={() => onSendTeamRequest(team?.id)} disabled={actionLoading} style={{ background: "none", border: "none", color: "#16a34a", fontSize: "13px", cursor: "pointer" }}>Подать заявку</button>
+          ) : isFreeAgent && hasPendingRequest ? (
+            <span style={{ color: "#d97706", fontSize: "13px" }}>Заявка отправлена</span>
+          ) : null
+        }
       />
       <Container>
         <div style={{ padding: "20px 0" }}>
@@ -1489,7 +1497,7 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, i
   );
 };
 
-const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, setSelectedPlayer }) => {
+const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, setSelectedPlayer, teamRequests, onAcceptTeamRequest, onRejectTeamRequest }) => {
   let myTeam = null;
   let teamRelation = null;
   
@@ -1506,6 +1514,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   
   const teamPlayers = myTeam ? players.filter(p => p.team_id === myTeam.id) : [];
   const pendingSentOffers = sentOffers.filter(o => o.status === "pending");
+  const pendingTeamRequests = (teamRequests || []).filter(r => r.team_id === myTeam?.id && r.status === "pending");
 
   if (userRoles.isFan && !myTeam) {
     return (
@@ -1606,6 +1615,30 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
               <div><div style={{ fontSize: "24px", fontWeight: 700 }}>{myTeam?.sets_won || 0}:{myTeam?.sets_lost || 0}</div><div style={{ fontSize: "12px", color: colors.goldDark }}>Партии</div></div>
             </div>
           </Card>
+
+          {canManageTeam && pendingTeamRequests.length > 0 && (
+            <>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Заявки в команду ({pendingTeamRequests.length})</h3>
+              {pendingTeamRequests.map(request => {
+                const player = players.find(p => p.id === request.player_id);
+                return (
+                  <Card key={request.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                      <Avatar name={player?.users?.first_name || player?.users?.username} size={40} url={player?.users?.avatar_url} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: "14px" }}>{player?.users?.first_name || `@${player?.users?.username}`}</div>
+                        <div style={{ fontSize: "12px", color: colors.goldDark }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <Button variant="success" onClick={() => onAcceptTeamRequest(request.id, request.player_id)} disabled={actionLoading} style={{ flex: 1, padding: "8px" }}>Принять</Button>
+                      <Button variant="danger" onClick={() => onRejectTeamRequest(request.id)} disabled={actionLoading} style={{ flex: 1, padding: "8px" }}>Отклонить</Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </>
+          )}
 
           {canManageTeam && pendingSentOffers.length > 0 && (
             <>
@@ -2688,6 +2721,7 @@ export default function MTKCupApp() {
   const [tours, setTours] = useState([]);
   const [players, setPlayers] = useState([]);
   const [offers, setOffers] = useState([]);
+  const [teamRequests, setTeamRequests] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -2724,6 +2758,7 @@ export default function MTKCupApp() {
       const { data: playersData } = await supabase.from("players").select("*");
       const { data: usersData } = await supabase.from("users").select("*");
       const { data: offersData } = await supabase.from("offers").select("*").order("created_at", { ascending: false });
+      const { data: teamRequestsData } = await supabase.from("team_requests").select("*").order("created_at", { ascending: false });
       const { data: playerStatsData } = await supabase.from("player_stats").select("*");
       const { data: roleRequestsData } = await supabase.from("role_requests").select("*").order("created_at", { ascending: false });
 
@@ -2738,6 +2773,7 @@ export default function MTKCupApp() {
       setMatches(matchesData || []);
       setPlayers(playersWithDetails);
       setOffers(offersData || []);
+      setTeamRequests(teamRequestsData || []);
       setUsers(usersData || []);
       setPlayerStats(playerStatsData || []);
       setRoleRequests(roleRequestsData || []);
@@ -2810,6 +2846,80 @@ export default function MTKCupApp() {
     } catch (error) {
       console.error("Error rejecting offer:", error);
       alert("Ошибка при отклонении приглашения");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Заявки игроков в команды
+  const handleSendTeamRequest = async (teamId) => {
+    if (!currentPlayer) return;
+    try {
+      setActionLoading(true);
+      const { data, error } = await supabase.from("team_requests").insert({ 
+        team_id: teamId, 
+        player_id: currentPlayer.id, 
+        status: "pending" 
+      }).select().single();
+      if (error) throw error;
+      setTeamRequests(prev => [data, ...prev]);
+      
+      // Уведомляем тренера команды
+      const team = teams.find(t => t.id === teamId);
+      const coach = players.find(p => p.team_id === teamId && p.id === team?.coach_id);
+      if (coach?.users?.telegram_id) {
+        const playerName = user?.first_name || user?.username || "Игрок";
+        const message = `📝 Новая заявка в команду!\n\n${playerName} хочет вступить в команду "${team?.name}".\n\nПроверьте в разделе "Моя команда".`;
+        try {
+          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: coach.users.telegram_id, text: message }),
+          });
+        } catch (e) { console.error("Failed to notify coach:", e); }
+      }
+      
+      alert("Заявка отправлена!");
+    } catch (error) {
+      console.error("Error sending team request:", error);
+      alert("Ошибка отправки заявки");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAcceptTeamRequest = async (requestId, playerId) => {
+    try {
+      setActionLoading(true);
+      // Принимаем заявку
+      await supabase.from("team_requests").update({ status: "accepted" }).eq("id", requestId);
+      // Добавляем игрока в команду
+      await supabase.from("players").update({ team_id: coachTeam.id, is_free_agent: false }).eq("id", playerId);
+      // Отклоняем другие заявки этого игрока
+      await supabase.from("team_requests").update({ status: "rejected" }).eq("player_id", playerId).eq("status", "pending").neq("id", requestId);
+      // Очищаем favorite_team_id
+      const player = players.find(p => p.id === playerId);
+      if (player?.user_id) {
+        await supabase.from("users").update({ favorite_team_id: null }).eq("id", player.user_id);
+      }
+      await loadData();
+      alert("Игрок принят в команду!");
+    } catch (error) {
+      console.error("Error accepting team request:", error);
+      alert("Ошибка при принятии заявки");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectTeamRequest = async (requestId) => {
+    try {
+      setActionLoading(true);
+      await supabase.from("team_requests").update({ status: "rejected" }).eq("id", requestId);
+      setTeamRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "rejected" } : r));
+    } catch (error) {
+      console.error("Error rejecting team request:", error);
+      alert("Ошибка при отклонении заявки");
     } finally {
       setActionLoading(false);
     }
@@ -3388,11 +3498,11 @@ const handleGuest = () => {
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} />;
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
-      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} />;
+      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
-      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
+      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
