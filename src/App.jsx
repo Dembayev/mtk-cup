@@ -1396,7 +1396,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
   );
 };
 
-const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading }) => {
+const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, isInTeam }) => {
   const pendingOffers = offers.filter(o => o.status === "pending");
   const historyOffers = offers.filter(o => o.status !== "pending");
 
@@ -1420,10 +1420,16 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading })
                         <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{new Date(offer.created_at).toLocaleDateString("ru-RU")}</div>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <Button variant="success" onClick={() => onAccept(offer.id, offer.team_id)} disabled={loading} style={{ flex: 1, padding: "10px" }}><Icons.Check /> Принять</Button>
-                      <Button variant="danger" onClick={() => onReject(offer.id)} disabled={loading} style={{ flex: 1, padding: "10px" }}><Icons.X /> Отклонить</Button>
-                    </div>
+                    {isInTeam ? (
+                      <div style={{ background: colors.gray, padding: "12px", borderRadius: "8px", textAlign: "center", fontSize: "13px", color: colors.goldDark }}>
+                        Вы уже в команде. Чтобы принять приглашение, сначала покиньте текущую команду.
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <Button variant="success" onClick={() => onAccept(offer.id, offer.team_id)} disabled={loading} style={{ flex: 1, padding: "10px" }}><Icons.Check /> Принять</Button>
+                        <Button variant="danger" onClick={() => onReject(offer.id)} disabled={loading} style={{ flex: 1, padding: "10px" }}><Icons.X /> Отклонить</Button>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
@@ -2720,12 +2726,15 @@ export default function MTKCupApp() {
     if (!currentPlayer) return;
     try {
       setActionLoading(true);
+      // Сначала отклоняем все другие pending офферы
+      await supabase.from("offers").update({ status: "rejected" }).eq("player_id", currentPlayer.id).eq("status", "pending").neq("id", offerId);
+      // Принимаем выбранный оффер
       await supabase.from("offers").update({ status: "accepted" }).eq("id", offerId);
+      // Обновляем игрока
       await supabase.from("players").update({ team_id: teamId, is_free_agent: false }).eq("id", currentPlayer.id);
       // Очищаем любимую команду болельщика — теперь у игрока своя команда
       await supabase.from("users").update({ favorite_team_id: null }).eq("id", user.id);
       setUser(prev => ({ ...prev, favorite_team_id: null }));
-      await supabase.from("offers").update({ status: "rejected" }).eq("player_id", currentPlayer.id).eq("status", "pending").neq("id", offerId);
       await loadData();
       alert("Вы приняты в команду!");
       setScreen("home");
@@ -3291,7 +3300,7 @@ const handleGuest = () => {
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
-      case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} />;
+      case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
