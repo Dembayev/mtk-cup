@@ -1567,9 +1567,13 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
 
   return (
     <div style={{ paddingBottom: "100px" }}>
-      <Header title="Моя команда" rightElement={teamRelation === "fan" && (
-        <button onClick={() => onSelectFavoriteTeam(null)} style={{ background: "none", border: "none", color: colors.goldDark, fontSize: "13px", cursor: "pointer" }}>Сменить</button>
-      )} />
+      <Header title="Моя команда" rightElement={
+        teamRelation === "fan" ? (
+          <button onClick={() => onSelectFavoriteTeam(null)} style={{ background: "none", border: "none", color: colors.goldDark, fontSize: "13px", cursor: "pointer" }}>Сменить</button>
+        ) : (teamRelation === "player" || teamRelation === "captain") && onLeaveTeam ? (
+          <button onClick={onLeaveTeam} style={{ background: "none", border: "none", color: "#dc2626", fontSize: "13px", cursor: "pointer" }}>Покинуть</button>
+        ) : null
+      } />
       <Container>
         <div style={{ padding: "20px 0" }}>
           <Card style={{ textAlign: "center", marginBottom: "20px" }}>
@@ -1583,12 +1587,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
               {userRoles.isCoach && teamRelation !== "coach" && <Badge variant="gold">+ Тренер</Badge>}
               {userRoles.isPlayer && teamRelation === "coach" && <Badge variant="free">+ Игрок</Badge>}
             </div>
-            {(teamRelation === "player" || teamRelation === "captain") && onLeaveTeam && (
-              <Button variant="outline" onClick={onLeaveTeam} disabled={actionLoading} style={{ marginTop: "16px", color: "#dc2626", borderColor: "#dc2626" }}>
-                Покинуть команду
-              </Button>
-            )}
-          </Card>
+            </Card>
 
           <Card style={{ marginBottom: "20px" }}>
             <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>СТАТИСТИКА</h3>
