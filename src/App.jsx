@@ -910,11 +910,20 @@ const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
   );
 }
 
-const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles }) => {
+const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles, currentPlayer, onLeaveTeam }) => {
   const teamPlayers = players.filter(p => p.team_id === team?.id);
+  const isMyTeam = currentPlayer && currentPlayer.team_id === team?.id;
+  
   return (
     <div style={{ paddingBottom: "100px" }}>
-      <Header title={team?.name || "Команда"} showBack onBack={() => setScreen("teams")} />
+      <Header 
+        title={team?.name || "Команда"} 
+        showBack 
+        onBack={() => setScreen("teams")} 
+        rightElement={isMyTeam && onLeaveTeam && (
+          <button onClick={onLeaveTeam} style={{ background: "none", border: "none", color: "#dc2626", fontSize: "13px", cursor: "pointer" }}>Покинуть</button>
+        )}
+      />
       <Container>
         <div style={{ padding: "20px 0" }}>
           <Card style={{ textAlign: "center", marginBottom: "20px" }}>
@@ -3330,7 +3339,7 @@ const handleGuest = () => {
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} />;
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
-      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} />;
+      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
