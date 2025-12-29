@@ -2693,6 +2693,20 @@ export default function MTKCupApp() {
       const { data, error } = await supabase.from("offers").insert({ team_id: coachTeam.id, player_id: playerId, status: "pending" }).select().single();
       if (error) throw error;
       setOffers(prev => [data, ...prev]);
+      
+      // Отправляем уведомление игроку
+      const player = players.find(p => p.id === playerId);
+      if (player?.users?.telegram_id) {
+        const message = `🏐 Приглашение в команду!\n\nКоманда "${coachTeam.name}" приглашает вас в свой состав.\n\nОткройте приложение чтобы принять или отклонить.`;
+        try {
+          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: player.users.telegram_id, text: message }),
+          });
+        } catch (e) { console.error("Failed to notify player:", e); }
+      }
+      
       alert("Приглашение отправлено!");
     } catch (error) {
       console.error("Error sending offer:", error);
@@ -2708,6 +2722,9 @@ export default function MTKCupApp() {
       setActionLoading(true);
       await supabase.from("offers").update({ status: "accepted" }).eq("id", offerId);
       await supabase.from("players").update({ team_id: teamId, is_free_agent: false }).eq("id", currentPlayer.id);
+      // Очищаем любимую команду болельщика — теперь у игрока своя команда
+      await supabase.from("users").update({ favorite_team_id: null }).eq("id", user.id);
+      setUser(prev => ({ ...prev, favorite_team_id: null }));
       await supabase.from("offers").update({ status: "rejected" }).eq("player_id", currentPlayer.id).eq("status", "pending").neq("id", offerId);
       await loadData();
       alert("Вы приняты в команду!");
