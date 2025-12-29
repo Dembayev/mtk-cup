@@ -1468,7 +1468,7 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, i
   );
 };
 
-const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, actionLoading, userRoles, setSelectedPlayer }) => {
+const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, setSelectedPlayer }) => {
   let myTeam = null;
   let teamRelation = null;
   
@@ -1571,6 +1571,11 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
               {userRoles.isCoach && teamRelation !== "coach" && <Badge variant="gold">+ Тренер</Badge>}
               {userRoles.isPlayer && teamRelation === "coach" && <Badge variant="free">+ Игрок</Badge>}
             </div>
+            {(teamRelation === "player" || teamRelation === "captain") && onLeaveTeam && (
+              <Button variant="outline" onClick={onLeaveTeam} disabled={actionLoading} style={{ marginTop: "16px", color: "#dc2626", borderColor: "#dc2626" }}>
+                Покинуть команду
+              </Button>
+            )}
           </Card>
 
           <Card style={{ marginBottom: "20px" }}>
@@ -2759,6 +2764,23 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleLeaveTeam = async () => {
+    if (!currentPlayer) return;
+    if (!confirm("Вы уверены что хотите покинуть команду?")) return;
+    try {
+      setActionLoading(true);
+      await supabase.from("players").update({ team_id: null, is_free_agent: true, is_captain: false }).eq("id", currentPlayer.id);
+      await loadData();
+      alert("Вы покинули команду и стали свободным игроком");
+      setScreen("home");
+    } catch (error) {
+      console.error("Error leaving team:", error);
+      alert("Ошибка при выходе из команды");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleRemovePlayer = async (playerId) => {
     try {
       setActionLoading(true);
@@ -3301,7 +3323,7 @@ const handleGuest = () => {
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
-      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
+      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} />;
