@@ -699,7 +699,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
   const liveMatch = matches.find(m => m.status === "live");
   const upcomingMatches = matches.filter(m => m.status === "upcoming").slice(0, 2);
   // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
-  const playersWithStats = (players || []).filter(p => !p.is_free_agent).map(player => {
+  const playersWithStats = (players || []).map(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
     const totalPoints = stats.reduce((sum, s) => sum + (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0), 0);
     return { ...player, totalPoints };
