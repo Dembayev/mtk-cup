@@ -3154,17 +3154,21 @@ const handleTelegramLogin = async (tgUser) => {
 
   // Отправка заявки на роль
   const handleSubmitRoleRequest = async (requestedRole) => {
-    if (!user?.id) return;
-    await supabase.from("role_requests").insert({
-      user_id: user.id,
-      requested_role: requestedRole,
-      status: "pending",
-    });
-    await supabase.from("users").update({ onboarding_completed: true }).eq("id", user.id);
-    setUser(prev => ({ ...prev, onboarding_completed: true }));
-    setShowOnboarding(false);
-    setScreen("home");
-    await loadData();
+    try {
+      if (!user?.id) {
+        alert("Ошибка: пользователь не найден. Попробуйте перезайти.");
+        return;
+      }
+      await supabase.from("role_requests").insert({
+        user_id: user.id,
+        requested_role: requestedRole,
+        status: "pending",
+      });
+      await supabase.from("users").update({ onboarding_completed: true }).eq("id", user.id);
+      setUser(prev => ({ ...prev, onboarding_completed: true }));
+      setShowOnboarding(false);
+      setScreen("home");
+      await loadData();
     
     // Отправляем уведомление админам
     const roleName = requestedRole === "player" ? "игроком" : "тренером";
@@ -3188,6 +3192,10 @@ const handleTelegramLogin = async (tgUser) => {
     }
     
     alert("Заявка отправлена! Ожидайте одобрения администратора.");
+    } catch (error) {
+      console.error("Error submitting role request:", error);
+      alert("Ошибка отправки заявки. Попробуйте ещё раз.");
+    }
   };
 
   // Одобрение заявки (для админа)
