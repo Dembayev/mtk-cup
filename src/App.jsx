@@ -2501,7 +2501,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   );
 };
 
-const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone }) => {
+const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone, currentPlayer, onUpdatePosition }) => {
   const displayName = getDisplayName(user);
   const [showNotifySettings, setShowNotifySettings] = useState(false);
   const [notifySettings, setNotifySettings] = useState({
@@ -2592,6 +2592,37 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                 </div>
                 <Icons.ChevronRight />
               </div>
+            </Card>
+          )}
+          
+          {userRoles.isPlayer && currentPlayer && (
+            <Card style={{ marginBottom: "20px" }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Моё амплуа</h4>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {["setter", "opposite", "outside", "middle", "libero"].map(pos => {
+                  const labels = { setter: "Связующий", opposite: "Диагональный", outside: "Доигровщик", middle: "Центральный", libero: "Либеро" };
+                  const isSelected = currentPlayer.positions?.includes(pos);
+                  return (
+                    <button
+                      key={pos}
+                      onClick={() => onUpdatePosition && onUpdatePosition(pos)}
+                      style={{
+                        padding: "8px 16px",
+                        borderRadius: "20px",
+                        border: isSelected ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder,
+                        background: isSelected ? colors.goldLight : "white",
+                        color: isSelected ? colors.goldDark : colors.text,
+                        fontWeight: isSelected ? 600 : 400,
+                        fontSize: "14px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {labels[pos]}
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={{ margin: "12px 0 0", fontSize: "12px", color: colors.goldDark }}>Нажмите чтобы выбрать или убрать позицию</p>
             </Card>
           )}
 
@@ -2781,6 +2812,24 @@ export default function MTKCupApp() {
       alert("Ошибка при отклонении приглашения");
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleUpdatePosition = async (position) => {
+    if (!currentPlayer) return;
+    try {
+      const currentPositions = currentPlayer.positions || [];
+      let newPositions;
+      if (currentPositions.includes(position)) {
+        newPositions = currentPositions.filter(p => p !== position);
+      } else {
+        newPositions = [...currentPositions, position];
+      }
+      await supabase.from("players").update({ positions: newPositions }).eq("id", currentPlayer.id);
+      setPlayers(prev => prev.map(p => p.id === currentPlayer.id ? { ...p, positions: newPositions } : p));
+    } catch (error) {
+      console.error("Error updating position:", error);
+      alert("Ошибка при обновлении амплуа");
     }
   };
 
@@ -3346,7 +3395,7 @@ const handleGuest = () => {
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
-      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} />;
+      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
       case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
     }
