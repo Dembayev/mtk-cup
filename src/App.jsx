@@ -695,10 +695,16 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
   );
 };
 
-const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer }) => {
+const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, playerStats }) => {
   const liveMatch = matches.find(m => m.status === "live");
   const upcomingMatches = matches.filter(m => m.status === "upcoming").slice(0, 2);
-  const topPlayers = (players || []).filter(p => !p.is_free_agent).slice(0, 5);
+  // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
+  const playersWithStats = (players || []).filter(p => !p.is_free_agent).map(player => {
+    const stats = (playerStats || []).filter(s => s.player_id === player.id);
+    const totalPoints = stats.reduce((sum, s) => sum + (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0), 0);
+    return { ...player, totalPoints };
+  }).sort((a, b) => b.totalPoints - a.totalPoints);
+  const topPlayers = playersWithStats.slice(0, 5);
   const displayName = getDisplayName(user);
 
   return (
@@ -806,6 +812,12 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
                       <div style={{ fontWeight: 600, fontSize: "14px" }}>{player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}</div>
                       <div style={{ fontSize: "12px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ")} • {player.teams?.name || "Без команды"}</div>
                     </div>
+                    {player.totalPoints > 0 && (
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>{player.totalPoints}</div>
+                        <div style={{ fontSize: "10px", color: colors.goldDark }}>очков</div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))}
@@ -3317,7 +3329,7 @@ const handleGuest = () => {
     switch (screen) {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} />;
-      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} />;
+      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} />;
@@ -3328,7 +3340,7 @@ const handleGuest = () => {
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} />;
       case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
-      default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} />;
+      default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
     }
   };
 
