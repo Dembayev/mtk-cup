@@ -1886,6 +1886,12 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [editingVideo, setEditingVideo] = useState(null);
   const [videoData, setVideoData] = useState({ stream_url: "", video_url: "" });
 
+  // Редактирование игрока (номер и амплуа)
+  const [editingPlayer, setEditingPlayer] = useState(null);
+  const [playerJersey, setPlayerJersey] = useState("");
+  const [playerPositions, setPlayerPositions] = useState([]);
+
+
   const startEditMatch = (match) => {
     setEditingMatch(match);
     setMatchScore({
@@ -1912,6 +1918,35 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     await onUpdateMatchVideo(editingVideo.id, videoData);
     setEditingVideo(null);
   };
+
+  const startEditPlayer = (player) => {
+    setEditingPlayer(player);
+    setPlayerJersey(player.jersey_number || "");
+    setPlayerPositions(player.positions || []);
+  };
+
+  const savePlayer = async () => {
+    if (!editingPlayer) return;
+    try {
+      await supabase.from("players").update({
+        jersey_number: playerJersey || null,
+        positions: playerPositions
+      }).eq("id", editingPlayer.id);
+      await loadData();
+      setEditingPlayer(null);
+      alert("Игрок обновлён");
+    } catch (error) {
+      console.error("Error updating player:", error);
+      alert("Ошибка");
+    }
+  };
+
+  const togglePosition = (pos) => {
+    setPlayerPositions(prev => 
+      prev.includes(pos) ? prev.filter(p => p !== pos) : [...prev, pos]
+    );
+  };
+
 
   const startEditUser = (u) => {
     setEditingUser(u);
@@ -2534,17 +2569,47 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${colors.grayBorder}` }}>
                             <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>Состав команды:</div>
                             {teamPlayers.length > 0 ? teamPlayers.map(player => (
-                              <div key={player.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 0" }}>
-                                <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
-                                <span style={{ fontSize: "13px", flex: 1 }}>
-                                  {player.users?.first_name || `@${player.users?.username}`}
-                                  {player.is_captain && <span style={{ marginLeft: "4px", color: colors.gold }}>©</span>}
-                                </span>
-                                <span style={{ fontSize: "11px", color: colors.goldDark }}>
-                                  {player.positions?.map(p => positionLabels[p] || p).join(", ") || "—"}
-                                </span>
-                                {player.jersey_number && <span style={{ fontSize: "12px", fontWeight: 600, color: colors.gold }}>#{player.jersey_number}</span>}
-                                <button onClick={() => onSetCaptain(team.id, player.id, !player.is_captain)} style={{ background: player.is_captain ? "#f3e8ff" : colors.gray, border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: player.is_captain ? "#7c3aed" : colors.goldDark }}>{player.is_captain ? "Снять ©" : "Капитан"}</button>
+                              <div key={player.id} style={{ padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+                                {editingPlayer?.id === player.id ? (
+                                  <div style={{ background: colors.gray, padding: "12px", borderRadius: "8px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                                      <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
+                                      <span style={{ fontSize: "13px", fontWeight: 600 }}>{player.users?.first_name || `@${player.users?.username}`}</span>
+                                    </div>
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark }}>Номер:</label>
+                                      <input type="number" min="1" max="99" value={playerJersey} onChange={e => setPlayerJersey(e.target.value)} style={{ width: "60px", marginLeft: "8px", padding: "4px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}` }} />
+                                    </div>
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Амплуа:</label>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                        {["setter", "opposite", "outside", "middle", "libero"].map(pos => (
+                                          <button key={pos} onClick={() => togglePosition(pos)} style={{ padding: "4px 8px", borderRadius: "12px", border: "none", fontSize: "11px", cursor: "pointer", background: playerPositions.includes(pos) ? colors.gold : colors.grayBorder, color: playerPositions.includes(pos) ? "white" : colors.text }}>
+                                            {positionLabels[pos]}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div style={{ display: "flex", gap: "8px" }}>
+                                      <button onClick={savePlayer} style={{ flex: 1, padding: "6px", background: colors.gold, color: "white", border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Сохранить</button>
+                                      <button onClick={() => setEditingPlayer(null)} style={{ flex: 1, padding: "6px", background: colors.grayBorder, border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Отмена</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
+                                    <span style={{ fontSize: "13px", flex: 1 }}>
+                                      {player.users?.first_name || `@${player.users?.username}`}
+                                      {player.is_captain && <span style={{ marginLeft: "4px", color: colors.gold }}>©</span>}
+                                    </span>
+                                    <span style={{ fontSize: "11px", color: colors.goldDark }}>
+                                      {player.positions?.map(p => positionLabels[p] || p).join(", ") || "—"}
+                                    </span>
+                                    {player.jersey_number && <span style={{ fontSize: "12px", fontWeight: 600, color: colors.gold }}>#{player.jersey_number}</span>}
+                                    <button onClick={() => startEditPlayer(player)} style={{ background: "#e0f2fe", border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: "#0284c7" }}>✏️</button>
+                                    <button onClick={() => onSetCaptain(team.id, player.id, !player.is_captain)} style={{ background: player.is_captain ? "#f3e8ff" : colors.gray, border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: player.is_captain ? "#7c3aed" : colors.goldDark }}>{player.is_captain ? "©" : "Кап"}</button>
+                                  </div>
+                                )}
                               </div>
                             )) : (
                               <div style={{ fontSize: "13px", color: colors.goldDark, fontStyle: "italic" }}>Нет игроков</div>
