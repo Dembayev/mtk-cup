@@ -1497,7 +1497,7 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, i
   );
 };
 
-const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, setSelectedPlayer, teamRequests, onAcceptTeamRequest, onRejectTeamRequest }) => {
+const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, setSelectedPlayer, teamRequests, onAcceptTeamRequest, onRejectTeamRequest, onUpdateJerseyNumber, onSetCaptain, onSendTeamMessage }) => {
   let myTeam = null;
   let teamRelation = null;
   
@@ -1582,6 +1582,24 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   }
 
   const canManageTeam = teamRelation === "coach";
+  const [editingJersey, setEditingJersey] = useState(null);
+  const [jerseyValue, setJerseyValue] = useState("");
+
+const [teamMessage, setTeamMessage] = useState("");
+const [sendingMessage, setSendingMessage] = useState(false);
+
+const handleSendMessage = async () => {
+  if (!teamMessage.trim() || !myTeam) return;
+  setSendingMessage(true);
+  const result = await onSendTeamMessage(myTeam.id, myTeam.name, teamMessage);
+  setSendingMessage(false);
+  if (result?.sent > 0) {
+    alert(`✅ Сообщение отправлено ${result.sent} игрокам`);
+    setTeamMessage("");
+  } else {
+    alert(`❌ Не удалось отправить (${result?.debug || 'ошибка'})`);
+  }
+};
 
   return (
     <div style={{ paddingBottom: "100px" }}>
@@ -1667,19 +1685,46 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
           </div>
 
           {teamPlayers.length > 0 ? teamPlayers.map(player => (
-            <Card key={player.id} onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }} style={{ marginBottom: "8px", padding: "12px 16px", cursor: "pointer" }}>
+            <Card key={player.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <Avatar name={player.users?.first_name || player.users?.username} size={44} url={player.users?.avatar_url} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: "14px" }}>
-                    {player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}
-                    {player.is_captain && <span style={{ marginLeft: "6px", color: colors.gold }}>©</span>}
+                <div onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+                  <Avatar name={player.users?.first_name || player.users?.username} size={44} url={player.users?.avatar_url} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: "14px" }}>
+                      {player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}
+                      {player.is_captain && <span style={{ marginLeft: "6px", color: colors.gold }}>©</span>}
+                    </div>
+                    <div style={{ fontSize: "12px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</div>
                   </div>
-                  <div style={{ fontSize: "12px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</div>
                 </div>
-                {player.jersey_number && <div style={{ fontSize: "16px", fontWeight: 700, color: colors.gold, marginRight: "8px" }}>#{player.jersey_number}</div>}
+                {canManageTeam ? (
+                  editingJersey === player.id ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }} onClick={e => e.stopPropagation()}>
+                      <input
+                        type="number"
+                        min="1"
+                        max="99"
+                        value={jerseyValue}
+                        onChange={e => setJerseyValue(e.target.value)}
+                        style={{ width: "50px", padding: "6px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.gold}`, fontSize: "14px" }}
+                        autoFocus
+                      />
+                      <button onClick={() => { onUpdateJerseyNumber(player.id, jerseyValue); setEditingJersey(null); }} style={{ background: colors.gold, color: "white", border: "none", borderRadius: "4px", padding: "6px 8px", cursor: "pointer" }}>✓</button>
+                      <button onClick={() => setEditingJersey(null)} style={{ background: colors.gray, border: "none", borderRadius: "4px", padding: "6px 8px", cursor: "pointer" }}>✕</button>
+                    </div>
+                  ) : (
+                    <button onClick={(e) => { e.stopPropagation(); setEditingJersey(player.id); setJerseyValue(player.jersey_number || ""); }} style={{ background: player.jersey_number ? colors.goldLight : colors.gray, border: "none", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontSize: "14px", fontWeight: 600, color: player.jersey_number ? colors.goldDark : colors.goldDark }}>
+                      {player.jersey_number ? `#${player.jersey_number}` : "№"}
+                    </button>
+                  )
+                ) : (
+                  player.jersey_number && <div style={{ fontSize: "16px", fontWeight: 700, color: colors.gold, marginRight: "8px" }}>#{player.jersey_number}</div>
+                )}
+                {canManageTeam && (
+                  <button onClick={(e) => { e.stopPropagation(); onSetCaptain(myTeam.id, player.id, !player.is_captain); }} style={{ background: player.is_captain ? "#fef3c7" : colors.gray, border: "none", borderRadius: "4px", padding: "4px 8px", fontSize: "11px", cursor: "pointer", color: player.is_captain ? "#92400e" : colors.goldDark }}>{player.is_captain ? "©" : "Капитан"}</button>
+                )}
                 {canManageTeam && player.user_id !== user?.id && (
-                  <button onClick={() => { if (confirm(`Удалить ${player.users?.first_name || 'игрока'} из команды?`)) onRemovePlayer(player.id); }} disabled={actionLoading}
+                  <button onClick={(e) => { e.stopPropagation(); if (confirm(`Удалить ${player.users?.first_name || 'игрока'} из команды?`)) onRemovePlayer(player.id); }} disabled={actionLoading}
                     style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px", opacity: actionLoading ? 0.5 : 1 }}>
                     <Icons.X />
                   </button>
@@ -1688,6 +1733,26 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
             </Card>
           )) : (
             <Card style={{ textAlign: "center", color: colors.goldDark }}>Состав пока не заполнен</Card>
+          )}
+
+          {/* Team Message (for coach) */}
+          {canManageTeam && (
+            <Card style={{ marginTop: "20px" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>📢 СООБЩЕНИЕ КОМАНДЕ</h3>
+              <textarea
+                value={teamMessage}
+                onChange={e => setTeamMessage(e.target.value)}
+                placeholder="Напишите сообщение для игроков..."
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: `1px solid ${colors.grayBorder}`, fontSize: "14px", minHeight: "80px", resize: "vertical", boxSizing: "border-box" }}
+              />
+              <Button 
+                onClick={handleSendMessage} 
+                disabled={sendingMessage || !teamMessage.trim()}
+                style={{ width: "100%", marginTop: "12px" }}
+              >
+                {sendingMessage ? "Отправка..." : "📨 Отправить в Telegram"}
+              </Button>
+            </Card>
           )}
         </div>
       </Container>
@@ -3222,6 +3287,26 @@ export default function MTKCupApp() {
     }
   };
 
+  // Update jersey number
+  const handleUpdateJerseyNumber = async (playerId, jerseyNumber) => {
+    try {
+      setActionLoading(true);
+      await supabase.from('players').update({ jersey_number: jerseyNumber || null }).eq('id', playerId);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating jersey number:', error);
+      alert('Ошибка обновления номера');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Send team message
+  const handleSendTeamMessage = async (teamId, teamName, message) => {
+    return await sendTeamMessage(teamId, teamName, message);
+  };
+
+
   // Create tour
   const handleCreateTour = async (tourData) => {
     try {
@@ -3502,7 +3587,7 @@ const handleGuest = () => {
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
-      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} />;
+      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
