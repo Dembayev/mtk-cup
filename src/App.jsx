@@ -2375,7 +2375,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600 }}>{requestUser?.first_name || requestUser?.username} {requestUser?.last_name || ""}</div>
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>
-                            Хочет стать: <strong>{request.requested_role === "player" ? "Игроком" : "Тренером"}</strong>
+                            Хочет стать: <strong>{request.requested_role === "player" ? "Игроком" : request.requested_role === "coach" ? "Тренером" : "Болельщиком"}</strong>
                           </div>
                           <div style={{ fontSize: "11px", color: colors.goldDark }}>
                             {new Date(request.created_at).toLocaleDateString("ru-RU")}
@@ -2813,6 +2813,83 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                     📋 Стать тренером
                   </Button>
                 </div>
+              )}
+            </Card>
+          )}
+
+
+          {/* Кнопки смены роли для ИГРОКОВ */}
+          {!isGuest && userRoles.isPlayer && !userRoles.isCoach && (
+            <Card style={{ marginBottom: "20px", background: "#f0f9ff" }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
+              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+                <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button 
+                    onClick={() => onSubmitRoleRequest("coach")} 
+                    style={{ flex: 1, background: "#0284c7" }}
+                  >
+                    📋 Стать тренером
+                  </Button>
+                  <Button 
+                    onClick={() => onSubmitRoleRequest("fan")} 
+                    variant="outline"
+                    style={{ flex: 1 }}
+                  >
+                    👤 Стать болельщиком
+                  </Button>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Кнопки смены роли для ТРЕНЕРОВ */}
+          {!isGuest && userRoles.isCoach && !userRoles.isPlayer && (
+            <Card style={{ marginBottom: "20px", background: "#fefce8" }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
+              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+                <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button 
+                    onClick={() => onSubmitRoleRequest("player")} 
+                    style={{ flex: 1, background: "#16a34a" }}
+                  >
+                    🏃 Стать игроком
+                  </Button>
+                  <Button 
+                    onClick={() => onSubmitRoleRequest("fan")} 
+                    variant="outline"
+                    style={{ flex: 1 }}
+                  >
+                    👤 Стать болельщиком
+                  </Button>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Кнопки смены роли для ИГРОК+ТРЕНЕР */}
+          {!isGuest && userRoles.isCoach && userRoles.isPlayer && (
+            <Card style={{ marginBottom: "20px", background: "#f0fdf4" }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
+              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+                <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
+                </div>
+              ) : (
+                <Button 
+                  onClick={() => onSubmitRoleRequest("fan")} 
+                  variant="outline"
+                  style={{ width: "100%" }}
+                >
+                  👤 Стать болельщиком
+                </Button>
               )}
             </Card>
           )}
@@ -3547,28 +3624,29 @@ const handleTelegramLogin = async (tgUser) => {
       setScreen("home");
       await loadData();
     
-    // Отправляем уведомление админам
-    const roleName = requestedRole === "player" ? "игроком" : "тренером";
-    const userName = user.first_name || user.username || "Пользователь";
-    const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.\n\nПроверьте в админ-панели.`;
-    
-    // Получаем всех админов
-    const { data: admins } = await supabase.from("users").select("telegram_id").eq("role", "admin");
-    if (admins && admins.length > 0) {
-      for (const admin of admins) {
-        if (admin.telegram_id) {
-          try {
-            await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ chat_id: admin.telegram_id, text: message }),
-            });
-          } catch (e) { console.error("Failed to notify admin:", e); }
+      // Отправляем уведомление админам
+      const roleNames = { player: "игроком", coach: "тренером", fan: "болельщиком" };
+      const roleName = roleNames[requestedRole] || requestedRole;
+      const userName = user.first_name || user.username || "Пользователь";
+      const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.\n\nПроверьте в админ-панели.`;
+      
+      // Получаем всех админов
+      const { data: admins } = await supabase.from("users").select("telegram_id").eq("role", "admin");
+      if (admins && admins.length > 0) {
+        for (const admin of admins) {
+          if (admin.telegram_id) {
+            try {
+              await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: admin.telegram_id, text: message }),
+              });
+            } catch (e) { console.error("Failed to notify admin:", e); }
+          }
         }
       }
-    }
-    
-    alert("Заявка отправлена! Ожидайте одобрения администратора.");
+      
+      alert("Заявка отправлена! Ожидайте одобрения администратора.");
     } catch (error) {
       console.error("Error submitting role request:", error);
       alert("Ошибка отправки заявки. Попробуйте ещё раз.");
@@ -3586,8 +3664,8 @@ const handleTelegramLogin = async (tgUser) => {
         reviewed_by: user?.id 
       }).eq("id", requestId);
       
-      // Создаём игрока или назначаем тренера
       if (role === "player") {
+        // Создаём игрока
         const existing = players.find(p => p.user_id === userId);
         if (!existing) {
           await supabase.from("players").insert({
@@ -3597,32 +3675,33 @@ const handleTelegramLogin = async (tgUser) => {
             positions: [],
           });
         }
+        // Снимаем с роли тренера (со всех команд)
+        await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
+      } 
+      else if (role === "coach") {
+        // Для тренера - нужно будет назначить на команду отдельно через вкладку "Команды"
+        // Если был игроком в чужой команде - удаляем
+        const playerRecord = players.find(p => p.user_id === userId);
+        if (playerRecord && playerRecord.team_id) {
+          // Проверяем, является ли он тренером этой команды
+          const hisTeam = teams.find(t => t.coach_id === userId);
+          if (!hisTeam || hisTeam.id !== playerRecord.team_id) {
+            // Он игрок в чужой команде - удаляем
+            await supabase.from("players").update({ team_id: null, is_captain: false }).eq("id", playerRecord.id);
+          }
+        }
       }
-      // Для тренера - нужно будет назначить на команду отдельно
+      else if (role === "fan") {
+        // Удаляем из игроков
+        await supabase.from("players").delete().eq("user_id", userId);
+        // Снимаем с роли тренера
+        await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
+      }
       
       await loadData();
       alert("Заявка одобрена!");
     } catch (error) {
       console.error("Error approving request:", error);
-      alert("Ошибка");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Отклонение заявки
-  const handleRejectRoleRequest = async (requestId) => {
-    try {
-      setActionLoading(true);
-      await supabase.from("role_requests").update({ 
-        status: "rejected",
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: user?.id
-      }).eq("id", requestId);
-      await loadData();
-      alert("Заявка отклонена");
-    } catch (error) {
-      console.error("Error rejecting request:", error);
       alert("Ошибка");
     } finally {
       setActionLoading(false);
