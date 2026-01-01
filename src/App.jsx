@@ -2882,7 +2882,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Уведомления</h3>
               <Card style={{ marginBottom: "20px" }}>
-                <Checkbox checked={notifySettings.notify_hour_before} onChange={() => handleToggle("notify_hour_before")} label="За 1 час до матча" />
+                <Checkbox checked={notifySettings.notify_hour_before} onChange={() => handleToggle("notify_hour_before")} label="Матч скоро начнётся" />
                 <Checkbox checked={notifySettings.notify_live} onChange={() => handleToggle("notify_live")} label="Начало матча (LIVE)" />
                 <Checkbox checked={notifySettings.notify_result} onChange={() => handleToggle("notify_result")} label="Результаты матчей" />
               </Card>
