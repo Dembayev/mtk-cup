@@ -1636,7 +1636,7 @@ const handleSendMessage = async () => {
       <Header title="Моя команда" rightElement={
         teamRelation === "fan" ? (
           <button onClick={() => onSelectFavoriteTeam(null)} style={{ background: "none", border: "none", color: colors.goldDark, fontSize: "13px", cursor: "pointer" }}>Сменить</button>
-        ) : (teamRelation === "player" || teamRelation === "captain") && onLeaveTeam ? (
+        ) : (teamRelation === "player" || teamRelation === "captain" || teamRelation === "coach") && onLeaveTeam ? (
           <button onClick={onLeaveTeam} style={{ background: "none", border: "none", color: "#dc2626", fontSize: "13px", cursor: "pointer" }}>Покинуть</button>
         ) : null
       } />
@@ -3132,13 +3132,52 @@ export default function MTKCupApp() {
   };
 
   const handleLeaveTeam = async () => {
-    if (!currentPlayer) return;
-    if (!confirm("Вы уверены что хотите покинуть команду?")) return;
+    const isCoach = coachTeam && coachTeam.coach_id === user?.id;
+    const isPlayer = !!currentPlayer?.team_id;
+    
+    if (!isCoach && !isPlayer) return;
+    
+    const confirmMsg = isCoach 
+      ? "Вы уверены что хотите покинуть команду как тренер?" 
+      : "Вы уверены что хотите покинуть команду?";
+    
+    if (!confirm(confirmMsg)) return;
+    
     try {
       setActionLoading(true);
-      await supabase.from("players").update({ team_id: null, is_free_agent: true, is_captain: false }).eq("id", currentPlayer.id);
+      
+      if (isCoach) {
+        // Снимаем с тренерства
+        await supabase.from("teams").update({ coach_id: null }).eq("id", coachTeam.id);
+        
+        // Уведомляем админов
+        const { data: admins } = await supabase.from("users").select("telegram_id").eq("role", "admin");
+        const userName = user?.first_name || user?.username || "Тренер";
+        const message = `📤 ${userName} покинул команду "${coachTeam.name}" как тренер.`;
+        if (admins) {
+          for (const admin of admins) {
+            if (admin.telegram_id) {
+              try {
+                await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ chat_id: admin.telegram_id, text: message }),
+                });
+              } catch (e) { console.error(e); }
+            }
+          }
+        }
+        
+        alert("Вы покинули команду как тренер");
+      }
+      
+      if (isPlayer && currentPlayer) {
+        // Удаляем из игроков команды
+        await supabase.from("players").update({ team_id: null, is_free_agent: true, is_captain: false }).eq("id", currentPlayer.id);
+        alert("Вы покинули команду и стали свободным игроком");
+      }
+      
       await loadData();
-      alert("Вы покинули команду и стали свободным игроком");
       setScreen("home");
     } catch (error) {
       console.error("Error leaving team:", error);
