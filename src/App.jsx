@@ -154,14 +154,19 @@ const roleLabels = {
 };
 
 // Функция для вычисления всех ролей пользователя
-const getUserRoles = (user, players, teams) => {
+const getUserRoles = (user, players, teams, roleRequests = []) => {
   if (!user) return { isGuest: true, isFan: false, isPlayer: false, isCaptain: false, isCoach: false, isAdmin: false, roles: [] };
   
   const isAdmin = user.role === "admin";
   const playerRecord = players?.find(p => p.user_id === user.id);
   const isPlayer = !!playerRecord;
   const isCaptain = playerRecord?.is_captain === true;
-  const isCoach = teams?.some(t => t.coach_id === user.id) || false;
+  
+  // Тренер = назначен на команду ИЛИ имеет одобренную заявку на тренера
+  const isCoachByTeam = teams?.some(t => t.coach_id === user.id) || false;
+  const isCoachByRequest = roleRequests?.some(r => r.user_id === user.id && r.requested_role === "coach" && r.status === "approved") || false;
+  const isCoach = isCoachByTeam || isCoachByRequest;
+  
   const isFan = !isPlayer && !isCoach && !isAdmin;
   
   const roles = [];
@@ -2913,7 +2918,7 @@ export default function MTKCupApp() {
   const [roleRequests, setRoleRequests] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  const userRoles = getUserRoles(user, players, teams);
+  const userRoles = getUserRoles(user, players, teams, roleRequests);
   const currentPlayer = userRoles.playerRecord;
   const pendingOffers = offers.filter(o => o.player_id === currentPlayer?.id && o.status === "pending");
   const coachTeam = teams.find(t => t.coach_id === user?.id);
