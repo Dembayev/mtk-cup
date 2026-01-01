@@ -48,27 +48,18 @@ export const MyTeamScreen = ({
   let myTeam = null;
   let teamRelation = null;
   
-  try {
-    if (userRoles.isCoach && coachTeam) {
-      myTeam = coachTeam;
-      teamRelation = "coach";
-      console.log('✅ Coach with team:', myTeam.name);
-    } else if (userRoles.isPlayer && currentPlayer?.team_id) {
-      myTeam = teams.find(t => t.id === currentPlayer.team_id);
-      teamRelation = userRoles.isCaptain ? "captain" : "player";
-      console.log('✅ Player with team:', myTeam?.name);
-    } else if (userRoles.isFan && user?.favorite_team_id) {
-      myTeam = teams.find(t => t.id === user.favorite_team_id);
-      teamRelation = "fan";
-      console.log('✅ Fan with team:', myTeam?.name);
-    }
-  } catch (error) {
-    console.error('❌ Error determining team:', error);
-    return (
-      <div style={{ padding: "20px", textAlign: "center" }}>
-        <p>Ошибка при определении команды: {error.message}</p>
-      </div>
-    );
+  if (userRoles.isCoach && coachTeam) {
+    myTeam = coachTeam;
+    teamRelation = "coach";
+    console.log('✅ Coach with team:', myTeam.name);
+  } else if (userRoles.isPlayer && currentPlayer?.team_id) {
+    myTeam = teams.find(t => t.id === currentPlayer.team_id);
+    teamRelation = userRoles.isCaptain ? "captain" : "player";
+    console.log('✅ Player with team:', myTeam?.name);
+  } else if (userRoles.isFan && user?.favorite_team_id) {
+    myTeam = teams.find(t => t.id === user.favorite_team_id);
+    teamRelation = "fan";
+    console.log('✅ Fan with team:', myTeam?.name);
   }
   
   const teamPlayers = myTeam ? players.filter(p => p.team_id === myTeam.id) : [];
@@ -81,7 +72,8 @@ export const MyTeamScreen = ({
     teamRelation,
     teamPlayers: teamPlayers.length,
     pendingSentOffers: pendingSentOffers.length,
-    pendingTeamRequests: pendingTeamRequests.length
+    pendingTeamRequests: pendingTeamRequests.length,
+    canManageTeam
   });
 
   const handleSendMessage = async () => {
@@ -266,7 +258,7 @@ export const MyTeamScreen = ({
                       {player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}
                       {player.is_captain && <span style={{ marginLeft: "6px", color: colors.gold }}>©</span>}
                     </div>
-                    <div style={{ fontSize: "12px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</div>
+                    <div style={{ fontSize: "12px", color: colors.goldDark }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</div>
                   </div>
                 </div>
                 
