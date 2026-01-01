@@ -9,29 +9,80 @@ export const MyTeamScreen = ({
   setSelectedPlayer, teamRequests, onAcceptTeamRequest, onRejectTeamRequest, 
   onUpdateJerseyNumber, onSetCaptain 
 }) => {
+  // Debug logging
+  console.log('🔍 MyTeamScreen render:', {
+    user: user?.id,
+    userRoles,
+    coachTeam: coachTeam?.id,
+    currentPlayer: currentPlayer?.id,
+    teams: teams?.length,
+    players: players?.length,
+    sentOffers: sentOffers?.length,
+    teamRequests: teamRequests?.length
+  });
+
   const [editingJersey, setEditingJersey] = useState(null);
   const [jerseyValue, setJerseyValue] = useState("");
   const [teamMessage, setTeamMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Safety checks
+  if (!userRoles) {
+    console.error('❌ userRoles is missing!');
+    return (
+      <div style={{ padding: "20px", textAlign: "center" }}>
+        <p>Ошибка: роли пользователя не загружены</p>
+      </div>
+    );
+  }
+
+  if (!teams || !players) {
+    console.error('❌ teams or players is missing!', { teams, players });
+    return (
+      <div style={{ padding: "20px", textAlign: "center" }}>
+        <p>Загрузка данных...</p>
+      </div>
+    );
+  }
+
   let myTeam = null;
   let teamRelation = null;
   
-  if (userRoles.isCoach && coachTeam) {
-    myTeam = coachTeam;
-    teamRelation = "coach";
-  } else if (userRoles.isPlayer && currentPlayer?.team_id) {
-    myTeam = teams.find(t => t.id === currentPlayer.team_id);
-    teamRelation = userRoles.isCaptain ? "captain" : "player";
-  } else if (userRoles.isFan && user?.favorite_team_id) {
-    myTeam = teams.find(t => t.id === user.favorite_team_id);
-    teamRelation = "fan";
+  try {
+    if (userRoles.isCoach && coachTeam) {
+      myTeam = coachTeam;
+      teamRelation = "coach";
+      console.log('✅ Coach with team:', myTeam.name);
+    } else if (userRoles.isPlayer && currentPlayer?.team_id) {
+      myTeam = teams.find(t => t.id === currentPlayer.team_id);
+      teamRelation = userRoles.isCaptain ? "captain" : "player";
+      console.log('✅ Player with team:', myTeam?.name);
+    } else if (userRoles.isFan && user?.favorite_team_id) {
+      myTeam = teams.find(t => t.id === user.favorite_team_id);
+      teamRelation = "fan";
+      console.log('✅ Fan with team:', myTeam?.name);
+    }
+  } catch (error) {
+    console.error('❌ Error determining team:', error);
+    return (
+      <div style={{ padding: "20px", textAlign: "center" }}>
+        <p>Ошибка при определении команды: {error.message}</p>
+      </div>
+    );
   }
   
   const teamPlayers = myTeam ? players.filter(p => p.team_id === myTeam.id) : [];
-  const pendingSentOffers = sentOffers.filter(o => o.status === "pending");
+  const pendingSentOffers = (sentOffers || []).filter(o => o.status === "pending");
   const pendingTeamRequests = (teamRequests || []).filter(r => r.team_id === myTeam?.id && r.status === "pending");
   const canManageTeam = teamRelation === "coach";
+
+  console.log('📊 Team data:', {
+    myTeam: myTeam?.name,
+    teamRelation,
+    teamPlayers: teamPlayers.length,
+    pendingSentOffers: pendingSentOffers.length,
+    pendingTeamRequests: pendingTeamRequests.length
+  });
 
   const handleSendMessage = async () => {
     if (!teamMessage.trim() || !myTeam) return;
@@ -48,6 +99,7 @@ export const MyTeamScreen = ({
 
   // Fan without team
   if (userRoles.isFan && !myTeam) {
+    console.log('🎯 Rendering: Fan without team');
     return (
       <div style={{ paddingBottom: "100px" }}>
         <Header title="Моя команда" />
@@ -79,6 +131,7 @@ export const MyTeamScreen = ({
 
   // Free agent player
   if (userRoles.isPlayer && !myTeam && !userRoles.isCoach) {
+    console.log('🎯 Rendering: Free agent player');
     return (
       <div style={{ paddingBottom: "100px" }}>
         <Header title="Моя команда" />
@@ -98,6 +151,7 @@ export const MyTeamScreen = ({
 
   // Coach without team
   if (userRoles.isCoach && !myTeam) {
+    console.log('🎯 Rendering: Coach without team');
     return (
       <div style={{ paddingBottom: "100px" }}>
         <Header title="Моя команда" />
@@ -113,6 +167,8 @@ export const MyTeamScreen = ({
       </div>
     );
   }
+
+  console.log('🎯 Rendering: Main team view');
 
   return (
     <div style={{ paddingBottom: "100px" }}>

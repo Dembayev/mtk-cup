@@ -1167,7 +1167,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
     return 0;
   });
   
-  const hasPendingOffer = (playerId) => sentOffers.some(o => o.player_id === playerId && o.status === "pending");
+  const hasPendingOffer = (playerId) => (sentOffers || []).some(o => o.player_id === playerId && o.status === "pending");
 
   const uniqueTeams = [...new Set(players.filter(p => p.team_id).map(p => p.teams))].filter(Boolean);
 
@@ -1518,12 +1518,16 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   }
   
   const teamPlayers = myTeam ? players.filter(p => p.team_id === myTeam.id) : [];
-  const pendingSentOffers = sentOffers.filter(o => o.status === "pending");
+  const pendingSentOffers = (sentOffers || []).filter(o => o.status === "pending");
   const pendingTeamRequests = (teamRequests || []).filter(r => r.team_id === myTeam?.id && r.status === "pending");
 
   // Для создания команды (тренер без команды)
   const [newTeamName, setNewTeamName] = useState("");
   const [creatingTeam, setCreatingTeam] = useState(false);
+  const [editingJersey, setEditingJersey] = useState(null);
+  const [jerseyValue, setJerseyValue] = useState("");
+  const [teamMessage, setTeamMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
 
   if (userRoles.isFan && !myTeam) {
@@ -1593,28 +1597,26 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
       </div>
     );
   }
-  const [editingJersey, setEditingJersey] = useState(null);
-  const [jerseyValue, setJerseyValue] = useState("");
 
-const [teamMessage, setTeamMessage] = useState("");
-const [sendingMessage, setSendingMessage] = useState(false);
+  const handleSendMessage = async () => {
+    if (!teamMessage.trim() || !myTeam) return;
+    setSendingMessage(true);
+    const result = await onSendTeamMessage(myTeam.id, myTeam.name, teamMessage);
+    setSendingMessage(false);
+    if (result?.sent > 0) {
+      alert(`Сообщение отправлено ${result.sent} игрокам`);
+      setTeamMessage("");
+    } else {
+      alert(`Не удалось отправить: ${result?.debug || 'ошибка'}`);
+    }
+  };
 
-const handleSendMessage = async () => {
-  if (!teamMessage.trim() || !myTeam) return;
-  setSendingMessage(true);
-  const result = await onSendTeamMessage(myTeam.id, myTeam.name, teamMessage);
-  setSendingMessage(false);
-  if (result?.sent > 0) {
-    alert(`✅ Сообщение отправлено ${result.sent} игрокам`);
-    setTeamMessage("");
-  } else {
-    alert(`❌ Не удалось отправить (${result?.debug || 'ошибка'})`);
-  }
-};
+  const canManageTeam = teamRelation === "coach";
 
   return (
     <div style={{ paddingBottom: "100px" }}>
       <Header title="Моя команда" rightElement={
+
         teamRelation === "fan" ? (
           <button onClick={() => onSelectFavoriteTeam(null)} style={{ background: "none", border: "none", color: colors.goldDark, fontSize: "13px", cursor: "pointer" }}>Сменить</button>
         ) : (teamRelation === "player" || teamRelation === "captain" || teamRelation === "coach") && onLeaveTeam ? (
