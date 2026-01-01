@@ -1798,7 +1798,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
         type="number" 
         min="0" 
         value={stat[field]} 
-        onChange={e => setStat(prev => ({ ...prev, [field]: parseInt(e.target.value) || 0 }))}
+        onChange={e => setStat(prev => ({ ...prev, [field]: e.target.value === "" ? "" : parseInt(e.target.value) || 0 }))}
         style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
       />
     </div>
@@ -2134,13 +2134,13 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               {[1,2,3,4,5].map(setNum => (
                                 <div key={setNum} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                                   <span style={{ width: "50px", fontSize: "13px", color: colors.goldDark }}>Сет {setNum}</span>
-                                  <input type="number" min="0" max="50" value={matchScore[`set${setNum}_team1`] || 0}
-                                    onChange={e => setMatchScore(prev => ({ ...prev, [`set${setNum}_team1`]: parseInt(e.target.value) || 0 }))}
+                                  <input type="number" min="0" max="50" value={matchScore[`set${setNum}_team1`] ?? ""}
+                                    onChange={e => setMatchScore(prev => ({ ...prev, [`set${setNum}_team1`]: e.target.value === "" ? "" : parseInt(e.target.value) || 0 }))}
                                     style={{ width: "60px", padding: "8px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }}
                                   />
                                   <span>:</span>
-                                  <input type="number" min="0" max="50" value={matchScore[`set${setNum}_team2`] || 0}
-                                    onChange={e => setMatchScore(prev => ({ ...prev, [`set${setNum}_team2`]: parseInt(e.target.value) || 0 }))}
+                                  <input type="number" min="0" max="50" value={matchScore[`set${setNum}_team2`] ?? ""}
+                                    onChange={e => setMatchScore(prev => ({ ...prev, [`set${setNum}_team2`]: e.target.value === "" ? "" : parseInt(e.target.value) || 0 }))}
                                     style={{ width: "60px", padding: "8px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }}
                                   />
                                 </div>
