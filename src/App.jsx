@@ -3416,6 +3416,30 @@ export default function MTKCupApp() {
     return await sendTeamMessage(teamId, teamName, message);
   };
 
+  // Create team (for coach)
+  const handleCreateTeam = async (teamName) => {
+    try {
+      setActionLoading(true);
+      const { data, error } = await supabase.from("teams").insert({
+        name: teamName,
+        coach_id: user.id,
+        logo_url: "🏐"
+      }).select().single();
+      
+      if (error) throw error;
+      await loadData();
+      alert("Команда создана!");
+      return data;
+    } catch (error) {
+      console.error('Error creating team:', error);
+      alert('Ошибка создания команды');
+      return null;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+
 
   // Create tour
   const handleCreateTour = async (tourData) => {
