@@ -1574,17 +1574,8 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
     );
   }
 
+
   if (userRoles.isCoach && !myTeam) {
-    const handleCreate = async () => {
-      if (!newTeamName.trim()) {
-        alert("Введите название команды");
-        return;
-      }
-      setCreatingTeam(true);
-      await onCreateTeam(newTeamName.trim());
-      setCreatingTeam(false);
-    };
-    
     return (
       <div style={{ paddingBottom: "100px" }}>
         <Header title="Моя команда" />
@@ -1592,26 +1583,16 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
           <div style={{ padding: "20px 0" }}>
             <Card style={{ textAlign: "center" }}>
               <div style={{ fontSize: "48px", marginBottom: "12px" }}>📋</div>
-              <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 600 }}>Создайте команду</h3>
-              <p style={{ margin: "0 0 16px", fontSize: "14px", color: colors.goldDark }}>Вы тренер без команды. Создайте свою команду!</p>
-              <input
-                type="text"
-                value={newTeamName}
-                onChange={e => setNewTeamName(e.target.value)}
-                placeholder="Название команды"
-                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: `1px solid ${colors.grayBorder}`, fontSize: "14px", marginBottom: "12px", boxSizing: "border-box" }}
-              />
-              <Button onClick={handleCreate} disabled={creatingTeam || !newTeamName.trim()} style={{ width: "100%" }}>
-                {creatingTeam ? "Создание..." : "🏐 Создать команду"}
-              </Button>
+              <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 600 }}>Вы тренер без команды</h3>
+              <p style={{ margin: "0 0 16px", fontSize: "14px", color: colors.goldDark }}>
+                Обратитесь к администратору для назначения на команду или создания новой команды.
+              </p>
             </Card>
           </div>
         </Container>
       </div>
     );
   }
-
-  const canManageTeam = teamRelation === "coach";
   const [editingJersey, setEditingJersey] = useState(null);
   const [jerseyValue, setJerseyValue] = useState("");
 
@@ -1886,7 +1867,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -1896,6 +1877,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   });
   const [editingUser, setEditingUser] = useState(null);
   const [userRole, setUserRole] = useState("fan");
+  const [gameRole, setGameRole] = useState("fan");
   const [userFirstName, setUserFirstName] = useState("");
   const [userLastName, setUserLastName] = useState("");
   const [editingTeam, setEditingTeam] = useState(null);
@@ -1971,10 +1953,26 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     setUserRole(u.role === "admin" ? "admin" : "fan");
     setUserFirstName(u.first_name || "");
     setUserLastName(u.last_name || "");
+    // Определяем текущую игровую роль
+    const isCoach = teams.some(t => t.coach_id === u.id);
+    const isPlayer = players.some(p => p.user_id === u.id);
+    if (isCoach) setGameRole("coach");
+    else if (isPlayer) setGameRole("player");
+    else setGameRole("fan");
   };
 
   const saveUser = async () => {
     await onUpdateUser(editingUser.id, userRole, userFirstName, userLastName);
+    // Смена игровой роли
+    const currentIsCoach = teams.some(t => t.coach_id === editingUser.id);
+    const currentIsPlayer = players.some(p => p.user_id === editingUser.id);
+    let currentGameRole = "fan";
+    if (currentIsCoach) currentGameRole = "coach";
+    else if (currentIsPlayer) currentGameRole = "player";
+    
+    if (gameRole !== currentGameRole && onChangeGameRole) {
+      await onChangeGameRole(editingUser.id, gameRole);
+    }
     setEditingUser(null);
   };
 
@@ -2475,7 +2473,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             { value: "admin", label: "Администратор" },
                           ]}
                         />
-                        {!userPlayerRecord && (
+                        <Select label="Роль" value={gameRole} onChange={setGameRole}
+                          options={[
+                            { value: "fan", label: "Болельщик" },
+                            { value: "player", label: "Игрок" },
+                            { value: "coach", label: "Тренер" },
+                          ]}
+                        />
+                        {false && (
                           <Button 
                             onClick={() => onMakePlayer(u.id)} 
                             disabled={actionLoading}
@@ -2484,11 +2489,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             🏐 Сделать игроком (свободный агент)
                           </Button>
                         )}
-                        <div style={{ fontSize: "12px", color: colors.goldDark, margin: "8px 0", padding: "8px", background: colors.gray, borderRadius: "6px" }}>
-                          <div style={{ marginBottom: "4px" }}>📌 Роли:</div>
-                          <div>• <strong>Тренер</strong> — назначить на команду (вкладка Команды)</div>
-                          <div>• <strong>Капитан</strong> — назначить в составе команды</div>
-                        </div>
+
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                           <Button onClick={saveUser} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                             <Icons.Save /> Сохранить
@@ -3371,6 +3372,65 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleChangeGameRole = async (userId, newRole) => {
+    try {
+      setActionLoading(true);
+      const targetUser = users.find(u => u.id === userId);
+      const currentPlayer = players.find(p => p.user_id === userId);
+      const currentCoachTeam = teams.find(t => t.coach_id === userId);
+      
+      // Определяем текущую роль
+      let oldRole = "fan";
+      if (currentCoachTeam) oldRole = "coach";
+      else if (currentPlayer) oldRole = "player";
+      
+      if (oldRole === newRole) {
+        setActionLoading(false);
+        return;
+      }
+      
+      // Применяем изменения
+      if (newRole === "fan") {
+        if (currentPlayer) await supabase.from("players").delete().eq("user_id", userId);
+        if (currentCoachTeam) await supabase.from("teams").update({ coach_id: null }).eq("id", currentCoachTeam.id);
+        await supabase.from("role_requests").delete().eq("user_id", userId).eq("status", "approved");
+      } 
+      else if (newRole === "player") {
+        if (currentCoachTeam) await supabase.from("teams").update({ coach_id: null }).eq("id", currentCoachTeam.id);
+        if (!currentPlayer) {
+          await supabase.from("players").insert({ user_id: userId, is_free_agent: true, is_captain: false, positions: [] });
+        }
+        await supabase.from("role_requests").delete().eq("user_id", userId).eq("requested_role", "coach").eq("status", "approved");
+      }
+      else if (newRole === "coach") {
+        await supabase.from("role_requests").upsert({
+          user_id: userId, requested_role: "coach", status: "approved",
+          reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
+        }, { onConflict: "user_id,requested_role" });
+      }
+      
+      // Уведомление пользователю
+      const roleNames = { fan: "Болельщик", player: "Игрок", coach: "Тренер" };
+      const message = `📋 Ваша роль изменена!\n\nНовая роль: ${roleNames[newRole]}\n\nИзменено администратором.`;
+      if (targetUser?.telegram_id) {
+        try {
+          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: targetUser.telegram_id, text: message }),
+          });
+        } catch (e) { console.error("Failed to notify user:", e); }
+      }
+      
+      await loadData();
+    } catch (error) {
+      console.error("Error changing game role:", error);
+      alert("Ошибка смены роли");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleMakePlayer = async (userId) => {
     try {
       setActionLoading(true);
@@ -3812,7 +3872,7 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
     }
   };
