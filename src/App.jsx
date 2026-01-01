@@ -2362,12 +2362,12 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           {tab === "users" && (
             <>
               {/* Заявки на роль */}
-              {roleRequests.filter(r => r.status === "pending").length > 0 && (
+              {(roleRequests || []).filter(r => r.status === "pending").length > 0 && (
                 <Card style={{ marginBottom: "20px", background: "#fef3c7", border: "1px solid #f59e0b" }}>
                   <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px", color: "#92400e" }}>
-                    📋 Заявки на роль ({roleRequests.filter(r => r.status === "pending").length})
+                    📋 Заявки на роль ({(roleRequests || []).filter(r => r.status === "pending").length})
                   </h3>
-                  {roleRequests.filter(r => r.status === "pending").map(request => {
+                  {(roleRequests || []).filter(r => r.status === "pending").map(request => {
                     const requestUser = users.find(u => u.id === request.user_id);
                     return (
                       <div key={request.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "white", borderRadius: "8px", marginBottom: "8px" }}>
@@ -2793,7 +2793,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
           {!isGuest && !userRoles.isPlayer && !userRoles.isCoach && (
             <Card style={{ marginBottom: "20px", background: colors.goldLight }}>
               <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Хотите участвовать в турнире?</h4>
-              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+              {(roleRequests || []).some(r => r.user_id === user?.id && r.status === "pending") ? (
                 <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
                   <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
                 </div>
@@ -2822,7 +2822,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
           {!isGuest && userRoles.isPlayer && !userRoles.isCoach && (
             <Card style={{ marginBottom: "20px", background: "#f0f9ff" }}>
               <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
-              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+              {(roleRequests || []).some(r => r.user_id === user?.id && r.status === "pending") ? (
                 <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
                   <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
                 </div>
@@ -2850,7 +2850,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
           {!isGuest && userRoles.isCoach && !userRoles.isPlayer && (
             <Card style={{ marginBottom: "20px", background: "#fefce8" }}>
               <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
-              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+              {(roleRequests || []).some(r => r.user_id === user?.id && r.status === "pending") ? (
                 <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
                   <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
                 </div>
@@ -2878,7 +2878,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
           {!isGuest && userRoles.isCoach && userRoles.isPlayer && (
             <Card style={{ marginBottom: "20px", background: "#f0fdf4" }}>
               <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
-              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+              {(roleRequests || []).some(r => r.user_id === user?.id && r.status === "pending") ? (
                 <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
                   <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
                 </div>
