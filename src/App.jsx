@@ -1874,8 +1874,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
     sets_team1: 0, sets_team2: 0, status: "upcoming",
-    set1_team1: 0, set1_team2: 0, set2_team1: 0, set2_team2: 0, set3_team1: 0, set3_team2: 0,
-    set4_team1: 0, set4_team2: 0, set5_team1: 0, set5_team2: 0
+    set1_team1: "", set1_team2: "", set2_team1: "", set2_team2: "", set3_team1: "", set3_team2: "",
+    set4_team1: "", set4_team2: "", set5_team1: "", set5_team2: ""
   });
   const [editingUser, setEditingUser] = useState(null);
   const [userRole, setUserRole] = useState("fan");
@@ -1927,11 +1927,11 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     setEditingMatch(match);
     setMatchScore({
       sets_team1: match.sets_team1 || 0, sets_team2: match.sets_team2 || 0, status: match.status || "upcoming",
-      set1_team1: match.set1_team1 || 0, set1_team2: match.set1_team2 || 0,
-      set2_team1: match.set2_team1 || 0, set2_team2: match.set2_team2 || 0,
-      set3_team1: match.set3_team1 || 0, set3_team2: match.set3_team2 || 0,
-      set4_team1: match.set4_team1 || 0, set4_team2: match.set4_team2 || 0,
-      set5_team1: match.set5_team1 || 0, set5_team2: match.set5_team2 || 0,
+      set1_team1: match.set1_team1 || "", set1_team2: match.set1_team2 || "",
+      set2_team1: match.set2_team1 || "", set2_team2: match.set2_team2 || "",
+      set3_team1: match.set3_team1 || "", set3_team2: match.set3_team2 || "",
+      set4_team1: match.set4_team1 || "", set4_team2: match.set4_team2 || "",
+      set5_team1: match.set5_team1 || "", set5_team2: match.set5_team2 || "",
     });
   };
 
