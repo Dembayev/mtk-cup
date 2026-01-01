@@ -1856,7 +1856,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer }) => {
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -1885,6 +1885,29 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   // Редактирование видео
   const [editingVideo, setEditingVideo] = useState(null);
   const [videoData, setVideoData] = useState({ stream_url: "", video_url: "" });
+
+  // Редактирование игрока
+  const [editingPlayer, setEditingPlayer] = useState(null);
+  const [playerJersey, setPlayerJersey] = useState("");
+  const [playerPositions, setPlayerPositions] = useState([]);
+
+  const startEditPlayer = (player) => {
+    setEditingPlayer(player);
+    setPlayerJersey(player.jersey_number || "");
+    setPlayerPositions(player.positions || []);
+  };
+
+  const savePlayer = async () => {
+    if (!editingPlayer || !onUpdatePlayer) return;
+    await onUpdatePlayer(editingPlayer.id, playerJersey, playerPositions);
+    setEditingPlayer(null);
+  };
+
+  const togglePosition = (pos) => {
+    setPlayerPositions(prev => 
+      prev.includes(pos) ? prev.filter(p => p !== pos) : [...prev, pos]
+    );
+  };
 
   const startEditMatch = (match) => {
     setEditingMatch(match);
@@ -2340,7 +2363,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600 }}>{requestUser?.first_name || requestUser?.username} {requestUser?.last_name || ""}</div>
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>
-                            Хочет стать: <strong>{request.requested_role === "player" ? "Игроком" : "Тренером"}</strong>
+                            Хочет стать: <strong>{request.requested_role === "player" ? "Игроком" : request.requested_role === "coach" ? "Тренером" : "Болельщиком"}</strong>
                           </div>
                           <div style={{ fontSize: "11px", color: colors.goldDark }}>
                             {new Date(request.created_at).toLocaleDateString("ru-RU")}
@@ -2534,22 +2557,44 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${colors.grayBorder}` }}>
                             <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>Состав команды:</div>
                             {teamPlayers.length > 0 ? teamPlayers.map(player => (
-                              <div key={player.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 0" }}>
-                                <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
-                                <span style={{ fontSize: "13px", flex: 1 }}>
-                                  {player.users?.first_name || `@${player.users?.username}`}
-                                  {player.is_captain && <span style={{ marginLeft: "4px", color: colors.gold }}>©</span>}
-                                </span>
-                                <span style={{ fontSize: "11px", color: colors.goldDark }}>
-                                  {player.positions?.map(p => positionLabels[p] || p).join(", ") || "—"}
-                                </span>
-                                {player.jersey_number && <span style={{ fontSize: "12px", fontWeight: 600, color: colors.gold }}>#{player.jersey_number}</span>}
-                                <button onClick={() => onSetCaptain(team.id, player.id, !player.is_captain)} style={{ background: player.is_captain ? "#f3e8ff" : colors.gray, border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: player.is_captain ? "#7c3aed" : colors.goldDark }}>{player.is_captain ? "Снять ©" : "Капитан"}</button>
+                              <div key={player.id} style={{ padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+                                {editingPlayer?.id === player.id ? (
+                                  <div style={{ background: colors.gray, padding: "12px", borderRadius: "8px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                                      <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
+                                      <span style={{ fontSize: "13px", fontWeight: 600 }}>{player.users?.first_name || player.users?.username}</span>
+                                    </div>
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark }}>Номер:</label>
+                                      <input type="number" min="1" max="99" value={playerJersey} onChange={e => setPlayerJersey(e.target.value)} style={{ width: "60px", marginLeft: "8px", padding: "4px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}` }} />
+                                    </div>
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Амплуа:</label>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                        {["setter", "opposite", "outside", "middle", "libero"].map(pos => (
+                                          <button key={pos} onClick={() => togglePosition(pos)} style={{ padding: "4px 8px", borderRadius: "12px", border: "none", fontSize: "11px", cursor: "pointer", background: playerPositions.includes(pos) ? colors.gold : colors.grayBorder, color: playerPositions.includes(pos) ? "white" : colors.text }}>{positionLabels[pos]}</button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div style={{ display: "flex", gap: "8px" }}>
+                                      <button onClick={savePlayer} style={{ flex: 1, padding: "6px", background: colors.gold, color: "white", border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Сохранить</button>
+                                      <button onClick={() => setEditingPlayer(null)} style={{ flex: 1, padding: "6px", background: colors.grayBorder, border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Отмена</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
+                                    <span style={{ fontSize: "13px", flex: 1 }}>{player.users?.first_name || player.users?.username}{player.is_captain && <span style={{ marginLeft: "4px", color: colors.gold }}>©</span>}</span>
+                                    <span style={{ fontSize: "11px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ") || "—"}</span>
+                                    {player.jersey_number && <span style={{ fontSize: "12px", fontWeight: 600, color: colors.gold }}>#{player.jersey_number}</span>}
+                                    <button onClick={() => startEditPlayer(player)} style={{ background: "#e0f2fe", border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: "#0284c7" }}>✏️</button>
+                                    <button onClick={() => onSetCaptain(team.id, player.id, !player.is_captain)} style={{ background: player.is_captain ? "#f3e8ff" : colors.gray, border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: player.is_captain ? "#7c3aed" : colors.goldDark }}>{player.is_captain ? "©" : "Кап"}</button>
+                                  </div>
+                                )}
                               </div>
                             )) : (
                               <div style={{ fontSize: "13px", color: colors.goldDark, fontStyle: "italic" }}>Нет игроков</div>
                             )}
-                            
                             {/* Массовая рассылка команде */}
                             <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: `1px solid ${colors.grayBorder}` }}>
                               <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>📢 Отправить сообщение команде:</div>
@@ -2748,6 +2793,54 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                     📋 Стать тренером
                   </Button>
                 </div>
+              )}
+            </Card>
+          )}
+
+          {/* Кнопки смены роли для ИГРОКОВ */}
+          {!isGuest && userRoles.isPlayer && !userRoles.isCoach && (
+            <Card style={{ marginBottom: "20px", background: "#f0f9ff" }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
+              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+                <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button onClick={() => onSubmitRoleRequest("coach")} style={{ flex: 1, background: "#0284c7" }}>📋 Стать тренером</Button>
+                  <Button onClick={() => onSubmitRoleRequest("fan")} variant="outline" style={{ flex: 1 }}>👤 Стать болельщиком</Button>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Кнопки смены роли для ТРЕНЕРОВ */}
+          {!isGuest && userRoles.isCoach && !userRoles.isPlayer && (
+            <Card style={{ marginBottom: "20px", background: "#fefce8" }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
+              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+                <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button onClick={() => onSubmitRoleRequest("player")} style={{ flex: 1, background: "#16a34a" }}>🏃 Стать игроком</Button>
+                  <Button onClick={() => onSubmitRoleRequest("fan")} variant="outline" style={{ flex: 1 }}>👤 Стать болельщиком</Button>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Кнопки смены роли для ИГРОК+ТРЕНЕР */}
+          {!isGuest && userRoles.isCoach && userRoles.isPlayer && (
+            <Card style={{ marginBottom: "20px", background: "#f0fdf4" }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Сменить роль</h4>
+              {roleRequests.some(r => r.user_id === user?.id && r.status === "pending") ? (
+                <div style={{ padding: "12px", background: "#fef3c7", borderRadius: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
+                </div>
+              ) : (
+                <Button onClick={() => onSubmitRoleRequest("fan")} variant="outline" style={{ width: "100%" }}>👤 Стать болельщиком</Button>
               )}
             </Card>
           )}
@@ -3301,6 +3394,23 @@ export default function MTKCupApp() {
     }
   };
 
+  // Update player (jersey + positions) for admin
+  const handleUpdatePlayer = async (playerId, jerseyNumber, positions) => {
+    try {
+      setActionLoading(true);
+      await supabase.from('players').update({ 
+        jersey_number: jerseyNumber || null,
+        positions: positions || []
+      }).eq('id', playerId);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating player:', error);
+      alert('Ошибка обновления');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Send team message
   const handleSendTeamMessage = async (teamId, teamName, message) => {
     return await sendTeamMessage(teamId, teamName, message);
@@ -3483,7 +3593,7 @@ const handleTelegramLogin = async (tgUser) => {
       await loadData();
     
     // Отправляем уведомление админам
-    const roleName = requestedRole === "player" ? "игроком" : "тренером";
+    const roleName = requestedRole === "player" ? "игроком" : requestedRole === "coach" ? "тренером" : "болельщиком";
     const userName = user.first_name || user.username || "Пользователь";
     const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.\n\nПроверьте в админ-панели.`;
     
@@ -3514,14 +3624,12 @@ const handleTelegramLogin = async (tgUser) => {
   const handleApproveRoleRequest = async (requestId, userId, role) => {
     try {
       setActionLoading(true);
-      // Обновляем статус заявки
       await supabase.from("role_requests").update({ 
         status: "approved", 
         reviewed_at: new Date().toISOString(),
         reviewed_by: user?.id 
       }).eq("id", requestId);
       
-      // Создаём игрока или назначаем тренера
       if (role === "player") {
         const existing = players.find(p => p.user_id === userId);
         if (!existing) {
@@ -3532,8 +3640,26 @@ const handleTelegramLogin = async (tgUser) => {
             positions: [],
           });
         }
+        // Снимаем с тренерства
+        await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
+      } 
+      else if (role === "coach") {
+        // Для тренера - нужно будет назначить на команду отдельно
+        // Если был игроком в чужой команде - удаляем из неё
+        const playerRecord = players.find(p => p.user_id === userId);
+        if (playerRecord && playerRecord.team_id) {
+          const hisTeam = teams.find(t => t.coach_id === userId);
+          if (!hisTeam || hisTeam.id !== playerRecord.team_id) {
+            await supabase.from("players").update({ team_id: null, is_captain: false }).eq("id", playerRecord.id);
+          }
+        }
       }
-      // Для тренера - нужно будет назначить на команду отдельно
+      else if (role === "fan") {
+        // Удаляем из игроков
+        await supabase.from("players").delete().eq("user_id", userId);
+        // Снимаем с тренерства
+        await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
+      }
       
       await loadData();
       alert("Заявка одобрена!");
@@ -3591,7 +3717,7 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
     }
   };
