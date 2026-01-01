@@ -1497,7 +1497,7 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, i
   );
 };
 
-const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, setSelectedPlayer, teamRequests, onAcceptTeamRequest, onRejectTeamRequest, onUpdateJerseyNumber, onSetCaptain, onSendTeamMessage }) => {
+const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, setSelectedPlayer, teamRequests, onAcceptTeamRequest, onRejectTeamRequest, onUpdateJerseyNumber, onSetCaptain, onSendTeamMessage, onCreateTeam }) => {
   let myTeam = null;
   let teamRelation = null;
   
@@ -1515,6 +1515,11 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   const teamPlayers = myTeam ? players.filter(p => p.team_id === myTeam.id) : [];
   const pendingSentOffers = sentOffers.filter(o => o.status === "pending");
   const pendingTeamRequests = (teamRequests || []).filter(r => r.team_id === myTeam?.id && r.status === "pending");
+
+  // Для создания команды (тренер без команды)
+  const [newTeamName, setNewTeamName] = useState("");
+  const [creatingTeam, setCreatingTeam] = useState(false);
+
 
   if (userRoles.isFan && !myTeam) {
     return (
@@ -1565,6 +1570,16 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   }
 
   if (userRoles.isCoach && !myTeam) {
+    const handleCreate = async () => {
+      if (!newTeamName.trim()) {
+        alert("Введите название команды");
+        return;
+      }
+      setCreatingTeam(true);
+      await onCreateTeam(newTeamName.trim());
+      setCreatingTeam(false);
+    };
+    
     return (
       <div style={{ paddingBottom: "100px" }}>
         <Header title="Моя команда" />
@@ -1572,8 +1587,18 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
           <div style={{ padding: "20px 0" }}>
             <Card style={{ textAlign: "center" }}>
               <div style={{ fontSize: "48px", marginBottom: "12px" }}>📋</div>
-              <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 600 }}>У вас нет команды</h3>
-              <p style={{ margin: 0, fontSize: "14px", color: colors.goldDark }}>Свяжитесь с администратором для назначения</p>
+              <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 600 }}>Создайте команду</h3>
+              <p style={{ margin: "0 0 16px", fontSize: "14px", color: colors.goldDark }}>Вы тренер без команды. Создайте свою команду!</p>
+              <input
+                type="text"
+                value={newTeamName}
+                onChange={e => setNewTeamName(e.target.value)}
+                placeholder="Название команды"
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: `1px solid ${colors.grayBorder}`, fontSize: "14px", marginBottom: "12px", boxSizing: "border-box" }}
+              />
+              <Button onClick={handleCreate} disabled={creatingTeam || !newTeamName.trim()} style={{ width: "100%" }}>
+                {creatingTeam ? "Создание..." : "🏐 Создать команду"}
+              </Button>
             </Card>
           </div>
         </Container>
@@ -3737,7 +3762,7 @@ const handleGuest = () => {
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
-      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} />;
+      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeam} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
