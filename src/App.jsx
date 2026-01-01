@@ -3713,6 +3713,8 @@ const handleTelegramLogin = async (tgUser) => {
         await supabase.from("players").delete().eq("user_id", userId);
         // Снимаем с тренерства
         await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
+        // Удаляем все одобренные заявки на другие роли
+        await supabase.from("role_requests").delete().eq("user_id", userId).eq("status", "approved");
       }
       
       await loadData();
