@@ -1882,6 +1882,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
 const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer }) => {
+  console.log("AdminScreen roleRequests:", roleRequests);
   const [tab, setTab] = useState("tours");
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -2943,7 +2944,8 @@ export default function MTKCupApp() {
       const { data: offersData } = await supabase.from("offers").select("*").order("created_at", { ascending: false });
       const { data: teamRequestsData } = await supabase.from("team_requests").select("*").order("created_at", { ascending: false });
       const { data: playerStatsData } = await supabase.from("player_stats").select("*");
-      const { data: roleRequestsData } = await supabase.from("role_requests").select("*").order("created_at", { ascending: false });
+      const { data: roleRequestsData, error: roleReqError } = await supabase.from("role_requests").select("*").order("created_at", { ascending: false });
+      console.log("Role requests loaded:", roleRequestsData, "Error:", roleReqError);
 
       const playersWithDetails = (playersData || []).map(player => ({
         ...player,
