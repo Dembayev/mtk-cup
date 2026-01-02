@@ -1773,22 +1773,34 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   );
 };
 
-// Stat Field Component (вынесен наружу чтобы избежать потери фокуса)
-const StatField = ({ label, field, stat, setStat }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-    <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
-    <input 
-      type="tel"
-      pattern="[0-9]*"
-      value={stat[field] ?? ""} 
-      onChange={e => {
-        const val = e.target.value.replace(/[^0-9]/g, '');
-        setStat(prev => ({ ...prev, [field]: val === "" ? "" : parseInt(val) || 0 }));
-      }}
-      style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
-    />
-  </div>
-);
+// Stat Field Component с локальным состоянием (обновляет родителя только на blur)
+const StatField = ({ label, field, stat, setStat }) => {
+  const [localValue, setLocalValue] = useState(stat[field] ?? "");
+  
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
+      <input 
+        type="tel"
+        pattern="[0-9]*"
+        value={localValue} 
+        onChange={e => {
+          const val = e.target.value.replace(/[^0-9]/g, '');
+          setLocalValue(val);
+        }}
+        onBlur={e => {
+          const val = e.target.value;
+          setStat(prev => ({ ...prev, [field]: val === "" ? "" : parseInt(val) || 0 }));
+        }}
+        onFocus={e => {
+          // Синхронизируем с родительским state при фокусе
+          setLocalValue(stat[field] ?? "");
+        }}
+        style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
+      />
+    </div>
+  );
+};
 
 // Player Stat Input Component
 const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
