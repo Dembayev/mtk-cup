@@ -1773,23 +1773,41 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   );
 };
 
-// Stat Field Component (вынесен наружу чтобы избежать потери фокуса)
-const StatField = ({ label, field, stat, setStat }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-    <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
-    <input 
-      type="text"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      value={stat[field] ?? ""} 
-      onChange={e => {
-        const val = e.target.value.replace(/[^0-9]/g, '');
-        setStat(prev => ({ ...prev, [field]: val === "" ? "" : parseInt(val) || 0 }));
-      }}
-      style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
-    />
-  </div>
-);
+// Stat Field Component (uncontrolled для iOS)
+const StatField = React.memo(({ label, field, stat, setStat }) => {
+  const inputRef = React.useRef(null);
+  
+  // Синхронизируем ref value с state при изменении извне
+  React.useEffect(() => {
+    if (inputRef.current) {
+      const currentValue = stat[field] ?? "";
+      if (inputRef.current.value !== String(currentValue)) {
+        inputRef.current.value = currentValue;
+      }
+    }
+  }, [stat[field], field]);
+  
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
+      <input 
+        ref={inputRef}
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        defaultValue={stat[field] ?? ""}
+        onInput={e => {
+          const val = e.target.value.replace(/[^0-9]/g, '');
+          e.target.value = val; // Обновляем DOM напрямую
+          setStat(prev => ({ ...prev, [field]: val === "" ? "" : parseInt(val) || 0 }));
+        }}
+        style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
+      />
+    </div>
+  );
+});
+
+
 
 // Player Stat Input Component
 const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
