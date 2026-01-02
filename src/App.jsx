@@ -4001,6 +4001,8 @@ export default function MTKCupApp() {
       alert("Ошибка создания матча");
     } finally {
       setActionLoading(false);
+    }
+  };
 
   const handleUpdateMatchInfo = async (matchId, matchData) => {
     try {
@@ -4018,8 +4020,6 @@ export default function MTKCupApp() {
       alert("Ошибка обновления матча");
     } finally {
       setActionLoading(false);
-    }
-  };
 
     }
   };
