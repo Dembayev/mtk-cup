@@ -2292,6 +2292,64 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                 </Button>
                               </div>
                             </div>
+                          ) : editingMatchInfo?.id === match.id ? (
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "12px", textAlign: "center" }}>
+                                Редактирование матча
+                              </div>
+                              <Select 
+                                label="Тур" 
+                                value={matchInfo.tour_id} 
+                                onChange={v => setMatchInfo(p => ({ ...p, tour_id: v }))}
+                                options={[
+                                  { value: "", label: "Выберите тур" },
+                                  ...(tours || []).map(t => ({ value: t.id, label: `Тур ${t.number} — ${t.date}` }))
+                                ]}
+                              />
+                              <Select 
+                                label="Команда 1" 
+                                value={matchInfo.team1_id} 
+                                onChange={v => setMatchInfo(p => ({ ...p, team1_id: v }))}
+                                options={[
+                                  { value: "", label: "Выберите команду" },
+                                  ...(teams || []).map(t => ({ value: t.id, label: t.name }))
+                                ]}
+                              />
+                              <Select 
+                                label="Команда 2" 
+                                value={matchInfo.team2_id} 
+                                onChange={v => setMatchInfo(p => ({ ...p, team2_id: v }))}
+                                options={[
+                                  { value: "", label: "Выберите команду" },
+                                  ...(teams || []).filter(t => t.id !== matchInfo.team1_id).map(t => ({ value: t.id, label: t.name }))
+                                ]}
+                              />
+                              <Input 
+                                label="Дата и время" 
+                                type="datetime-local" 
+                                value={matchInfo.scheduled_time} 
+                                onChange={v => setMatchInfo(p => ({ ...p, scheduled_time: v }))} 
+                              />
+                              <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                                <Button 
+                                  onClick={async () => {
+                                    await onUpdateMatchInfo(editingMatchInfo.id, matchInfo);
+                                    setEditingMatchInfo(null);
+                                  }} 
+                                  disabled={actionLoading || !matchInfo.tour_id || !matchInfo.team1_id || !matchInfo.team2_id} 
+                                  style={{ flex: 1, padding: "10px" }}
+                                >
+                                  <Icons.Save /> Сохранить
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => setEditingMatchInfo(null)} 
+                                  style={{ flex: 1, padding: "10px" }}
+                                >
+                                  Отмена
+                                </Button>
+                              </div>
+                            </div>
                           ) : (
                             <div>
                               {/* Первая строка: команды и счёт */}
