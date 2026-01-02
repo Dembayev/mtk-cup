@@ -3297,8 +3297,32 @@ export default function MTKCupApp() {
 
       if (data.status === "finished" && match.status !== "finished") {
         const team1Wins = setsWon1 > setsWon2;
-        const points1 = team1Wins ? (setsWon2 === 0 ? 3 : setsWon2 === 1 ? 3 : 2) : (setsWon1 === 2 ? 1 : 0);
-        const points2 = !team1Wins ? (setsWon1 === 0 ? 3 : setsWon1 === 1 ? 3 : 2) : (setsWon2 === 2 ? 1 : 0);
+        
+        // Итальянская система начисления очков:
+        // Победа 3:0 или 3:1 → 3 очка победителю, 0 очков проигравшему
+        // Победа 3:2 → 2 очка победителю, 1 очко проигравшему
+        let points1 = 0, points2 = 0;
+        
+        if (team1Wins) {
+          // Команда 1 выиграла
+          if (setsWon1 === 3 && (setsWon2 === 0 || setsWon2 === 1)) {
+            points1 = 3; // Победа 3:0 или 3:1
+            points2 = 0;
+          } else if (setsWon1 === 3 && setsWon2 === 2) {
+            points1 = 2; // Победа 3:2
+            points2 = 1;
+          }
+        } else {
+          // Команда 2 выиграла
+          if (setsWon2 === 3 && (setsWon1 === 0 || setsWon1 === 1)) {
+            points2 = 3; // Победа 3:0 или 3:1
+            points1 = 0;
+          } else if (setsWon2 === 3 && setsWon1 === 2) {
+            points2 = 2; // Победа 3:2
+            points1 = 1;
+          }
+        }
+
 
         await supabase.from("teams").update({
           games_played: (team1?.games_played || 0) + 1,
