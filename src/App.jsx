@@ -2066,13 +2066,13 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     setExpandedTeam(expandedTeam === teamId ? null : teamId);
   };
 
-  const handleCreateTour = async () => {
+  const localCreateTour = async () => {
     await onCreateTour(newTour);
     setNewTour({ number: "", date: "", location: "", address: "" });
     setShowCreateTour(false);
   };
 
-  const handleCreateMatch = async () => {
+  const localCreateMatch = async () => {
     await onCreateMatch(newMatch);
     setNewMatch({ tour_id: "", team1_id: "", team2_id: "", scheduled_time: "" });
     setShowCreateMatch(false);
@@ -2120,7 +2120,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   <Input label="Место проведения" value={newTour.location} onChange={v => setNewTour(p => ({ ...p, location: v }))} placeholder="СК Олимп" />
                   <Input label="Адрес" value={newTour.address} onChange={v => setNewTour(p => ({ ...p, address: v }))} placeholder="ул. Спортивная, 1" />
                   <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                    <Button onClick={handleCreateTour} disabled={actionLoading || !newTour.number || !newTour.date} style={{ flex: 1, padding: "10px" }}>
+                    <Button onClick={localCreateTour} disabled={actionLoading || !newTour.number || !newTour.date} style={{ flex: 1, padding: "10px" }}>
                       <Icons.Save /> Создать
                     </Button>
                     <Button variant="outline" onClick={() => setShowCreateTour(false)} style={{ flex: 1, padding: "10px" }}>
@@ -2206,7 +2206,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   />
                   <Input label="Время начала" type="datetime-local" value={newMatch.scheduled_time} onChange={v => setNewMatch(p => ({ ...p, scheduled_time: v }))} />
                   <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                    <Button onClick={handleCreateMatch} disabled={actionLoading || !newMatch.tour_id || !newMatch.team1_id || !newMatch.team2_id || !newMatch.scheduled_time} style={{ flex: 1, padding: "10px" }}>
+                    <Button onClick={localCreateMatch} disabled={actionLoading || !newMatch.tour_id || !newMatch.team1_id || !newMatch.team2_id || !newMatch.scheduled_time} style={{ flex: 1, padding: "10px" }}>
                       <Icons.Save /> Создать
                     </Button>
                     <Button variant="outline" onClick={() => setShowCreateMatch(false)} style={{ flex: 1, padding: "10px" }}>
