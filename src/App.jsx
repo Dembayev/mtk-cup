@@ -4262,28 +4262,55 @@ const handleTelegramLogin = async (tgUser) => {
       }).eq("id", requestId);
       
       if (role === "player") {
+        // Проверяем является ли человек тренером какой-то команды
+        const coachingTeam = teams.find(t => t.coach_id === userId);
+        console.log("👤 ApproveRole (player): Coaching team?", coachingTeam ? coachingTeam.name : "NO");
+        
         // Проверяем есть ли уже player record
         const existing = players.find(p => p.user_id === userId);
         console.log("👤 ApproveRole: Existing player record?", existing ? "YES" : "NO");
+        
         if (existing) {
           console.log("👤 ApproveRole: Updating existing player record");
-          // Обновляем существующий - делаем свободным агентом
-          await supabase.from("players").update({
-            is_free_agent: true,
-            team_id: null,
-            is_captain: false,
-          }).eq("user_id", userId);
+          // Если тренер своей команды - добавляем как игрока в ту же команду
+          if (coachingTeam) {
+            await supabase.from("players").update({
+              team_id: coachingTeam.id,
+              is_free_agent: false,
+              is_captain: false,
+            }).eq("user_id", userId);
+            console.log("👤 ApproveRole: Added as player to coached team:", coachingTeam.name);
+          } else {
+            // Если не тренер - делаем свободным агентом
+            await supabase.from("players").update({
+              is_free_agent: true,
+              team_id: null,
+              is_captain: false,
+            }).eq("user_id", userId);
+          }
         } else {
           // Создаем новый player record
-          await supabase.from("players").insert({
-            user_id: userId,
-            is_free_agent: true,
-            is_captain: false,
-            positions: [],
-          });
+          if (coachingTeam) {
+            // Если тренер - добавляем в свою команду
+            await supabase.from("players").insert({
+              user_id: userId,
+              team_id: coachingTeam.id,
+              is_free_agent: false,
+              is_captain: false,
+              positions: [],
+            });
+            console.log("👤 ApproveRole: Created player in coached team:", coachingTeam.name);
+          } else {
+            // Если не тренер - свободный агент
+            await supabase.from("players").insert({
+              user_id: userId,
+              is_free_agent: true,
+              is_captain: false,
+              positions: [],
+            });
+          }
         }
-        // Снимаем с тренерства если был тренером
-        await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
+        // НЕ снимаем с тренерства! Тренер может быть игроком своей команды
       } 
       else if (role === "coach") {
         // Для тренера нужно будет назначить команду отдельно
