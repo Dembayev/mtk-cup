@@ -1777,13 +1777,13 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
 const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [stat, setStat] = useState({
-    aces: existingStat?.aces || 0,
-    serve_errors: existingStat?.serve_errors || 0,
-    receive_errors: existingStat?.receive_errors || 0,
-    attack_points: existingStat?.attack_points || 0,
-    attack_errors: existingStat?.attack_errors || 0,
-    block_points: existingStat?.block_points || 0,
-    block_errors: existingStat?.block_errors || 0,
+    aces: existingStat?.aces || "",
+    serve_errors: existingStat?.serve_errors || "",
+    receive_errors: existingStat?.receive_errors || "",
+    attack_points: existingStat?.attack_points || "",
+    attack_errors: existingStat?.attack_errors || "",
+    block_points: existingStat?.block_points || "",
+    block_errors: existingStat?.block_errors || "",
   });
   
   const handleSave = async () => {
@@ -1797,7 +1797,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       <input 
         type="number" 
         min="0" 
-        value={stat[field]} 
+        value={stat[field] ?? ""} 
         onChange={e => setStat(prev => ({ ...prev, [field]: e.target.value === "" ? "" : parseInt(e.target.value) || 0 }))}
         style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
       />
