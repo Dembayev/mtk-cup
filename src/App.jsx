@@ -1814,21 +1814,6 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
     setIsEditing(false);
   };
   
-  const StatField = ({ label, field, color }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-      <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
-      <input 
-        type="tel"
-        pattern="[0-9]*"
-        value={stat[field] ?? ""} 
-        onChange={e => {
-          const val = e.target.value.replace(/[^0-9]/g, '');
-          setStat(prev => ({ ...prev, [field]: val === "" ? "" : parseInt(val) || 0 }));
-        }}
-        style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
-      />
-    </div>
-  );
   
   if (!isEditing) {
     return (
