@@ -1795,10 +1795,14 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
       <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
       <input 
-        type="number" 
-        min="0" 
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
         value={stat[field] ?? ""} 
-        onChange={e => setStat(prev => ({ ...prev, [field]: e.target.value === "" ? "" : parseInt(e.target.value) || 0 }))}
+        onChange={e => {
+          const val = e.target.value.replace(/[^0-9]/g, '');
+          setStat(prev => ({ ...prev, [field]: val === "" ? "" : parseInt(val) || 0 }));
+        }}
         style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
       />
     </div>
