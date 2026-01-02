@@ -2049,19 +2049,39 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   };
 
   const saveUser = async () => {
+    console.log("💾 SaveUser: Starting", {
+      userId: editingUser.id,
+      selectedGameRole: gameRole,
+      userRole,
+      firstName: userFirstName,
+      lastName: userLastName
+    });
+    
     // Обновляем имя, фамилию и права администратора
     await onUpdateUser(editingUser.id, userRole, userFirstName, userLastName);
     
     // Смена игровой роли (отдельно)
     const currentIsCoach = teams.some(t => t.coach_id === editingUser.id);
+    const hasCoachRequest = roleRequests.some(r => r.user_id === editingUser.id && r.requested_role === "coach" && r.status === "approved");
     const currentIsPlayer = players.some(p => p.user_id === editingUser.id);
     let currentGameRole = "fan";
-    if (currentIsCoach) currentGameRole = "coach";
+    if (currentIsCoach || hasCoachRequest) currentGameRole = "coach";
     else if (currentIsPlayer) currentGameRole = "player";
     
-    console.log("💾 SaveUser: Changing game role", currentGameRole, "→", gameRole);
+    console.log("💾 SaveUser: Current role analysis", {
+      currentIsCoach,
+      hasCoachRequest,
+      currentIsPlayer,
+      currentGameRole,
+      selectedGameRole: gameRole,
+      needsChange: gameRole !== currentGameRole
+    });
+    
     if (gameRole !== currentGameRole && onChangeGameRole) {
+      console.log("💾 SaveUser: Calling onChangeGameRole");
       await onChangeGameRole(editingUser.id, gameRole);
+    } else {
+      console.log("💾 SaveUser: No role change needed or handler missing");
     }
     setEditingUser(null);
   };
@@ -3734,11 +3754,18 @@ export default function MTKCupApp() {
   };
 
   const handleChangeGameRole = async (userId, newRole) => {
+    console.log("🔄 handleChangeGameRole: START", { userId, newRole });
     try {
       setActionLoading(true);
       const targetUser = users.find(u => u.id === userId);
       const currentPlayer = players.find(p => p.user_id === userId);
       const currentCoachTeam = teams.find(t => t.coach_id === userId);
+      console.log("🔄 handleChangeGameRole: Current state", {
+        userName: targetUser?.first_name,
+        hasPlayerRecord: !!currentPlayer,
+        playerTeamId: currentPlayer?.team_id,
+        isCoachOfTeam: currentCoachTeam?.name || "NO"
+      });
       
       // Определяем текущую роль
       let oldRole = "fan";
