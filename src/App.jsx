@@ -1880,7 +1880,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole }) => {
   const [tab, setTab] = useState("tours");
   const [editingTour, setEditingTour] = useState(null);
   const [tourData, setTourData] = useState({ number: "", date: "", location: "", address: "" });
@@ -1907,6 +1907,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   
   // Создание матча
   const [showCreateMatch, setShowCreateMatch] = useState(false);
+  const [editingMatchInfo, setEditingMatchInfo] = useState(null);
+  const [matchInfo, setMatchInfo] = useState({ tour_id: "", team1_id: "", team2_id: "", scheduled_time: "" });
   const [newMatch, setNewMatch] = useState({ tour_id: "", team1_id: "", team2_id: "", scheduled_time: "" });
   
   // Редактирование видео
@@ -2239,8 +2241,22 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                   🔔
                                 </button>
                               )}
-                              <button onClick={() => startEditMatch(match)} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }}>
+                              <button onClick={() => startEditMatch(match)} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }} title="Редактировать результат">
                                 <Icons.Edit />
+                              </button>
+                              <button onClick={() => {
+                                setEditingMatchInfo(match);
+                                setMatchInfo({ 
+                                  tour_id: match.tour_id, 
+                                  team1_id: match.team1_id, 
+                                  team2_id: match.team2_id, 
+                                  scheduled_time: match.scheduled_time 
+                                });
+                              }} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", padding: "4px" }} title="Редактировать информацию">
+                                ⚙️
+                              </button>
+                              <button onClick={() => onDeleteMatch(match.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }} title="Удалить матч">
+                                <Icons.X />
                               </button>
                             </div>
                           )}
@@ -3761,6 +3777,56 @@ export default function MTKCupApp() {
       alert("Ошибка создания матча");
     } finally {
       setActionLoading(false);
+
+  const handleUpdateMatchInfo = async (matchId, matchData) => {
+    try {
+      setActionLoading(true);
+      await supabase.from("matches").update({
+        tour_id: matchData.tour_id,
+        team1_id: matchData.team1_id,
+        team2_id: matchData.team2_id,
+        scheduled_time: matchData.scheduled_time,
+      }).eq("id", matchId);
+      await loadData();
+      alert("Информация о матче обновлена!");
+    } catch (error) {
+      console.error("Error updating match info:", error);
+      alert("Ошибка обновления матча");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteMatch = async (matchId) => {
+    const match = matches.find(m => m.id === matchId);
+    const team1 = teams.find(t => t.id === match?.team1_id);
+    const team2 = teams.find(t => t.id === match?.team2_id);
+    
+    if (!confirm(`Удалить матч "${team1?.name} vs ${team2?.name}"?`)) {
+      return;
+    }
+    
+    try {
+      setActionLoading(true);
+      const needsRecalc = match?.status === "finished";
+      
+      await supabase.from("match_player_stats").delete().eq("match_id", matchId);
+      await supabase.from("matches").delete().eq("id", matchId);
+      
+      if (needsRecalc) {
+        await recalculateTeamStats(match.team1_id);
+        await recalculateTeamStats(match.team2_id);
+      }
+      
+      await loadData();
+      alert("Матч удалён!");
+    } catch (error) {
+      console.error("Error deleting match:", error);
+      alert("Ошибка удаления матча");
+    } finally {
+      setActionLoading(false);
+    }
+  };
     }
   };
 
@@ -4035,7 +4101,7 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onDeleteMatch={handleDeleteMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
     }
   };
