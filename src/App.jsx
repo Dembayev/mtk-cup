@@ -104,6 +104,7 @@ const sendToOrganizers = async (userName, userId, message) => {
 
 
 const sendTeamMessage = async (teamId, teamName, message) => {
+  console.log("📢 SendTeamMessage: Starting for team:", teamName);
   try {
     // Получаем игроков команды с их user данными
     const { data: teamPlayers, error: playersError } = await supabase
@@ -2803,7 +2804,6 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
   const [organizerMessage, setOrganizerMessage] = useState("");
   const [sendingToOrganizers, setSendingToOrganizers] = useState(false);
   const [notifySettings, setNotifySettings] = useState({
-    notify_day_before: user?.notify_day_before !== false,
     notify_hour_before: user?.notify_hour_before !== false,
     notify_live: user?.notify_live !== false,
     notify_result: user?.notify_result !== false,
@@ -3160,10 +3160,30 @@ export default function MTKCupApp() {
 
   const handleSendOffer = async (playerId) => {
     if (!coachTeam) return;
+    console.log("📨 SendOffer: Checking for existing offer");
+    
+    // Проверяем нет ли уже pending оффера
+    const existingOffer = offers.find(o => 
+      o.team_id === coachTeam.id && 
+      o.player_id === playerId && 
+      o.status === "pending"
+    );
+    
+    if (existingOffer) {
+      console.log("📨 SendOffer: Offer already exists");
+      alert("Вы уже отправили приглашение этому игроку");
+      return;
+    }
+    
     try {
       setActionLoading(true);
+      console.log("📨 SendOffer: Creating new offer for player:", playerId);
       const { data, error } = await supabase.from("offers").insert({ team_id: coachTeam.id, player_id: playerId, status: "pending" }).select().single();
-      if (error) throw error;
+      if (error) {
+        console.error("📨 SendOffer: Database error:", error);
+        throw error;
+      }
+      console.log("📨 SendOffer: Offer created successfully");
       setOffers(prev => [data, ...prev]);
       
       // Отправляем уведомление игроку
@@ -3190,17 +3210,21 @@ export default function MTKCupApp() {
 
   const handleAcceptOffer = async (offerId, teamId) => {
     if (!currentPlayer) return;
+    console.log("🏐 AcceptOffer: Starting for player:", currentPlayer.id, "team:", teamId);
     try {
       setActionLoading(true);
       // Сначала отклоняем все другие pending офферы
+      console.log("🏐 AcceptOffer: Rejecting other pending offers");
       await supabase.from("offers").update({ status: "rejected" }).eq("player_id", currentPlayer.id).eq("status", "pending").neq("id", offerId);
       // Принимаем выбранный оффер
       await supabase.from("offers").update({ status: "accepted" }).eq("id", offerId);
       // Обновляем игрока
       await supabase.from("players").update({ team_id: teamId, is_free_agent: false }).eq("id", currentPlayer.id);
       // Очищаем любимую команду болельщика — теперь у игрока своя команда
+      console.log("🏐 AcceptOffer: Clearing favorite_team_id for user:", user.id);
       await supabase.from("users").update({ favorite_team_id: null }).eq("id", user.id);
       setUser(prev => ({ ...prev, favorite_team_id: null }));
+      console.log("🏐 AcceptOffer: Success! Player joined team:", teamId);
       await loadData();
       alert("Вы приняты в команду!");
       setScreen("home");
@@ -3504,11 +3528,13 @@ export default function MTKCupApp() {
 
   // Функция пересчета статистики команды из всех завершенных матчей
   const recalculateTeamStats = async (teamId) => {
+    console.log("📊 RecalculateStats: Starting for team:", teamId);
     const { data: finishedMatches } = await supabase
       .from("matches")
       .select("*")
       .eq("status", "finished")
       .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`);
+    console.log("📊 RecalculateStats: Found", finishedMatches?.length || 0, "finished matches");
 
     let games_played = 0, wins = 0, losses = 0;
     let sets_won = 0, sets_lost = 0, points = 0;
@@ -3572,6 +3598,7 @@ export default function MTKCupApp() {
     }
 
     // Обновляем команду
+    console.log("📊 RecalculateStats: Final stats -", {games_played, wins, losses, sets_won, sets_lost, points, balls_won, balls_lost});
     await supabase.from("teams").update({
       games_played,
       wins,
@@ -3582,6 +3609,7 @@ export default function MTKCupApp() {
       balls_won,
       balls_lost,
     }).eq("id", teamId);
+    console.log("📊 RecalculateStats: Complete for team:", teamId);
   };
 
   const handleUpdateUserRole = async (userId, role) => {
@@ -4143,6 +4171,7 @@ const handleTelegramLogin = async (tgUser) => {
 
   // Одобрение заявки (для админа)
   const handleApproveRoleRequest = async (requestId, userId, role) => {
+    console.log("👤 ApproveRole: Starting -", {requestId, userId, role});
     try {
       setActionLoading(true);
       
@@ -4156,7 +4185,9 @@ const handleTelegramLogin = async (tgUser) => {
       if (role === "player") {
         // Проверяем есть ли уже player record
         const existing = players.find(p => p.user_id === userId);
+        console.log("👤 ApproveRole: Existing player record?", existing ? "YES" : "NO");
         if (existing) {
+          console.log("👤 ApproveRole: Updating existing player record");
           // Обновляем существующий - делаем свободным агентом
           await supabase.from("players").update({
             is_free_agent: true,
@@ -4178,10 +4209,16 @@ const handleTelegramLogin = async (tgUser) => {
       else if (role === "coach") {
         // Для тренера нужно будет назначить команду отдельно
         const playerRecord = players.find(p => p.user_id === userId);
+        console.log("👤 ApproveRole (coach): Player record:", playerRecord?.id, "team:", playerRecord?.team_id);
         if (playerRecord && playerRecord.team_id) {
           const hisTeam = teams.find(t => t.coach_id === userId);
+          console.log("👤 ApproveRole (coach): His coaching team:", hisTeam?.id, hisTeam?.name);
+          // Если игрок в другой команде (не та где он тренер) - выводим
           if (!hisTeam || hisTeam.id !== playerRecord.team_id) {
-            await supabase.from("players").update({ team_id: null, is_captain: false }).eq("id", playerRecord.id);
+            console.log("👤 ApproveRole (coach): Removing from player team (incompatible)");
+            await supabase.from("players").update({ team_id: null, is_captain: false, is_free_agent: true }).eq("id", playerRecord.id);
+          } else {
+            console.log("👤 ApproveRole (coach): Keeping as player of same team (allowed)");
           }
         }
       }
