@@ -2961,7 +2961,7 @@ export default function MTKCupApp() {
       const { data: usersData } = await supabase.from("users").select("*");
       const { data: offersData } = await supabase.from("offers").select("*").order("created_at", { ascending: false });
       const { data: teamRequestsData } = await supabase.from("team_requests").select("*").order("created_at", { ascending: false });
-      const { data: playerStatsData } = await supabase.from("player_stats").select("*");
+      const { data: playerStatsData } = await supabase.from("match_player_stats").select("*");
       const { data: roleRequestsData } = await supabase.from("role_requests").select("*").order("created_at", { ascending: false });
 
       const playersWithDetails = (playersData || []).map(player => ({
@@ -3674,12 +3674,18 @@ export default function MTKCupApp() {
   const handleSavePlayerStat = async (playerId, matchId, stat, existingId) => {
     try {
       setActionLoading(true);
+      
+      // Находим игрока чтобы узнать его team_id в момент матча
+      const player = players.find(p => p.id === playerId);
+      const teamId = player?.team_id;
+      
       if (existingId) {
-        await supabase.from("player_stats").update(stat).eq("id", existingId);
+        await supabase.from("match_player_stats").update(stat).eq("id", existingId);
       } else {
-        await supabase.from("player_stats").insert({
+        await supabase.from("match_player_stats").insert({
           player_id: playerId,
           match_id: matchId,
+          team_id: teamId, // Сохраняем команду в момент матча
           ...stat
         });
       }
