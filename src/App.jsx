@@ -1923,6 +1923,23 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
 const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole }) => {
+  console.log("🔧 AdminScreen: Rendering");
+  console.log("🔧 Props:", {
+    matches: matches?.length ?? "undefined",
+    teams: teams?.length ?? "undefined",
+    users: users?.length ?? "undefined",
+    players: players?.length ?? "undefined",
+    tours: tours?.length ?? "undefined",
+    playerStats: playerStats?.length ?? "undefined",
+    roleRequests: roleRequests?.length ?? "undefined"
+  });
+  
+  // Error boundary
+  if (!setScreen) {
+    console.error("❌ AdminScreen: setScreen is missing!");
+    return <div style={{padding: "20px", color: "red"}}>Error: setScreen function is missing</div>;
+  }
+  
   const [tab, setTab] = useState("tours");
   const [editingTour, setEditingTour] = useState(null);
   const [tourData, setTourData] = useState({ number: "", date: "", location: "", address: "" });
