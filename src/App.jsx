@@ -3317,10 +3317,6 @@ export default function MTKCupApp() {
       const team1 = teams.find(t => t.id === match.team1_id);
       const team2 = teams.find(t => t.id === match.team2_id);
       
-      // Считаем мячи из сетов
-      const balls1 = (data.set1_team1 || 0) + (data.set2_team1 || 0) + (data.set3_team1 || 0) + (data.set4_team1 || 0) + (data.set5_team1 || 0);
-      const balls2 = (data.set1_team2 || 0) + (data.set2_team2 || 0) + (data.set3_team2 || 0) + (data.set4_team2 || 0) + (data.set5_team2 || 0);
-      
       // Считаем выигранные сеты
       let setsWon1 = 0, setsWon2 = 0;
       if (data.set1_team1 > data.set1_team2) setsWon1++; else if (data.set1_team2 > data.set1_team1) setsWon2++;
@@ -3329,6 +3325,7 @@ export default function MTKCupApp() {
       if (data.set4_team1 > data.set4_team2) setsWon1++; else if (data.set4_team2 > data.set4_team1) setsWon2++;
       if (data.set5_team1 > data.set5_team2) setsWon1++; else if (data.set5_team2 > data.set5_team1) setsWon2++;
       
+      // Обновляем матч
       await supabase.from("matches").update({
         sets_team1: setsWon1,
         sets_team2: setsWon2,
@@ -3340,59 +3337,16 @@ export default function MTKCupApp() {
         status: data.status,
       }).eq("id", matchId);
 
-      if (data.status === "finished" && match.status !== "finished") {
-        const team1Wins = setsWon1 > setsWon2;
+      // Если матч завершен - пересчитываем ВСЮ статистику команд из базы
+      if (data.status === "finished") {
+        // Пересчитываем статистику для обеих команд
+        await recalculateTeamStats(match.team1_id);
+        await recalculateTeamStats(match.team2_id);
         
-        // Итальянская система начисления очков:
-        // Победа 3:0 или 3:1 → 3 очка победителю, 0 очков проигравшему
-        // Победа 3:2 → 2 очка победителю, 1 очко проигравшему
-        let points1 = 0, points2 = 0;
-        
-        if (team1Wins) {
-          // Команда 1 выиграла
-          if (setsWon1 === 3 && (setsWon2 === 0 || setsWon2 === 1)) {
-            points1 = 3; // Победа 3:0 или 3:1
-            points2 = 0;
-          } else if (setsWon1 === 3 && setsWon2 === 2) {
-            points1 = 2; // Победа 3:2
-            points2 = 1;
-          }
-        } else {
-          // Команда 2 выиграла
-          if (setsWon2 === 3 && (setsWon1 === 0 || setsWon1 === 1)) {
-            points2 = 3; // Победа 3:0 или 3:1
-            points1 = 0;
-          } else if (setsWon2 === 3 && setsWon1 === 2) {
-            points2 = 2; // Победа 3:2
-            points1 = 1;
-          }
+        // Отправляем уведомление о результате (только если статус изменился)
+        if (match.status !== "finished") {
+          sendNotification("result", team1?.name, team2?.name, `${setsWon1}:${setsWon2}`);
         }
-
-
-        await supabase.from("teams").update({
-          games_played: (team1?.games_played || 0) + 1,
-          wins: (team1?.wins || 0) + (team1Wins ? 1 : 0),
-          losses: (team1?.losses || 0) + (team1Wins ? 0 : 1),
-          sets_won: (team1?.sets_won || 0) + setsWon1,
-          sets_lost: (team1?.sets_lost || 0) + setsWon2,
-          points: (team1?.points || 0) + points1,
-          balls_won: (team1?.balls_won || 0) + balls1,
-          balls_lost: (team1?.balls_lost || 0) + balls2,
-        }).eq("id", match.team1_id);
-
-        await supabase.from("teams").update({
-          games_played: (team2?.games_played || 0) + 1,
-          wins: (team2?.wins || 0) + (!team1Wins ? 1 : 0),
-          losses: (team2?.losses || 0) + (!team1Wins ? 0 : 1),
-          sets_won: (team2?.sets_won || 0) + setsWon2,
-          sets_lost: (team2?.sets_lost || 0) + setsWon1,
-          points: (team2?.points || 0) + points2,
-          balls_won: (team2?.balls_won || 0) + balls2,
-          balls_lost: (team2?.balls_lost || 0) + balls1,
-        }).eq("id", match.team2_id);
-        
-        // Отправляем уведомление о результате
-        sendNotification("result", team1?.name, team2?.name, `${setsWon1}:${setsWon2}`);
       }
       
       // Уведомление о начале матча (LIVE)
@@ -3408,6 +3362,88 @@ export default function MTKCupApp() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // Функция пересчета статистики команды из всех завершенных матчей
+  const recalculateTeamStats = async (teamId) => {
+    const { data: finishedMatches } = await supabase
+      .from("matches")
+      .select("*")
+      .eq("status", "finished")
+      .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`);
+
+    let games_played = 0, wins = 0, losses = 0;
+    let sets_won = 0, sets_lost = 0, points = 0;
+    let balls_won = 0, balls_lost = 0;
+
+    for (const match of finishedMatches || []) {
+      const isTeam1 = match.team1_id === teamId;
+      const setsWon1 = match.sets_team1;
+      const setsWon2 = match.sets_team2;
+      const team1Wins = setsWon1 > setsWon2;
+
+      games_played++;
+
+      if (isTeam1) {
+        // Эта команда - team1
+        wins += team1Wins ? 1 : 0;
+        losses += team1Wins ? 0 : 1;
+        sets_won += setsWon1;
+        sets_lost += setsWon2;
+        
+        // Считаем очки по итальянской системе
+        if (team1Wins) {
+          if (setsWon1 === 3 && (setsWon2 === 0 || setsWon2 === 1)) {
+            points += 3;
+          } else if (setsWon1 === 3 && setsWon2 === 2) {
+            points += 2;
+          }
+        } else {
+          if (setsWon2 === 3 && setsWon1 === 2) {
+            points += 1;
+          }
+        }
+        
+        // Мячи
+        balls_won += (match.set1_team1 || 0) + (match.set2_team1 || 0) + (match.set3_team1 || 0) + (match.set4_team1 || 0) + (match.set5_team1 || 0);
+        balls_lost += (match.set1_team2 || 0) + (match.set2_team2 || 0) + (match.set3_team2 || 0) + (match.set4_team2 || 0) + (match.set5_team2 || 0);
+      } else {
+        // Эта команда - team2
+        wins += !team1Wins ? 1 : 0;
+        losses += !team1Wins ? 0 : 1;
+        sets_won += setsWon2;
+        sets_lost += setsWon1;
+        
+        // Считаем очки по итальянской системе
+        if (!team1Wins) {
+          if (setsWon2 === 3 && (setsWon1 === 0 || setsWon1 === 1)) {
+            points += 3;
+          } else if (setsWon2 === 3 && setsWon1 === 2) {
+            points += 2;
+          }
+        } else {
+          if (setsWon1 === 3 && setsWon2 === 2) {
+            points += 1;
+          }
+        }
+        
+        // Мячи
+        balls_won += (match.set1_team2 || 0) + (match.set2_team2 || 0) + (match.set3_team2 || 0) + (match.set4_team2 || 0) + (match.set5_team2 || 0);
+        balls_lost += (match.set1_team1 || 0) + (match.set2_team1 || 0) + (match.set3_team1 || 0) + (match.set4_team1 || 0) + (match.set5_team1 || 0);
+      }
+    }
+
+    // Обновляем команду
+    await supabase.from("teams").update({
+      games_played,
+      wins,
+      losses,
+      sets_won,
+      sets_lost,
+      points,
+      balls_won,
+      balls_lost,
+    }).eq("id", teamId);
   };
 
   const handleUpdateUserRole = async (userId, role) => {
