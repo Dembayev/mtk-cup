@@ -3806,6 +3806,38 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleDeleteMatch = async (matchId) => {
+    const match = matches.find(m => m.id === matchId);
+    const team1 = teams.find(t => t.id === match?.team1_id);
+    const team2 = teams.find(t => t.id === match?.team2_id);
+    
+    if (!confirm(`Удалить матч "${team1?.name} vs ${team2?.name}"?`)) {
+      return;
+    }
+    
+    try {
+      setActionLoading(true);
+      const needsRecalc = match?.status === "finished";
+      
+      await supabase.from("match_player_stats").delete().eq("match_id", matchId);
+      await supabase.from("matches").delete().eq("id", matchId);
+      
+      if (needsRecalc) {
+        await recalculateTeamStats(match.team1_id);
+        await recalculateTeamStats(match.team2_id);
+      }
+      
+      await loadData();
+      alert("Матч удалён!");
+    } catch (error) {
+      console.error("Error deleting match:", error);
+      alert("Ошибка удаления матча");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+
   // Set captain
   const handleSetCaptain = async (teamId, playerId, isCaptain) => {
     try {
@@ -3989,36 +4021,6 @@ export default function MTKCupApp() {
     }
   };
 
-  const handleDeleteMatch = async (matchId) => {
-    const match = matches.find(m => m.id === matchId);
-    const team1 = teams.find(t => t.id === match?.team1_id);
-    const team2 = teams.find(t => t.id === match?.team2_id);
-    
-    if (!confirm(`Удалить матч "${team1?.name} vs ${team2?.name}"?`)) {
-      return;
-    }
-    
-    try {
-      setActionLoading(true);
-      const needsRecalc = match?.status === "finished";
-      
-      await supabase.from("match_player_stats").delete().eq("match_id", matchId);
-      await supabase.from("matches").delete().eq("id", matchId);
-      
-      if (needsRecalc) {
-        await recalculateTeamStats(match.team1_id);
-        await recalculateTeamStats(match.team2_id);
-      }
-      
-      await loadData();
-      alert("Матч удалён!");
-    } catch (error) {
-      console.error("Error deleting match:", error);
-      alert("Ошибка удаления матча");
-    } finally {
-      setActionLoading(false);
-    }
-  };
     }
   };
 
