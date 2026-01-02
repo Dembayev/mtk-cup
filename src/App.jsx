@@ -3580,14 +3580,15 @@ export default function MTKCupApp() {
         status: data.status,
       }).eq("id", matchId);
 
-      // Если матч завершен - пересчитываем ВСЮ статистику команд из базы
-      if (data.status === "finished") {
+      // Если матч завершен или БЫЛ завершен - пересчитываем статистику
+      if (data.status === "finished" || match.status === "finished") {
+        console.log("📊 Recalculating stats for both teams after match update");
         // Пересчитываем статистику для обеих команд
         await recalculateTeamStats(match.team1_id);
         await recalculateTeamStats(match.team2_id);
         
-        // Отправляем уведомление о результате (только если статус изменился)
-        if (match.status !== "finished") {
+        // Отправляем уведомление о результате (только если статус ИЗМЕНИЛСЯ на finished)
+        if (data.status === "finished" && match.status !== "finished") {
           sendNotification("result", team1?.name, team2?.name, `${setsWon1}:${setsWon2}`);
         }
       }
