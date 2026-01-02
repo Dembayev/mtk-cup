@@ -3760,16 +3760,19 @@ export default function MTKCupApp() {
       const targetUser = users.find(u => u.id === userId);
       const currentPlayer = players.find(p => p.user_id === userId);
       const currentCoachTeam = teams.find(t => t.coach_id === userId);
+      const hasCoachRequest = roleRequests.some(r => r.user_id === userId && r.requested_role === "coach" && r.status === "approved");
+      
       console.log("🔄 handleChangeGameRole: Current state", {
         userName: targetUser?.first_name,
         hasPlayerRecord: !!currentPlayer,
         playerTeamId: currentPlayer?.team_id,
-        isCoachOfTeam: currentCoachTeam?.name || "NO"
+        isCoachOfTeam: currentCoachTeam?.name || "NO",
+        hasCoachRequest
       });
       
-      // Определяем текущую роль
+      // Определяем текущую роль (с учетом одобренных заявок!)
       let oldRole = "fan";
-      if (currentCoachTeam) oldRole = "coach";
+      if (currentCoachTeam || hasCoachRequest) oldRole = "coach";
       else if (currentPlayer) oldRole = "player";
       
       if (oldRole === newRole) {
@@ -3779,9 +3782,23 @@ export default function MTKCupApp() {
       
       // Применяем изменения
       if (newRole === "fan") {
-        if (currentPlayer) await supabase.from("players").delete().eq("user_id", userId);
-        if (currentCoachTeam) await supabase.from("teams").update({ coach_id: null }).eq("id", currentCoachTeam.id);
+        console.log("👤 ChangeRole (fan): Removing all roles");
+        
+        // Удаляем из игроков
+        if (currentPlayer) {
+          await supabase.from("players").delete().eq("user_id", userId);
+          console.log("👤 ChangeRole (fan): Removed from players");
+        }
+        
+        // Снимаем с тренерства команды
+        if (currentCoachTeam) {
+          await supabase.from("teams").update({ coach_id: null }).eq("id", currentCoachTeam.id);
+          console.log("👤 ChangeRole (fan): Removed as coach of team");
+        }
+        
+        // Удаляем ВСЕ одобренные заявки (тренер, игрок)
         await supabase.from("role_requests").delete().eq("user_id", userId).eq("status", "approved");
+        console.log("👤 ChangeRole (fan): Removed all approved role requests");
       } 
       else if (newRole === "player") {
         console.log("🏃 ChangeRole (player): Is coach of team?", currentCoachTeam?.name || "NO");
