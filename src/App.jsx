@@ -1461,7 +1461,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
             </Card>
           )}
 
-          {player?.users?.username && userRoles?.includes('admin') && (
+          {player?.users?.username && userRoles?.isAdmin && (
             <Button variant="outline" onClick={() => window.open(`https://t.me/${player.users.username}`, '_blank')} style={{ width: "100%", marginTop: "8px" }}>
               <Icons.Send /> Написать в Telegram
             </Button>
