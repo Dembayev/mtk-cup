@@ -2038,10 +2038,12 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     setUserRole(u.role === "admin" ? "admin" : "fan");
     setUserFirstName(u.first_name || "");
     setUserLastName(u.last_name || "");
-    // Определяем текущую игровую роль
+    // Определяем текущую игровую роль (с учетом role_requests)
     const isCoach = teams.some(t => t.coach_id === u.id);
+    const hasCoachRequest = roleRequests.some(r => r.user_id === u.id && r.requested_role === "coach" && r.status === "approved");
     const isPlayer = players.some(p => p.user_id === u.id);
-    if (isCoach) setGameRole("coach");
+    
+    if (isCoach || hasCoachRequest) setGameRole("coach");
     else if (isPlayer) setGameRole("player");
     else setGameRole("fan");
   };
@@ -2645,11 +2647,17 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 const isEditing = editingUser?.id === u.id;
                 const userPlayerRecord = players.find(p => p.user_id === u.id);
                 const userCoachTeam = teams.find(t => t.coach_id === u.id);
+                const hasCoachRequest = (roleRequests || []).some(r => r.user_id === u.id && r.requested_role === "coach" && r.status === "approved");
                 
-                // Вычисляем все роли пользователя
+                // Вычисляем все роли пользователя (как это делает getUserRoles)
                 const displayRoles = [];
                 if (u.role === "admin") displayRoles.push({ label: "Админ", variant: "admin" });
-                if (userCoachTeam) displayRoles.push({ label: `Тренер (${userCoachTeam.name})`, variant: "gold" });
+                // Тренер если: назначен на команду ИЛИ есть одобренная заявка
+                if (userCoachTeam) {
+                  displayRoles.push({ label: `Тренер (${userCoachTeam.name})`, variant: "gold" });
+                } else if (hasCoachRequest) {
+                  displayRoles.push({ label: "Тренер (не назначен)", variant: "gold" });
+                }
                 if (userPlayerRecord?.is_captain) displayRoles.push({ label: "Капитан", variant: "captain" });
                 if (userPlayerRecord) displayRoles.push({ label: "Игрок", variant: "free" });
                 if (displayRoles.length === 0) displayRoles.push({ label: "Болельщик", variant: "default" });
