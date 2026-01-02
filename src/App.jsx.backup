@@ -744,7 +744,7 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
 
 const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, playerStats }) => {
   const liveMatch = matches.find(m => m.status === "live");
-  const upcomingMatches = (matches || []).filter(m => m.status === "upcoming").slice(0, 2);
+  const upcomingMatches = matches.filter(m => m.status === "upcoming").slice(0, 2);
   // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
   const playersWithStats = (players || []).map(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
@@ -958,7 +958,7 @@ const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
 }
 
 const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles, currentPlayer, onLeaveTeam, onSendTeamRequest, teamRequests, actionLoading }) => {
-  const teamPlayers = (players || []).filter(p => p.team_id === team?.id);
+  const teamPlayers = players.filter(p => p.team_id === team?.id);
   const isMyTeam = currentPlayer && currentPlayer.team_id === team?.id;
   const isFreeAgent = currentPlayer && currentPlayer.is_free_agent;
   const hasPendingRequest = teamRequests?.some(r => r.team_id === team?.id && r.player_id === currentPlayer?.id && r.status === "pending");
@@ -1056,7 +1056,7 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
 
   const matchesByTour = sortedTours.map(tour => ({
     tour,
-    matches: (matches || []).filter(m => m.tour_id === tour.id).sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time)),
+    matches: matches.filter(m => m.tour_id === tour.id).sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time)),
   }));
 
   const handleTeamClick = (team) => {
@@ -1188,7 +1188,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   
   const canInvite = (userRoles.isCoach || userRoles.isAdmin) && coachTeam;
   
-  const filteredPlayers = (players || []).filter(p => {
+  const filteredPlayers = players.filter(p => {
     if (filter === "free" && !p.is_free_agent) return false;
     if (filter === "team" && p.is_free_agent) return false;
     if (positionFilter !== "all" && !p.positions?.includes(positionFilter)) return false;
@@ -1211,7 +1211,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   
   const hasPendingOffer = (playerId) => (sentOffers || []).some(o => o.player_id === playerId && o.status === "pending");
 
-  const uniqueTeams = [...new Set((players || []).filter(p => p.team_id).map(p => p.teams))].filter(Boolean);
+  const uniqueTeams = [...new Set(players.filter(p => p.team_id).map(p => p.teams))].filter(Boolean);
 
   return (
     <div style={{ paddingBottom: "100px" }}>
@@ -1559,7 +1559,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
     teamRelation = "fan";
   }
   
-  const teamPlayers = myTeam ? (players || []).filter(p => p.team_id === myTeam.id) : [];
+  const teamPlayers = myTeam ? players.filter(p => p.team_id === myTeam.id) : [];
   const pendingSentOffers = (sentOffers || []).filter(o => o.status === "pending");
   const pendingTeamRequests = (teamRequests || []).filter(r => r.team_id === myTeam?.id && r.status === "pending");
 
@@ -2113,7 +2113,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 </Card>
               )}
 
-              {(tours || []).sort((a, b) => a.number - b.number).map(tour => (
+              {tours.sort((a, b) => a.number - b.number).map(tour => (
                 <Card key={tour.id} style={{ marginBottom: "8px", padding: "12px" }}>
                   {editingTour?.id === tour.id ? (
                     <div>
@@ -2146,7 +2146,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         </div>
                         <div style={{ fontSize: "11px", color: colors.goldDark }}>{tour.address}</div>
                       </div>
-                      <Badge>{(matches || []).filter(m => m.tour_id === tour.id).length} матчей</Badge>
+                      <Badge>{matches.filter(m => m.tour_id === tour.id).length} матчей</Badge>
                       <div style={{ display: "flex", gap: "4px" }}>
                         <button onClick={() => {
                           setEditingTour(tour);
@@ -2179,13 +2179,13 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 <Card style={{ marginBottom: "16px", background: "#f0fdf4", border: "2px solid #16a34a" }}>
                   <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600, color: "#16a34a" }}>Новый матч</h4>
                   <Select label="Тур" value={newMatch.tour_id} onChange={v => setNewMatch(p => ({ ...p, tour_id: v }))}
-                    options={[{ value: "", label: "Выберите тур" }, ...(tours || []).map(t => ({ value: t.id, label: `Тур ${t.number} — ${new Date(t.date).toLocaleDateString("ru-RU")}` }))]}
+                    options={[{ value: "", label: "Выберите тур" }, ...tours.map(t => ({ value: t.id, label: `Тур ${t.number} — ${new Date(t.date).toLocaleDateString("ru-RU")}` }))]}
                   />
                   <Select label="Команда 1" value={newMatch.team1_id} onChange={v => setNewMatch(p => ({ ...p, team1_id: v }))}
-                    options={[{ value: "", label: "Выберите команду" }, ...(teams || []).map(t => ({ value: t.id, label: t.name }))]}
+                    options={[{ value: "", label: "Выберите команду" }, ...teams.map(t => ({ value: t.id, label: t.name }))]}
                   />
                   <Select label="Команда 2" value={newMatch.team2_id} onChange={v => setNewMatch(p => ({ ...p, team2_id: v }))}
-                    options={[{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => t.id !== newMatch.team1_id).map(t => ({ value: t.id, label: t.name }))]}
+                    options={[{ value: "", label: "Выберите команду" }, ...teams.filter(t => t.id !== newMatch.team1_id).map(t => ({ value: t.id, label: t.name }))]}
                   />
                   <Input label="Время начала" type="datetime-local" value={newMatch.scheduled_time} onChange={v => setNewMatch(p => ({ ...p, scheduled_time: v }))} />
                   <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
@@ -2199,8 +2199,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 </Card>
               )}
 
-              {(tours || []).map(tour => {
-                const tourMatches = (matches || []).filter(m => m.tour_id === tour.id);
+              {tours.map(tour => {
+                const tourMatches = matches.filter(m => m.tour_id === tour.id);
                 if (tourMatches.length === 0) return null;
                 return (
                   <div key={tour.id} style={{ marginBottom: "20px" }}>
@@ -2334,8 +2334,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 Выберите матч и введите статистику для каждого игрока
               </p>
               
-              {(tours || []).map(tour => {
-                const tourMatches = (matches || []).filter(m => m.tour_id === tour.id && m.status === "finished");
+              {tours.map(tour => {
+                const tourMatches = matches.filter(m => m.tour_id === tour.id && m.status === "finished");
                 if (tourMatches.length === 0) return null;
                 return (
                   <div key={tour.id} style={{ marginBottom: "20px" }}>
@@ -2345,8 +2345,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     {tourMatches.map(match => {
                       const team1 = teams.find(t => t.id === match.team1_id);
                       const team2 = teams.find(t => t.id === match.team2_id);
-                      const team1Players = (players || []).filter(p => p.team_id === match.team1_id);
-                      const team2Players = (players || []).filter(p => p.team_id === match.team2_id);
+                      const team1Players = players.filter(p => p.team_id === match.team1_id);
+                      const team2Players = players.filter(p => p.team_id === match.team2_id);
                       const isExpanded = expandedMatch === match.id;
                       
                       return (
@@ -2416,8 +2416,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 Добавьте ссылки на трансляции (YouTube, VK, Rutube) и записи матчей
               </p>
               
-              {(tours || []).map(tour => {
-                const tourMatches = (matches || []).filter(m => m.tour_id === tour.id);
+              {tours.map(tour => {
+                const tourMatches = matches.filter(m => m.tour_id === tour.id);
                 if (tourMatches.length === 0) return null;
                 return (
                   <div key={tour.id} style={{ marginBottom: "20px" }}>
@@ -2655,7 +2655,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 const coach = users.find(u => u.id === team.coach_id);
                 const isEditing = editingTeam?.id === team.id;
                 const isExpanded = expandedTeam === team.id;
-                const teamPlayers = (players || []).filter(p => p.team_id === team.id);
+                const teamPlayers = players.filter(p => p.team_id === team.id);
                 
                 return (
                   <Card key={team.id} style={{ marginBottom: "8px", padding: "12px" }}>
@@ -2665,7 +2665,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         <Select label="Тренер команды" value={teamCoach} onChange={setTeamCoach}
                           options={[
                             { value: "", label: "Не назначен" },
-                            ...(users || []).map(u => ({
+                            ...users.map(u => ({
                               value: u.id,
                               label: `${u.first_name || u.username || "—"} ${u.last_name || ""}`.trim()
                             }))
