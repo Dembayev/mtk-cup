@@ -3838,10 +3838,27 @@ export default function MTKCupApp() {
         } else {
           // Если не в команде - просто создаём одобренную заявку
           console.log("💼 ChangeRole (coach): No team, creating approved request");
-          await supabase.from("role_requests").upsert({
-            user_id: userId, requested_role: "coach", status: "approved",
-            reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
-          }, { onConflict: "user_id,requested_role" });
+          
+          // Сначала удаляем старую заявку если есть
+          await supabase.from("role_requests")
+            .delete()
+            .eq("user_id", userId)
+            .eq("requested_role", "coach");
+          
+          // Создаём новую одобренную заявку
+          const { error } = await supabase.from("role_requests").insert({
+            user_id: userId, 
+            requested_role: "coach", 
+            status: "approved",
+            reviewed_at: new Date().toISOString(), 
+            reviewed_by: user?.id,
+          });
+          
+          if (error) {
+            console.error("💼 ChangeRole (coach): Error creating request:", error);
+            throw error;
+          }
+          console.log("💼 ChangeRole (coach): Approved request created successfully");
         }
       }
       
