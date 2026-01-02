@@ -1773,6 +1773,24 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   );
 };
 
+// Stat Field Component (вынесен наружу чтобы избежать потери фокуса)
+const StatField = ({ label, field, stat, setStat }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+    <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
+    <input 
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={stat[field] ?? ""} 
+      onChange={e => {
+        const val = e.target.value.replace(/[^0-9]/g, '');
+        setStat(prev => ({ ...prev, [field]: val === "" ? "" : parseInt(val) || 0 }));
+      }}
+      style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
+    />
+  </div>
+);
+
 // Player Stat Input Component
 const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -1837,26 +1855,26 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
         <div>
           <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Подача</div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Эйс" field="aces" />
-            <StatField label="Ош" field="serve_errors" />
+            <StatField label="Эйс" field="aces" stat={stat} setStat={setStat} />
+            <StatField label="Ош" field="serve_errors" stat={stat} setStat={setStat} />
           </div>
         </div>
         <div>
           <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Приём</div>
-          <StatField label="Ош" field="receive_errors" />
+          <StatField label="Ош" field="receive_errors" stat={stat} setStat={setStat} />
         </div>
         <div>
           <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Атака</div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Очк" field="attack_points" />
-            <StatField label="Ош" field="attack_errors" />
+            <StatField label="Очк" field="attack_points" stat={stat} setStat={setStat} />
+            <StatField label="Ош" field="attack_errors" stat={stat} setStat={setStat} />
           </div>
         </div>
         <div>
           <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Блок</div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Очк" field="block_points" />
-            <StatField label="Ош" field="block_errors" />
+            <StatField label="Очк" field="block_points" stat={stat} setStat={setStat} />
+            <StatField label="Ош" field="block_errors" stat={stat} setStat={setStat} />
           </div>
         </div>
       </div>
