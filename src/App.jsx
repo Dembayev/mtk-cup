@@ -61,6 +61,47 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
   }
 };
 
+const sendToOrganizers = async (userName, userId, message) => {
+  try {
+    // Получаем всех админов
+    const { data: admins } = await supabase
+      .from("users")
+      .select("telegram_id, first_name, username")
+      .eq("role", "admin")
+      .not("telegram_id", "is", null);
+    
+    if (!admins || admins.length === 0) return { sent: 0, failed: 0 };
+    
+    const fullMessage = `📨 СООБЩЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ\n\nОт: ${userName}\nTelegram ID: ${userId}\n\n${message}`;
+    
+    let sent = 0, failed = 0;
+    for (const admin of admins) {
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            chat_id: admin.telegram_id, 
+            text: fullMessage,
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "💬 Написать пользователю", url: `tg://user?id=${userId}` }
+              ]]
+            }
+          })
+        });
+        if (response.ok) sent++; else failed++;
+      } catch (e) {
+        failed++;
+      }
+    }
+    return { sent, failed };
+  } catch (error) {
+    console.error("Error sending to organizers:", error);
+    return { sent: 0, failed: 0 };
+  }
+};
+
 
 const sendTeamMessage = async (teamId, teamName, message) => {
   try {
@@ -2744,6 +2785,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
 const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone, currentPlayer, onUpdatePosition }) => {
   const displayName = getDisplayName(user);
   const [showNotifySettings, setShowNotifySettings] = useState(false);
+  const [showContactOrganizers, setShowContactOrganizers] = useState(false);
+  const [organizerMessage, setOrganizerMessage] = useState("");
+  const [sendingToOrganizers, setSendingToOrganizers] = useState(false);
   const [notifySettings, setNotifySettings] = useState({
     notify_day_before: user?.notify_day_before !== false,
     notify_hour_before: user?.notify_hour_before !== false,
@@ -2951,6 +2995,67 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                 <Checkbox checked={notifySettings.notify_result} onChange={() => handleToggle("notify_result")} label="Результаты матчей" />
               </Card>
             </>
+          )}
+
+          {/* Кнопка написать организаторам */}
+          {!isGuest && (
+            <Button onClick={() => setShowContactOrganizers(true)} style={{ width: "100%", marginTop: "24px", background: colors.gold }}>
+              <Icons.Mail /> Написать организаторам
+            </Button>
+          )}
+
+          {/* Модальное окно для сообщения организаторам */}
+          {showContactOrganizers && (
+            <div style={{
+              position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.5)", zIndex: 9999,
+              display: "flex", alignItems: "center", justifyContent: "center", padding: "20px"
+            }} onClick={() => setShowContactOrganizers(false)}>
+              <Card style={{ maxWidth: "400px", width: "100%", maxHeight: "80vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ margin: "0 0 16px", fontSize: "18px", fontWeight: 700 }}>Написать организаторам</h3>
+                <p style={{ fontSize: "14px", color: colors.goldDark, marginBottom: "12px" }}>
+                  Ваше сообщение получат все администраторы турнира
+                </p>
+                <textarea
+                  value={organizerMessage}
+                  onChange={(e) => setOrganizerMessage(e.target.value)}
+                  placeholder="Введите ваше сообщение..."
+                  style={{
+                    width: "100%", minHeight: "120px", padding: "12px",
+                    border: `1px solid ${colors.grayBorder}`, borderRadius: "8px",
+                    fontSize: "15px", fontFamily: "inherit", resize: "vertical"
+                  }}
+                />
+                <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+                  <Button
+                    onClick={async () => {
+                      if (!organizerMessage.trim()) {
+                        alert("Введите сообщение");
+                        return;
+                      }
+                      setSendingToOrganizers(true);
+                      const userName = `${user?.first_name || user?.username || "Пользователь"} ${user?.last_name || ""}`.trim();
+                      const result = await sendToOrganizers(userName, user?.telegram_id, organizerMessage);
+                      setSendingToOrganizers(false);
+                      if (result.sent > 0) {
+                        alert(`Сообщение отправлено ${result.sent} организаторам`);
+                        setOrganizerMessage("");
+                        setShowContactOrganizers(false);
+                      } else {
+                        alert("Не удалось отправить сообщение");
+                      }
+                    }}
+                    disabled={sendingToOrganizers || !organizerMessage.trim()}
+                    style={{ flex: 1 }}
+                  >
+                    {sendingToOrganizers ? "Отправка..." : "Отправить"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowContactOrganizers(false)} style={{ flex: 1 }}>
+                    Отмена
+                  </Button>
+                </div>
+              </Card>
+            </div>
           )}
 
           {!isTelegram && (
