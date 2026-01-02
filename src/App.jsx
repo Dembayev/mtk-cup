@@ -1773,37 +1773,32 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   );
 };
 
-// Stat Field Component с локальным состоянием (обновляет родителя только на blur)
-const StatField = memo(({ label, field, stat, setStat }) => {
-  const [localValue, setLocalValue] = useState(stat[field] ?? "");
+// Stat Field Component - полностью изолированный
+const StatField = ({ label, field, initialValue, onUpdate }) => {
+  const inputRef = useState(null);
   
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
       <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
       <input 
+        key={`${field}-${initialValue}`}
         type="tel"
         pattern="[0-9]*"
-        value={localValue} 
-        onChange={e => {
+        defaultValue={initialValue ?? ""}
+        onInput={e => {
+          // Фильтруем только цифры
           const val = e.target.value.replace(/[^0-9]/g, '');
-          setLocalValue(val);
+          e.target.value = val;
         }}
         onBlur={e => {
           const val = e.target.value;
-          setStat(prev => ({ ...prev, [field]: val === "" ? "" : parseInt(val) || 0 }));
-        }}
-        onFocus={e => {
-          // Синхронизируем с родительским state при фокусе
-          setLocalValue(stat[field] ?? "");
+          onUpdate(field, val === "" ? "" : parseInt(val) || 0);
         }}
         style={{ width: "40px", padding: "4px", textAlign: "center", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "12px" }}
       />
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Ререндерим только если изменилось значение для ЭТОГО поля
-  return prevProps.stat[prevProps.field] === nextProps.stat[nextProps.field];
-});
+};
 
 // Player Stat Input Component
 const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
@@ -1868,26 +1863,26 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
         <div>
           <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Подача</div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Эйс" field="aces" stat={stat} setStat={setStat} />
-            <StatField label="Ош" field="serve_errors" stat={stat} setStat={setStat} />
+            <StatField label="Эйс" field="aces" initialValue={stat["aces"]} onUpdate={(field, val) => setStat(prev => ({ ...prev, [field]: val }))} />
+            <StatField label="Ош" field="serve_errors" initialValue={stat["serve_errors"]} onUpdate={(field, val) => setStat(prev => ({ ...prev, [field]: val }))} />
           </div>
         </div>
         <div>
           <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Приём</div>
-          <StatField label="Ош" field="receive_errors" stat={stat} setStat={setStat} />
+          <StatField label="Ош" field="receive_errors" initialValue={stat["receive_errors"]} onUpdate={(field, val) => setStat(prev => ({ ...prev, [field]: val }))} />
         </div>
         <div>
           <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Атака</div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Очк" field="attack_points" stat={stat} setStat={setStat} />
-            <StatField label="Ош" field="attack_errors" stat={stat} setStat={setStat} />
+            <StatField label="Очк" field="attack_points" initialValue={stat["attack_points"]} onUpdate={(field, val) => setStat(prev => ({ ...prev, [field]: val }))} />
+            <StatField label="Ош" field="attack_errors" initialValue={stat["attack_errors"]} onUpdate={(field, val) => setStat(prev => ({ ...prev, [field]: val }))} />
           </div>
         </div>
         <div>
           <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Блок</div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Очк" field="block_points" stat={stat} setStat={setStat} />
-            <StatField label="Ош" field="block_errors" stat={stat} setStat={setStat} />
+            <StatField label="Очк" field="block_points" initialValue={stat["block_points"]} onUpdate={(field, val) => setStat(prev => ({ ...prev, [field]: val }))} />
+            <StatField label="Ош" field="block_errors" initialValue={stat["block_errors"]} onUpdate={(field, val) => setStat(prev => ({ ...prev, [field]: val }))} />
           </div>
         </div>
       </div>
