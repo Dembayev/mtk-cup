@@ -1461,6 +1461,15 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
             </Card>
           )}
 
+          {(() => {
+            console.log("🔍 Telegram Button Debug:", {
+              playerUsername: player?.users?.username,
+              isAdmin: userRoles?.isAdmin,
+              userRoles: userRoles,
+              shouldShow: !!(player?.users?.username && userRoles?.isAdmin)
+            });
+            return null;
+          })()}
           {player?.users?.username && userRoles?.isAdmin && (
             <Button variant="outline" onClick={() => window.open(`https://t.me/${player.users.username}`, '_blank')} style={{ width: "100%", marginTop: "8px" }}>
               <Icons.Send /> Написать в Telegram
