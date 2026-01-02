@@ -2943,20 +2943,6 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
             </Card>
           )}
 
-          {/* Кнопка написать организаторам */}
-          {!isGuest && (
-            <Card onClick={() => window.open("https://t.me/mtkcup", "_blank")} style={{ marginBottom: "20px", cursor: "pointer" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ width: "40px", height: "40px", background: "#e0f2fe", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>✉️</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600 }}>Написать организаторам</div>
-                  <div style={{ fontSize: "13px", color: colors.goldDark }}>Связаться через Telegram</div>
-                </div>
-                <Icons.ChevronRight />
-              </div>
-            </Card>
-          )}
-
           {userRoles.isAdmin && (
             <Card onClick={() => setScreen("admin")} style={{ marginBottom: "20px", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
