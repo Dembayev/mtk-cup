@@ -2293,17 +2293,22 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               </div>
                             </div>
                           ) : (
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              <span style={{ flex: 1, fontSize: "14px" }}>{team1?.name}</span>
-                              <span style={{ fontWeight: 700, fontSize: "16px", padding: "4px 12px", background: colors.gray, borderRadius: "6px" }}>
-                                {match.sets_team1 || 0} : {match.sets_team2 || 0}
-                              </span>
-                              <span style={{ flex: 1, fontSize: "14px", textAlign: "right" }}>{team2?.name}</span>
-                              <Badge variant={match.status === "finished" ? "default" : match.status === "live" ? "live" : "gold"}>
-                                {match.status === "finished" ? "✓" : match.status === "live" ? "LIVE" : "○"}
-                              </Badge>
-                              {match.status === "upcoming" && (
-                                <button 
+                            <div>
+                              {/* Первая строка: команды и счёт */}
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                <span style={{ flex: 1, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{team1?.name}</span>
+                                <span style={{ fontWeight: 700, fontSize: "16px", padding: "4px 12px", background: colors.gray, borderRadius: "6px", flexShrink: 0 }}>
+                                  {match.sets_team1 || 0} : {match.sets_team2 || 0}
+                                </span>
+                                <span style={{ flex: 1, fontSize: "14px", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{team2?.name}</span>
+                              </div>
+                              {/* Вторая строка: статус и кнопки */}
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                <Badge variant={match.status === "finished" ? "default" : match.status === "live" ? "live" : "gold"}>
+                                  {match.status === "finished" ? "✓" : match.status === "live" ? "LIVE" : "○"}
+                                </Badge>
+                                {match.status === "upcoming" && (
+                                  <button 
                                   onClick={() => { 
                                     sendNotification("hour_before", team1?.name, team2?.name);
                                     alert("Уведомление отправлено!");
@@ -2331,6 +2336,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               <button onClick={() => onDeleteMatch(match.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }} title="Удалить матч">
                                 <Icons.X />
                               </button>
+                              </div>
                             </div>
                           )}
                         </Card>
