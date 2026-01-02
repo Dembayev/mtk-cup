@@ -3932,6 +3932,8 @@ const handleTelegramLogin = async (tgUser) => {
   const handleApproveRoleRequest = async (requestId, userId, role) => {
     try {
       setActionLoading(true);
+      
+      // Обновляем статус заявки
       await supabase.from("role_requests").update({ 
         status: "approved", 
         reviewed_at: new Date().toISOString(),
@@ -3939,8 +3941,17 @@ const handleTelegramLogin = async (tgUser) => {
       }).eq("id", requestId);
       
       if (role === "player") {
+        // Проверяем есть ли уже player record
         const existing = players.find(p => p.user_id === userId);
-        if (!existing) {
+        if (existing) {
+          // Обновляем существующий - делаем свободным агентом
+          await supabase.from("players").update({
+            is_free_agent: true,
+            team_id: null,
+            is_captain: false,
+          }).eq("user_id", userId);
+        } else {
+          // Создаем новый player record
           await supabase.from("players").insert({
             user_id: userId,
             is_free_agent: true,
@@ -3948,12 +3959,11 @@ const handleTelegramLogin = async (tgUser) => {
             positions: [],
           });
         }
-        // Снимаем с тренерства
+        // Снимаем с тренерства если был тренером
         await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
       } 
       else if (role === "coach") {
-        // Для тренера - нужно будет назначить на команду отдельно
-        // Если был игроком в чужой команде - удаляем из неё
+        // Для тренера нужно будет назначить команду отдельно
         const playerRecord = players.find(p => p.user_id === userId);
         if (playerRecord && playerRecord.team_id) {
           const hisTeam = teams.find(t => t.coach_id === userId);
@@ -3967,12 +3977,10 @@ const handleTelegramLogin = async (tgUser) => {
         await supabase.from("players").delete().eq("user_id", userId);
         // Снимаем с тренерства
         await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
-        // Удаляем все одобренные заявки на другие роли
-        await supabase.from("role_requests").delete().eq("user_id", userId).eq("status", "approved");
       }
       
       await loadData();
-      alert("Заявка одобрена!");
+      alert("Заявка одобрена и роль изменена!");
     } catch (error) {
       console.error("Error approving request:", error);
       alert("Ошибка");
