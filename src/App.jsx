@@ -1778,8 +1778,7 @@ const StatField = ({ label, field, stat, setStat }) => (
   <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
     <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
     <input 
-      type="text"
-      inputMode="numeric"
+      type="tel"
       pattern="[0-9]*"
       value={stat[field] ?? ""} 
       onChange={e => {
@@ -1813,8 +1812,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
       <span style={{ fontSize: "11px", color: colors.goldDark, width: "30px" }}>{label}</span>
       <input 
-        type="text"
-        inputMode="numeric"
+        type="tel"
         pattern="[0-9]*"
         value={stat[field] ?? ""} 
         onChange={e => {
