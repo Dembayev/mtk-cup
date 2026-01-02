@@ -2047,14 +2047,17 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   };
 
   const saveUser = async () => {
+    // Обновляем имя, фамилию и права администратора
     await onUpdateUser(editingUser.id, userRole, userFirstName, userLastName);
-    // Смена игровой роли
+    
+    // Смена игровой роли (отдельно)
     const currentIsCoach = teams.some(t => t.coach_id === editingUser.id);
     const currentIsPlayer = players.some(p => p.user_id === editingUser.id);
     let currentGameRole = "fan";
     if (currentIsCoach) currentGameRole = "coach";
     else if (currentIsPlayer) currentGameRole = "player";
     
+    console.log("💾 SaveUser: Changing game role", currentGameRole, "→", gameRole);
     if (gameRole !== currentGameRole && onChangeGameRole) {
       await onChangeGameRole(editingUser.id, gameRole);
     }
@@ -3746,17 +3749,65 @@ export default function MTKCupApp() {
         await supabase.from("role_requests").delete().eq("user_id", userId).eq("status", "approved");
       } 
       else if (newRole === "player") {
-        if (currentCoachTeam) await supabase.from("teams").update({ coach_id: null }).eq("id", currentCoachTeam.id);
+        console.log("🏃 ChangeRole (player): Is coach of team?", currentCoachTeam?.name || "NO");
+        
         if (!currentPlayer) {
-          await supabase.from("players").insert({ user_id: userId, is_free_agent: true, is_captain: false, positions: [] });
+          // Если тренер команды - добавляем игроком в свою команду
+          if (currentCoachTeam) {
+            console.log("🏃 ChangeRole (player): Adding as player to coached team");
+            await supabase.from("players").insert({ 
+              user_id: userId, 
+              team_id: currentCoachTeam.id,
+              is_free_agent: false,
+              is_captain: false, 
+              positions: [] 
+            });
+            // НЕ снимаем с тренерства! Тренер может быть игроком своей команды
+          } else {
+            // Если не тренер - делаем свободным агентом
+            console.log("🏃 ChangeRole (player): Creating as free agent");
+            await supabase.from("players").insert({ 
+              user_id: userId, 
+              is_free_agent: true, 
+              is_captain: false, 
+              positions: [] 
+            });
+          }
+        } else {
+          console.log("🏃 ChangeRole (player): Already a player, keeping record");
         }
+        
+        // Удаляем одобренную заявку на тренера (если есть)
         await supabase.from("role_requests").delete().eq("user_id", userId).eq("requested_role", "coach").eq("status", "approved");
       }
       else if (newRole === "coach") {
-        await supabase.from("role_requests").upsert({
-          user_id: userId, requested_role: "coach", status: "approved",
-          reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
-        }, { onConflict: "user_id,requested_role" });
+        console.log("💼 ChangeRole (coach): Current player team:", currentPlayer?.team_id);
+        
+        // Если игрок в команде - делаем его тренером этой команды
+        if (currentPlayer && currentPlayer.team_id) {
+          const playerTeam = teams.find(t => t.id === currentPlayer.team_id);
+          console.log("💼 ChangeRole (coach): Setting as coach of team:", playerTeam?.name);
+          
+          // Проверяем есть ли уже тренер у этой команды
+          if (playerTeam && playerTeam.coach_id && playerTeam.coach_id !== userId) {
+            alert(`В команде ${playerTeam.name} уже есть тренер. Сначала удалите текущего тренера.`);
+            setActionLoading(false);
+            return;
+          }
+          
+          // Назначаем тренером
+          await supabase.from("teams").update({ coach_id: userId }).eq("id", currentPlayer.team_id);
+          
+          // Игрок МОЖЕТ оставаться игроком своей команды (это разрешено)
+          // Поэтому НЕ удаляем запись из players
+        } else {
+          // Если не в команде - просто создаём одобренную заявку
+          console.log("💼 ChangeRole (coach): No team, creating approved request");
+          await supabase.from("role_requests").upsert({
+            user_id: userId, requested_role: "coach", status: "approved",
+            reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
+          }, { onConflict: "user_id,requested_role" });
+        }
       }
       
       // Уведомление пользователю
