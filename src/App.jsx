@@ -59,7 +59,7 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
   } catch (error) {
     console.error("Error sending notifications:", error);
   }
-});
+};
 
 
 const sendTeamMessage = async (teamId, teamName, message) => {
@@ -121,7 +121,7 @@ const sendTeamMessage = async (teamId, teamName, message) => {
     console.error("Error sending team message:", error);
     return { sent: 0, failed: 0 };
   }
-});
+};
 
 
 // Color scheme
@@ -133,7 +133,7 @@ const colors = {
   goldDark: "#8B7355",
   gray: "#F5F5F5",
   grayBorder: "#E0E0E0",
-});
+};
 
 // Position labels
 const positionLabels = {
@@ -142,7 +142,7 @@ const positionLabels = {
   outside: "Доигровщик",
   middle: "Центральный",
   libero: "Либеро",
-});
+};
 
 // Role labels
 const roleLabels = {
@@ -151,7 +151,7 @@ const roleLabels = {
   captain: "Капитан",
   coach: "Тренер",
   admin: "Администратор",
-});
+};
 
 // Функция для вычисления всех ролей пользователя
 const getUserRoles = (user, players, teams, roleRequests = []) => {
@@ -177,13 +177,13 @@ const getUserRoles = (user, players, teams, roleRequests = []) => {
   if (isFan) roles.push("fan");
   
   return { isGuest: false, isFan, isPlayer, isCaptain, isCoach, isAdmin, roles, playerRecord };
-});
+};
 
 const getDisplayName = (user) => {
   if (user?.first_name) return user.first_name;
   if (user?.username) return `@${user.username}`;
   return "Гость";
-});
+};
 
 const syncAvatar = async (telegramId) => {
   try {
@@ -200,7 +200,7 @@ const syncAvatar = async (telegramId) => {
     console.error("Error syncing avatar:", error);
   }
   return null;
-});
+};
 
 const tg = window.Telegram?.WebApp;
 
@@ -340,7 +340,7 @@ const Icons = {
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
     </svg>
   ),
-});
+};
 
 // Components
 const Header = ({ title, showBack, onBack, rightElement }) => (
@@ -410,7 +410,7 @@ const NavBar = ({ active, setScreen }) => {
       ))}
     </div>
   );
-});
+};
 
 const Card = ({ children, onClick, style }) => (
   <div onClick={onClick} style={{
@@ -463,7 +463,7 @@ const Badge = ({ children, variant = "default" }) => {
       {children}
     </span>
   );
-});
+};
 
 const RoleBadges = ({ roles }) => {
   const roleVariants = {
@@ -483,7 +483,7 @@ const RoleBadges = ({ roles }) => {
       ))}
     </div>
   );
-});
+};
 
 const Container = ({ children }) => (
   <div style={{ maxWidth: "800px", margin: "0 auto", padding: "0 20px" }}>{children}</div>
@@ -513,7 +513,7 @@ const Avatar = ({ name, size = 48, url }) => {
       )}
     </div>
   );
-});
+};
 
 const Loading = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px", color: colors.goldDark }}>
@@ -634,7 +634,7 @@ const OnboardingScreen = ({ user, onComplete, onSubmitRequest }) => {
       </Container>
     </div>
   );
-});
+};
 
 const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
   // Автоматический вход при загрузке в Telegram
@@ -698,7 +698,7 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
       )}
     </div>
   );
-});
+};
 
 const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, playerStats }) => {
   const liveMatch = matches.find(m => m.status === "live");
@@ -834,7 +834,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
       <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
     </div>
   );
-});
+};
 
 const MatchCard = ({ match, teams, onTeamClick }) => {
   const team1 = teams.find(t => t.id === match.team1_id);
@@ -872,7 +872,7 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
       </div>
     </div>
   );
-});
+};
 
 const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
   // Сортируем: моя команда / любимая команда вверху
@@ -996,7 +996,7 @@ const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, o
       </Container>
     </div>
   );
-});
+};
 
 const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setScreen }) => {
   const today = new Date();
@@ -1073,7 +1073,7 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
       </Container>
     </div>
   );
-});
+};
 
 const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
   const sortedTeams = [...teams].sort((a, b) => {
@@ -1137,7 +1137,7 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
       </Container>
     </div>
   );
-});
+};
 
 const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId }) => {
   const [filter, setFilter] = useState("all");
@@ -1246,7 +1246,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
       </Container>
     </div>
   );
-});
+};
 
 const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerStats, matches, user, onToggleFavorite }) => {
   const team = teams.find(t => t.id === player?.team_id);
@@ -1428,7 +1428,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
       </Container>
     </div>
   );
-});
+};
 
 const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, isInTeam }) => {
   const pendingOffers = offers.filter(o => o.status === "pending");
@@ -1500,7 +1500,7 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, i
       </Container>
     </div>
   );
-});
+};
 
 const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, setSelectedPlayer, teamRequests, onAcceptTeamRequest, onRejectTeamRequest, onUpdateJerseyNumber, onSetCaptain, onSendTeamMessage, onCreateTeam }) => {
   let myTeam = null;
@@ -1771,7 +1771,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
       </Container>
     </div>
   );
-});
+};
 
 // Stat Field Component с локальным состоянием (обновляет родителя только на blur)
 const StatField = memo(({ label, field, stat, setStat }) => {
@@ -1901,7 +1901,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       </div>
     </div>
   );
-});
+};
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
 const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole }) => {
@@ -2710,7 +2710,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
       </Container>
     </div>
   );
-});
+};
 
 const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone, currentPlayer, onUpdatePosition }) => {
   const displayName = getDisplayName(user);
@@ -2933,7 +2933,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
       </Container>
     </div>
   );
-});
+};
 
 // Main App
 export default function MTKCupApp() {
