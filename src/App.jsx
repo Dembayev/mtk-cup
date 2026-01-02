@@ -1880,8 +1880,10 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole }) => {
   const [tab, setTab] = useState("tours");
+  const [editingTour, setEditingTour] = useState(null);
+  const [tourData, setTourData] = useState({ number: "", date: "", location: "", address: "" });
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
     sets_team1: 0, sets_team2: 0, status: "upcoming",
@@ -2069,19 +2071,51 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
 
               {tours.sort((a, b) => a.number - b.number).map(tour => (
                 <Card key={tour.id} style={{ marginBottom: "8px", padding: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "40px", height: "40px", background: colors.goldLight, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: colors.goldDark }}>
-                      {tour.number}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: "14px" }}>Тур {tour.number}</div>
-                      <div style={{ fontSize: "12px", color: colors.goldDark }}>
-                        {new Date(tour.date).toLocaleDateString("ru-RU")} • {tour.location}
+                  {editingTour?.id === tour.id ? (
+                    <div>
+                      <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Редактирование тура</h4>
+                      <Input label="Номер тура" type="number" value={tourData.number} onChange={v => setTourData(p => ({ ...p, number: v }))} />
+                      <Input label="Дата" type="date" value={tourData.date} onChange={v => setTourData(p => ({ ...p, date: v }))} />
+                      <Input label="Место" value={tourData.location} onChange={v => setTourData(p => ({ ...p, location: v }))} />
+                      <Input label="Адрес" value={tourData.address} onChange={v => setTourData(p => ({ ...p, address: v }))} />
+                      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                        <Button onClick={async () => {
+                          await onUpdateTour(tour.id, tourData);
+                          setEditingTour(null);
+                        }} style={{ flex: 1 }}>
+                          <Icons.Save /> Сохранить
+                        </Button>
+                        <Button variant="outline" onClick={() => setEditingTour(null)} style={{ flex: 1 }}>
+                          Отмена
+                        </Button>
                       </div>
-                      <div style={{ fontSize: "11px", color: colors.goldDark }}>{tour.address}</div>
                     </div>
-                    <Badge>{matches.filter(m => m.tour_id === tour.id).length} матчей</Badge>
-                  </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ width: "40px", height: "40px", background: colors.goldLight, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: colors.goldDark }}>
+                        {tour.number}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: "14px" }}>Тур {tour.number}</div>
+                        <div style={{ fontSize: "12px", color: colors.goldDark }}>
+                          {new Date(tour.date).toLocaleDateString("ru-RU")} • {tour.location}
+                        </div>
+                        <div style={{ fontSize: "11px", color: colors.goldDark }}>{tour.address}</div>
+                      </div>
+                      <Badge>{matches.filter(m => m.tour_id === tour.id).length} матчей</Badge>
+                      <div style={{ display: "flex", gap: "4px" }}>
+                        <button onClick={() => {
+                          setEditingTour(tour);
+                          setTourData({ number: tour.number, date: tour.date, location: tour.location, address: tour.address });
+                        }} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }}>
+                          <Icons.Edit />
+                        </button>
+                        <button onClick={() => onDeleteTour(tour.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }}>
+                          <Icons.X />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               ))}
             </>
@@ -3628,6 +3662,48 @@ export default function MTKCupApp() {
     }
   };
 
+  const handleUpdateTour = async (tourId, tourData) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.from("tours").update({
+        number: parseInt(tourData.number),
+        date: tourData.date,
+        location: tourData.location,
+        address: tourData.address,
+      }).eq("id", tourId);
+      if (error) throw error;
+      await loadData();
+      alert("Тур обновлён!");
+    } catch (error) {
+      console.error("Error updating tour:", error);
+      alert("Ошибка обновления тура");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteTour = async (tourId) => {
+    if (!confirm("Вы уверены что хотите удалить этот тур? Все матчи тура тоже будут удалены!")) {
+      return;
+    }
+    try {
+      setActionLoading(true);
+      // Сначала удаляем все матчи тура
+      await supabase.from("matches").delete().eq("tour_id", tourId);
+      // Потом удаляем тур
+      const { error } = await supabase.from("tours").delete().eq("id", tourId);
+      if (error) throw error;
+      await loadData();
+      alert("Тур удалён!");
+    } catch (error) {
+      console.error("Error deleting tour:", error);
+      alert("Ошибка удаления тура");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+
   // Create match
   const handleCreateMatch = async (matchData) => {
     try {
@@ -3915,7 +3991,7 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
     }
   };
