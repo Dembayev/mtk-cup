@@ -2222,13 +2222,27 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               {[1,2,3,4,5].map(setNum => (
                                 <div key={setNum} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                                   <span style={{ width: "50px", fontSize: "13px", color: colors.goldDark }}>Сет {setNum}</span>
-                                  <input type="number" min="0" max="50" value={matchScore[`set${setNum}_team1`] ?? ""}
-                                    onChange={e => setMatchScore(prev => ({ ...prev, [`set${setNum}_team1`]: e.target.value === "" ? "" : parseInt(e.target.value) || 0 }))}
+                                  <input 
+                                    type="text" 
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={matchScore[`set${setNum}_team1`] ?? ""}
+                                    onChange={e => {
+                                      const val = e.target.value.replace(/[^0-9]/g, '');
+                                      setMatchScore(prev => ({ ...prev, [`set${setNum}_team1`]: val === "" ? "" : parseInt(val) }));
+                                    }}
                                     style={{ width: "60px", padding: "8px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }}
                                   />
                                   <span>:</span>
-                                  <input type="number" min="0" max="50" value={matchScore[`set${setNum}_team2`] ?? ""}
-                                    onChange={e => setMatchScore(prev => ({ ...prev, [`set${setNum}_team2`]: e.target.value === "" ? "" : parseInt(e.target.value) || 0 }))}
+                                  <input 
+                                    type="text" 
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={matchScore[`set${setNum}_team2`] ?? ""}
+                                    onChange={e => {
+                                      const val = e.target.value.replace(/[^0-9]/g, '');
+                                      setMatchScore(prev => ({ ...prev, [`set${setNum}_team2`]: val === "" ? "" : parseInt(val) }));
+                                    }}
                                     style={{ width: "60px", padding: "8px", textAlign: "center", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }}
                                   />
                                 </div>
