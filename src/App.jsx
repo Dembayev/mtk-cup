@@ -3144,7 +3144,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           label="Поиск тренера" 
                           placeholder="Введите имя..."
                           value={coachSearchQuery}
-                          onChange={(e) => setCoachSearchQuery(e.target.value)}
+                          onChange={setCoachSearchQuery}
                           style={{ marginBottom: "12px" }}
                         />
                         <Select label="Тренер команды" value={teamCoach} onChange={setTeamCoach}
