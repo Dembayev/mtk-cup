@@ -1039,17 +1039,41 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
           {team?.coach_id && (() => {
             const coach = users?.find(u => u.id === team.coach_id);
             if (!coach) return null;
+            
+            // Ищем игрока-тренера в составе
+            const coachPlayer = teamPlayers.find(p => p.user_id === coach.id);
+            
             return (
-              <Card style={{ marginBottom: "20px" }}>
+              <Card 
+                style={{ marginBottom: "20px", cursor: coachPlayer ? "pointer" : "default" }}
+                onClick={() => {
+                  if (coachPlayer && setSelectedPlayer && setScreen) {
+                    setSelectedPlayer(coachPlayer);
+                    setScreen("playerDetail");
+                  }
+                }}
+              >
                 <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>ТРЕНЕР</h3>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <Avatar name={coach.first_name || coach.username} size={48} url={coach.avatar_url} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: "15px" }}>
                       {coach.first_name || `@${coach.username}`} {coach.last_name || ""}
+                      {coachPlayer?.is_captain && <span style={{ marginLeft: "8px", color: colors.gold }}>©</span>}
                     </div>
-                    <div style={{ fontSize: "13px", color: colors.goldDark }}>Главный тренер</div>
+                    <div style={{ fontSize: "13px", color: colors.goldDark }}>
+                      Главный тренер
+                      {coachPlayer?.positions?.length > 0 && (
+                        <span> • {coachPlayer.positions.map(p => positionLabels[p] || p).join(", ")}</span>
+                      )}
+                    </div>
                   </div>
+                  {coachPlayer?.jersey_number && (
+                    <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>
+                      #{coachPlayer.jersey_number}
+                    </div>
+                  )}
+                  {coachPlayer && <Icons.ChevronRight />}
                 </div>
               </Card>
             );
