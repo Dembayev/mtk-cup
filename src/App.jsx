@@ -1035,64 +1035,42 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
             </div>
           </Card>
 
-          {/* Тренер команды */}
+
+          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Состав команды ({teamPlayers.length})</h3>
+          
+          {/* Тренер как первый элемент состава */}
           {team?.coach_id && (() => {
             const coach = users?.find(u => u.id === team.coach_id);
-            if (!coach) return null;
+            const coachPlayer = teamPlayers.find(p => p.user_id === coach?.id);
             
-            // Ищем игрока-тренера в составе
-            const coachPlayer = teamPlayers.find(p => p.user_id === coach.id);
-            
-            console.log('🔍 Coach Debug:', {
-              coachId: coach.id,
-              coachName: coach.first_name,
-              teamPlayers: teamPlayers.map(p => ({ 
-                name: p.users?.first_name, 
-                user_id: p.user_id,
-                is_captain: p.is_captain,
-                positions: p.positions,
-                jersey_number: p.jersey_number
-              })),
-              coachPlayer: coachPlayer
-            });
+            // Если тренер не найден как игрок, не показываем
+            if (!coachPlayer) return null;
             
             return (
               <Card 
-                style={{ marginBottom: "20px", cursor: coachPlayer ? "pointer" : "default" }}
-                onClick={() => {
-                  if (coachPlayer && setSelectedPlayer && setScreen) {
-                    setSelectedPlayer(coachPlayer);
-                    setScreen("playerDetail");
-                  }
-                }}
+                key={`coach-${coach.id}`}
+                style={{ marginBottom: "8px", padding: "12px 16px", cursor: "pointer", background: "#fffbeb" }}
+                onClick={() => { setSelectedPlayer && setSelectedPlayer(coachPlayer); setScreen && setScreen("playerDetail"); }}
               >
-                <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>ТРЕНЕР</h3>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <Avatar name={coach.first_name || coach.username} size={48} url={coach.avatar_url} />
+                  <Avatar name={coach.first_name || coach.username} size={40} url={coach.avatar_url} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: "15px" }}>
+                    <div style={{ fontWeight: 600, fontSize: "14px" }}>
                       {coach.first_name || `@${coach.username}`} {coach.last_name || ""}
-                      {coachPlayer?.is_captain && <span style={{ marginLeft: "8px", color: colors.gold }}>©</span>}
+                      {coachPlayer.is_captain && <span style={{ marginLeft: "8px", color: colors.gold }}>©</span>}
                     </div>
-                    <div style={{ fontSize: "13px", color: colors.goldDark }}>
-                      Главный тренер
-                      {coachPlayer?.positions?.length > 0 && (
-                        <span> • {coachPlayer.positions.map(p => positionLabels[p] || p).join(", ")}</span>
-                      )}
+                    <div style={{ fontSize: "12px", color: colors.goldDark }}>
+                      <span style={{ fontWeight: 600, color: colors.gold }}>Тренер</span>
+                      {coachPlayer.positions?.length > 0 && <span> • {coachPlayer.positions.map(p => positionLabels[p] || p).join(", ")}</span>}
                     </div>
                   </div>
-                  {coachPlayer?.jersey_number && (
-                    <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>
-                      #{coachPlayer.jersey_number}
-                    </div>
-                  )}
-                  {coachPlayer && <Icons.ChevronRight />}
+                  {coachPlayer.jersey_number && <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>#{coachPlayer.jersey_number}</div>}
+                  <Icons.ChevronRight />
                 </div>
               </Card>
             );
           })()}
-
-          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Состав команды ({teamPlayers.length})</h3>
+          
           {teamPlayers.length > 0 ? teamPlayers.map(player => (
             <Card 
               key={player.id} 
