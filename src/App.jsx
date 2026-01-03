@@ -949,7 +949,13 @@ const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
             return (
               <Card key={team.id} onClick={() => { setSelectedTeam(team); setScreen("teamDetail"); }} style={{ marginBottom: "12px", border: isMy ? `2px solid ${colors.gold}` : "none" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                  <div style={{ width: "56px", height: "56px", background: colors.goldLight, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px" }}>{team.logo_url || "🏐"}</div>
+                  <div style={{ width: "56px", height: "56px", background: colors.goldLight, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", overflow: "hidden" }}>
+                  {team.logo_url && team.logo_url.startsWith('http') ? (
+                    <img src={team.logo_url} alt={team.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    team.logo_url || "🏐"
+                  )}
+                </div>
                   <div style={{ flex: 1 }}>
                     <h3 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600 }}>
                       {team.name} {isMy && <span style={{ fontSize: "12px", color: colors.gold }}>★</span>}
@@ -1170,7 +1176,13 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
                       <td style={{ padding: "12px 8px", fontWeight: 700, color: i < 3 ? colors.gold : colors.text }}>{i + 1}</td>
                       <td style={{ padding: "12px 8px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontSize: "18px" }}>{team.logo_url || "🏐"}</span>
+                          <span style={{ fontSize: "18px" }}>
+                          {team.logo_url && team.logo_url.startsWith('http') ? (
+                            <img src={team.logo_url} alt={team.name} style={{ width: "32px", height: "32px", objectFit: "cover", borderRadius: "6px", verticalAlign: "middle" }} />
+                          ) : (
+                            team.logo_url || "🏐"
+                          )}
+                        </span>
                           <span style={{ fontWeight: 600, fontSize: "14px" }}>{team.name}</span>
                         </div>
                       </td>
@@ -1608,7 +1620,13 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
             {teams.map(team => (
               <Card key={team.id} onClick={() => onSelectFavoriteTeam(team.id)} style={{ marginBottom: "12px", cursor: "pointer" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div style={{ width: "48px", height: "48px", background: colors.goldLight, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>{team.logo_url || "🏐"}</div>
+                  <div style={{ width: "48px", height: "48px", background: colors.goldLight, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", overflow: "hidden" }}>
+                  {team.logo_url && team.logo_url.startsWith('http') ? (
+                    <img src={team.logo_url} alt={team.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    team.logo_url || "🏐"
+                  )}
+                </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: "15px" }}>{team.name}</div>
                     <div style={{ fontSize: "13px", color: colors.goldDark }}>{team.wins}В {team.losses}П • {team.points} очков</div>
@@ -1994,6 +2012,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [newTeam, setNewTeam] = useState({ name: "", logo_url: "" });
   const [editingTeamInfo, setEditingTeamInfo] = useState(null);
   const [teamInfo, setTeamInfo] = useState({ name: "", logo_url: "" });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   
   // Редактирование видео
   const [editingVideo, setEditingVideo] = useState(null);
@@ -2811,14 +2830,74 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     onChange={v => setNewTeam(p => ({ ...p, name: v }))} 
                     placeholder="Например: Амур Rockets"
                   />
-                  <Input 
-                    label="Логотип (эмодзи)" 
-                    value={newTeam.logo_url} 
-                    onChange={v => setNewTeam(p => ({ ...p, logo_url: v }))} 
-                    placeholder="🏐"
-                    style={{ marginTop: "8px" }}
-                  />
-                  <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                  
+                  <div style={{ marginTop: "12px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: 500, color: colors.text, display: "block", marginBottom: "6px" }}>
+                      Логотип команды
+                    </label>
+                    
+                    {newTeam.logo_url && (
+                      <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
+                        {newTeam.logo_url.startsWith('http') ? (
+                          <img src={newTeam.logo_url} alt="Логотип" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }} />
+                        ) : (
+                          <div style={{ width: "60px", height: "60px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "40px", background: colors.goldLight, borderRadius: "8px" }}>
+                            {newTeam.logo_url}
+                          </div>
+                        )}
+                        <button 
+                          onClick={() => setNewTeam(p => ({ ...p, logo_url: "" }))}
+                          style={{ padding: "4px 8px", fontSize: "12px", background: "#fee2e2", color: "#dc2626", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        id="new-team-logo-upload"
+                        style={{ display: "none" }}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const url = await handleUploadTeamLogo(file);
+                            if (url) {
+                              setNewTeam(p => ({ ...p, logo_url: url }));
+                            }
+                          }
+                        }}
+                      />
+                      <label 
+                        htmlFor="new-team-logo-upload"
+                        style={{ 
+                          padding: "8px 12px", 
+                          fontSize: "13px", 
+                          background: colors.gold, 
+                          color: "white", 
+                          borderRadius: "6px", 
+                          cursor: uploadingLogo ? "not-allowed" : "pointer",
+                          opacity: uploadingLogo ? 0.5 : 1,
+                          display: "inline-block"
+                        }}
+                      >
+                        {uploadingLogo ? "Загрузка..." : "📁 Загрузить изображение"}
+                      </label>
+                      
+                      <span style={{ fontSize: "12px", color: colors.goldDark }}>или</span>
+                      
+                      <Input 
+                        value={newTeam.logo_url.startsWith('http') ? '' : newTeam.logo_url} 
+                        onChange={v => setNewTeam(p => ({ ...p, logo_url: v }))} 
+                        placeholder="🏐 введите эмодзи"
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
                     <Button 
                       onClick={async () => {
                         if (!newTeam.name.trim()) {
@@ -2829,14 +2908,17 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         setNewTeam({ name: "", logo_url: "" });
                         setShowCreateTeam(false);
                       }} 
-                      disabled={actionLoading || !newTeam.name.trim()} 
+                      disabled={actionLoading || uploadingLogo || !newTeam.name.trim()} 
                       style={{ flex: 1, padding: "10px" }}
                     >
                       <Icons.Save /> Создать
                     </Button>
                     <Button 
                       variant="outline" 
-                      onClick={() => setShowCreateTeam(false)} 
+                      onClick={() => {
+                        setNewTeam({ name: "", logo_url: "" });
+                        setShowCreateTeam(false);
+                      }} 
                       style={{ flex: 1, padding: "10px" }}
                     >
                       Отмена
@@ -2860,12 +2942,73 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           value={teamInfo.name} 
                           onChange={v => setTeamInfo(p => ({ ...p, name: v }))} 
                         />
-                        <Input 
-                          label="Логотип (эмодзи)" 
-                          value={teamInfo.logo_url} 
-                          onChange={v => setTeamInfo(p => ({ ...p, logo_url: v }))} 
-                          style={{ marginTop: "8px" }}
-                        />
+                        
+                        <div style={{ marginTop: "12px" }}>
+                          <label style={{ fontSize: "13px", fontWeight: 500, color: colors.text, display: "block", marginBottom: "6px" }}>
+                            Логотип команды
+                          </label>
+                          
+                          {teamInfo.logo_url && (
+                            <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
+                              {teamInfo.logo_url.startsWith('http') ? (
+                                <img src={teamInfo.logo_url} alt="Логотип" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }} />
+                              ) : (
+                                <div style={{ width: "60px", height: "60px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "40px", background: colors.goldLight, borderRadius: "8px" }}>
+                                  {teamInfo.logo_url}
+                                </div>
+                              )}
+                              <button 
+                                onClick={() => setTeamInfo(p => ({ ...p, logo_url: "" }))}
+                                style={{ padding: "4px 8px", fontSize: "12px", background: "#fee2e2", color: "#dc2626", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                              >
+                                Удалить
+                              </button>
+                            </div>
+                          )}
+                          
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              id={`edit-team-logo-${team.id}`}
+                              style={{ display: "none" }}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const url = await handleUploadTeamLogo(file);
+                                  if (url) {
+                                    setTeamInfo(p => ({ ...p, logo_url: url }));
+                                  }
+                                }
+                              }}
+                            />
+                            <label 
+                              htmlFor={`edit-team-logo-${team.id}`}
+                              style={{ 
+                                padding: "8px 12px", 
+                                fontSize: "13px", 
+                                background: colors.gold, 
+                                color: "white", 
+                                borderRadius: "6px", 
+                                cursor: uploadingLogo ? "not-allowed" : "pointer",
+                                opacity: uploadingLogo ? 0.5 : 1,
+                                display: "inline-block"
+                              }}
+                            >
+                              {uploadingLogo ? "Загрузка..." : "📁 Загрузить"}
+                            </label>
+                            
+                            <span style={{ fontSize: "12px", color: colors.goldDark }}>или</span>
+                            
+                            <Input 
+                              value={teamInfo.logo_url.startsWith('http') ? '' : teamInfo.logo_url} 
+                              onChange={v => setTeamInfo(p => ({ ...p, logo_url: v }))} 
+                              placeholder="🏐 эмодзи"
+                              style={{ flex: 1 }}
+                            />
+                          </div>
+                        </div>
+                        
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                           <Button 
                             onClick={async () => {
@@ -2876,7 +3019,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               await onUpdateTeamInfo(editingTeamInfo.id, teamInfo);
                               setEditingTeamInfo(null);
                             }} 
-                            disabled={actionLoading || !teamInfo.name.trim()} 
+                            disabled={actionLoading || uploadingLogo || !teamInfo.name.trim()} 
                             style={{ flex: 1, padding: "10px" }}
                           >
                             <Icons.Save /> Сохранить
@@ -2914,8 +3057,12 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     ) : (
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <div style={{ width: "40px", height: "40px", background: colors.goldLight, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>
-                            {team.logo_url || "🏐"}
+                          <div style={{ width: "40px", height: "40px", background: colors.goldLight, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", overflow: "hidden" }}>
+                            {team.logo_url && team.logo_url.startsWith('http') ? (
+                              <img src={team.logo_url} alt={team.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              team.logo_url || "🏐"
+                            )}
                           </div>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 600, fontSize: "14px" }}>{team.name}</div>
@@ -4081,6 +4228,56 @@ export default function MTKCupApp() {
     }
   };
 
+
+
+  const handleUploadTeamLogo = async (file) => {
+    try {
+      setUploadingLogo(true);
+      
+      // Валидация файла
+      if (!file) return null;
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return null;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Размер файла не должен превышать 2MB');
+        return null;
+      }
+      
+      // Создаём уникальное имя файла
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `team-logos/${fileName}`;
+      
+      // Загружаем в Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('team-logos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('Storage upload error:', error);
+        alert('Ошибка загрузки изображения. Попробуйте ещё раз.');
+        return null;
+      }
+      
+      // Получаем публичный URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('team-logos')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      alert('Ошибка загрузки логотипа');
+      return null;
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const handleCreateTeamAdmin = async (teamData) => {
     try {
