@@ -1000,7 +1000,13 @@ const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, o
       <Container>
         <div style={{ padding: "20px 0" }}>
           <Card style={{ textAlign: "center", marginBottom: "20px" }}>
-            <div style={{ width: "80px", height: "80px", background: colors.goldLight, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: "40px" }}>{team?.logo_url || "🏐"}</div>
+            <div style={{ width: "80px", height: "80px", background: colors.goldLight, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: "40px", overflow: "hidden" }}>
+              {team?.logo_url && team.logo_url.startsWith('http') ? (
+                <img src={team.logo_url} alt={team.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                team?.logo_url || "🏐"
+              )}
+            </div>
             <h2 style={{ margin: "0 0 8px", fontSize: "24px", fontWeight: 700 }}>{team?.name}</h2>
             <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
               <Badge>{team?.games_played || 0} игр</Badge>
