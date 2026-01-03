@@ -1043,6 +1043,19 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
             // Ищем игрока-тренера в составе
             const coachPlayer = teamPlayers.find(p => p.user_id === coach.id);
             
+            console.log('🔍 Coach Debug:', {
+              coachId: coach.id,
+              coachName: coach.first_name,
+              teamPlayers: teamPlayers.map(p => ({ 
+                name: p.users?.first_name, 
+                user_id: p.user_id,
+                is_captain: p.is_captain,
+                positions: p.positions,
+                jersey_number: p.jersey_number
+              })),
+              coachPlayer: coachPlayer
+            });
+            
             return (
               <Card 
                 style={{ marginBottom: "20px", cursor: coachPlayer ? "pointer" : "default" }}
