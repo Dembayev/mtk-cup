@@ -2046,6 +2046,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [userLastName, setUserLastName] = useState("");
   const [editingTeam, setEditingTeam] = useState(null);
   const [teamCoach, setTeamCoach] = useState("");
+  const [coachSearchQuery, setCoachSearchQuery] = useState("");
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [teamMessage, setTeamMessage] = useState("");
   const [expandedMatch, setExpandedMatch] = useState(null);
@@ -2225,11 +2226,13 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const startEditTeam = (team) => {
     setEditingTeam(team);
     setTeamCoach(team.coach_id || "");
+    setCoachSearchQuery(""); // Очищаем поиск при открытии
   };
 
   const saveTeam = async () => {
     await onAssignCoach(editingTeam.id, teamCoach || null);
     setEditingTeam(null);
+    setCoachSearchQuery(""); // Очищаем поиск
   };
 
   const toggleTeamExpand = (teamId) => {
@@ -3137,20 +3140,34 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     ) : isEditing ? (
                       <div>
                         <div style={{ fontWeight: 600, marginBottom: "12px" }}>{team.name}</div>
+                        <Input 
+                          label="Поиск тренера" 
+                          placeholder="Введите имя..."
+                          value={coachSearchQuery}
+                          onChange={(e) => setCoachSearchQuery(e.target.value)}
+                          style={{ marginBottom: "12px" }}
+                        />
                         <Select label="Тренер команды" value={teamCoach} onChange={setTeamCoach}
                           options={[
                             { value: "", label: "Не назначен" },
-                            ...(users || []).map(u => ({
-                              value: u.id,
-                              label: `${u.first_name || u.username || "—"} ${u.last_name || ""}`.trim()
-                            }))
+                            ...(users || [])
+                              .filter(u => {
+                                if (!coachSearchQuery) return true;
+                                const query = coachSearchQuery.toLowerCase();
+                                const name = `${u.first_name || ""} ${u.last_name || ""} ${u.username || ""}`.toLowerCase();
+                                return name.includes(query);
+                              })
+                              .map(u => ({
+                                value: u.id,
+                                label: `${u.first_name || u.username || "—"} ${u.last_name || ""}`.trim()
+                              }))
                           ]}
                         />
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                           <Button onClick={saveTeam} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                             <Icons.Save /> Сохранить
                           </Button>
-                          <Button variant="outline" onClick={() => setEditingTeam(null)} style={{ flex: 1, padding: "10px" }}>
+                          <Button variant="outline" onClick={() => { setEditingTeam(null); setCoachSearchQuery(""); }} style={{ flex: 1, padding: "10px" }}>
                             Отмена
                           </Button>
                         </div>
