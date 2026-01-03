@@ -2429,11 +2429,13 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               </button>
                               <button onClick={() => {
                                 setEditingMatchInfo(match);
+                                // Конвертируем ISO формат в datetime-local формат
+                                const localTime = match.scheduled_time ? match.scheduled_time.slice(0, 16) : "";
                                 setMatchInfo({ 
                                   tour_id: match.tour_id, 
                                   team1_id: match.team1_id, 
                                   team2_id: match.team2_id, 
-                                  scheduled_time: match.scheduled_time 
+                                  scheduled_time: localTime
                                 });
                               }} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", padding: "4px" }} title="Редактировать информацию">
                                 ⚙️
