@@ -1041,31 +1041,40 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
           {/* Тренер как первый элемент состава */}
           {team?.coach_id && (() => {
             const coach = users?.find(u => u.id === team.coach_id);
-            const coachPlayer = teamPlayers.find(p => p.user_id === coach?.id);
+            if (!coach) return null;
             
-            // Если тренер не найден как игрок, не показываем
-            if (!coachPlayer) return null;
+            const coachPlayer = teamPlayers.find(p => p.user_id === coach.id);
             
             return (
               <Card 
                 key={`coach-${coach.id}`}
-                style={{ marginBottom: "8px", padding: "12px 16px", cursor: "pointer", background: "#fffbeb" }}
-                onClick={() => { setSelectedPlayer && setSelectedPlayer(coachPlayer); setScreen && setScreen("playerDetail"); }}
+                style={{ 
+                  marginBottom: "8px", 
+                  padding: "12px 16px", 
+                  cursor: coachPlayer ? "pointer" : "default",
+                  background: "#fffbeb" 
+                }}
+                onClick={() => {
+                  if (coachPlayer && setSelectedPlayer && setScreen) {
+                    setSelectedPlayer(coachPlayer);
+                    setScreen("playerDetail");
+                  }
+                }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <Avatar name={coach.first_name || coach.username} size={40} url={coach.avatar_url} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: "14px" }}>
                       {coach.first_name || `@${coach.username}`} {coach.last_name || ""}
-                      {coachPlayer.is_captain && <span style={{ marginLeft: "8px", color: colors.gold }}>©</span>}
+                      {coachPlayer?.is_captain && <span style={{ marginLeft: "8px", color: colors.gold }}>©</span>}
                     </div>
                     <div style={{ fontSize: "12px", color: colors.goldDark }}>
                       <span style={{ fontWeight: 600, color: colors.gold }}>Тренер</span>
-                      {coachPlayer.positions?.length > 0 && <span> • {coachPlayer.positions.map(p => positionLabels[p] || p).join(", ")}</span>}
+                      {coachPlayer?.positions?.length > 0 && <span> • {coachPlayer.positions.map(p => positionLabels[p] || p).join(", ")}</span>}
                     </div>
                   </div>
-                  {coachPlayer.jersey_number && <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>#{coachPlayer.jersey_number}</div>}
-                  <Icons.ChevronRight />
+                  {coachPlayer?.jersey_number && <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>#{coachPlayer.jersey_number}</div>}
+                  {coachPlayer && <Icons.ChevronRight />}
                 </div>
               </Card>
             );
