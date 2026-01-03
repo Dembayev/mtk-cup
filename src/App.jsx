@@ -3147,22 +3147,39 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           onChange={setCoachSearchQuery}
                           style={{ marginBottom: "12px" }}
                         />
-                        <Select label="Тренер команды" value={teamCoach} onChange={setTeamCoach}
-                          options={[
-                            { value: "", label: "Не назначен" },
-                            ...(users || [])
+                        <div style={{ marginBottom: "12px" }}>
+                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "6px" }}>Тренер команды</label>
+                          <select
+                            value={teamCoach}
+                            onChange={e => setTeamCoach(e.target.value)}
+                            size="10"
+                            style={{
+                              width: "100%",
+                              padding: "8px",
+                              borderRadius: "8px",
+                              border: `1px solid ${colors.grayBorder}`,
+                              fontSize: "14px",
+                              outline: "none",
+                              background: colors.bg,
+                              boxSizing: "border-box",
+                            }}
+                          >
+                            <option value="">Не назначен</option>
+                            {(users || [])
                               .filter(u => {
                                 if (!coachSearchQuery) return true;
                                 const query = coachSearchQuery.toLowerCase();
                                 const name = `${u.first_name || ""} ${u.last_name || ""} ${u.username || ""}`.toLowerCase();
                                 return name.includes(query);
                               })
-                              .map(u => ({
-                                value: u.id,
-                                label: `${u.first_name || u.username || "—"} ${u.last_name || ""}`.trim()
-                              }))
-                          ]}
-                        />
+                              .map(u => (
+                                <option key={u.id} value={u.id}>
+                                  {`${u.first_name || u.username || "—"} ${u.last_name || ""}`.trim()}
+                                </option>
+                              ))
+                            }
+                          </select>
+                        </div>
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                           <Button onClick={saveTeam} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                             <Icons.Save /> Сохранить
