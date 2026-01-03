@@ -1074,7 +1074,14 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
 
   const matchesByTour = sortedTours.map(tour => ({
     tour,
-    matches: (matches || []).filter(m => m.tour_id === tour.id).sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time)),
+    matches: (matches || [])
+      .filter(m => m.tour_id === tour.id)
+      .sort((a, b) => {
+        // Сравниваем строки времени напрямую (формат ISO: "2025-12-28T13:00")
+        if (!a.scheduled_time) return 1;
+        if (!b.scheduled_time) return -1;
+        return a.scheduled_time.localeCompare(b.scheduled_time);
+      }),
   }));
 
   const handleTeamClick = (team) => {
