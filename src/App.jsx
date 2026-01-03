@@ -1266,7 +1266,7 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
 const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId }) => {
   const [filter, setFilter] = useState("all");
   const [positionFilter, setPositionFilter] = useState("all");
-  const [teamFilter, setTeamFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   
   const canInvite = (userRoles.isCoach || userRoles.isAdmin) && coachTeam;
   
@@ -1274,7 +1274,14 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
     if (filter === "free" && !p.is_free_agent) return false;
     if (filter === "team" && p.is_free_agent) return false;
     if (positionFilter !== "all" && !p.positions?.includes(positionFilter)) return false;
-    if (teamFilter !== "all" && p.team_id !== teamFilter) return false;
+    
+    // Поиск по ФИО
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const fullName = `${p.users?.first_name || ""} ${p.users?.last_name || ""} ${p.users?.username || ""}`.toLowerCase();
+      if (!fullName.includes(query)) return false;
+    }
+    
     return true;
   }).sort((a, b) => {
     // Любимые игроки вверху
@@ -1292,8 +1299,6 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   });
   
   const hasPendingOffer = (playerId) => (sentOffers || []).some(o => o.player_id === playerId && o.status === "pending");
-
-  const uniqueTeams = [...new Set((players || []).filter(p => p.team_id).map(p => p.teams))].filter(Boolean);
 
   return (
     <div style={{ paddingBottom: "100px" }}>
@@ -1328,14 +1333,12 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
             ))}
           </div>
 
-          {/* Фильтр по команде */}
-          <Select 
-            value={teamFilter} 
-            onChange={setTeamFilter}
-            options={[
-              { value: "all", label: "Все команды" },
-              ...uniqueTeams.map(t => ({ value: t.id, label: t.name }))
-            ]}
+          {/* Поиск по ФИО */}
+          <Input 
+            label="Поиск игрока"
+            placeholder="Введите имя или фамилию..."
+            value={searchQuery} 
+            onChange={setSearchQuery}
           />
           
           {filteredPlayers.map(player => (
