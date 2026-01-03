@@ -975,7 +975,7 @@ const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
   );
 }
 
-const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles, currentPlayer, onLeaveTeam, onSendTeamRequest, teamRequests, actionLoading }) => {
+const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles, currentPlayer, onLeaveTeam, onSendTeamRequest, teamRequests, actionLoading }) => {
   const teamPlayers = (players || []).filter(p => p.team_id === team?.id);
   const isMyTeam = currentPlayer && currentPlayer.team_id === team?.id;
   const isFreeAgent = currentPlayer && currentPlayer.is_free_agent;
@@ -1034,6 +1034,26 @@ const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, o
               <div><div style={{ fontSize: "24px", fontWeight: 700 }}>{team?.sets_won || 0}:{team?.sets_lost || 0}</div><div style={{ fontSize: "12px", color: colors.goldDark }}>Партии</div></div>
             </div>
           </Card>
+
+          {/* Тренер команды */}
+          {team?.coach_id && (() => {
+            const coach = users?.find(u => u.id === team.coach_id);
+            if (!coach) return null;
+            return (
+              <Card style={{ marginBottom: "20px" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>ТРЕНЕР</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <Avatar name={coach.first_name || coach.username} size={48} url={coach.avatar_url} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: "15px" }}>
+                      {coach.first_name || `@${coach.username}`} {coach.last_name || ""}
+                    </div>
+                    <div style={{ fontSize: "13px", color: colors.goldDark }}>Главный тренер</div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })()}
 
           <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Состав команды ({teamPlayers.length})</h3>
           {teamPlayers.length > 0 ? teamPlayers.map(player => (
@@ -4872,7 +4892,7 @@ const handleGuest = () => {
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} />;
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
-      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
+      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
