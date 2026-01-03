@@ -1043,25 +1043,8 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
             const coach = users?.find(u => u.id === team.coach_id);
             if (!coach) return null;
             
-            const coachPlayer = teamPlayers.find(p => p.user_id === coach.id);
-            
-            console.log('🔍 Coach Card Debug:', {
-              coachId: coach.id,
-              coachName: `${coach.first_name} ${coach.last_name}`,
-              teamPlayersUserIds: teamPlayers.map(p => ({
-                name: p.users?.first_name,
-                user_id: p.user_id,
-                is_captain: p.is_captain,
-                positions: p.positions,
-                jersey_number: p.jersey_number
-              })),
-              coachPlayerFound: !!coachPlayer,
-              coachPlayerData: coachPlayer ? {
-                is_captain: coachPlayer.is_captain,
-                positions: coachPlayer.positions,
-                jersey_number: coachPlayer.jersey_number
-              } : null
-            });
+            // Ищем тренера среди ВСЕХ игроков (он может играть в другой команде)
+            const coachPlayer = players?.find(p => p.user_id === coach.id);
             
             return (
               <Card 
