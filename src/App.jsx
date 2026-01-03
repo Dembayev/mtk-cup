@@ -2463,7 +2463,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
               </p>
               
               {(tours || []).map(tour => {
-                const tourMatches = (matches || []).filter(m => m.tour_id === tour.id && m.status === "finished");
+                const tourMatches = (matches || [])
+                  .filter(m => m.tour_id === tour.id && m.status === "finished")
+                  .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
                 if (tourMatches.length === 0) return null;
                 return (
                   <div key={tour.id} style={{ marginBottom: "20px" }}>
