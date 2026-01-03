@@ -61,7 +61,7 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
   }
 };
 
-const sendToOrganizers = async (userName, userId, message) => {
+const sendToOrganizers = async (userName, userTelegramId, message, userUsername = null) => {
   try {
     // Получаем всех админов
     const { data: admins } = await supabase
@@ -72,23 +72,34 @@ const sendToOrganizers = async (userName, userId, message) => {
     
     if (!admins || admins.length === 0) return { sent: 0, failed: 0 };
     
-    const fullMessage = `📨 СООБЩЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ\n\nОт: ${userName}\nTelegram ID: ${userId}\n\n${message}`;
+    // Формируем сообщение
+    let fullMessage = `📨 СООБЩЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ\n\nОт: ${userName}`;
+    if (userUsername) {
+      fullMessage += `\nUsername: @${userUsername}`;
+    }
+    fullMessage += `\nTelegram ID: ${userTelegramId}\n\n${message}`;
     
     let sent = 0, failed = 0;
     for (const admin of admins) {
       try {
+        const messageData = { 
+          chat_id: admin.telegram_id, 
+          text: fullMessage
+        };
+        
+        // Добавляем кнопку только если есть username
+        if (userUsername) {
+          messageData.reply_markup = {
+            inline_keyboard: [[
+              { text: "💬 Написать в Telegram", url: `https://t.me/${userUsername}` }
+            ]]
+          };
+        }
+        
         const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            chat_id: admin.telegram_id, 
-            text: fullMessage,
-            reply_markup: {
-              inline_keyboard: [[
-                { text: "💬 Написать пользователю", url: `tg://user?id=${userId}` }
-              ]]
-            }
-          })
+          body: JSON.stringify(messageData)
         });
         if (response.ok) sent++; else failed++;
       } catch (e) {
@@ -3156,7 +3167,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                       }
                       setSendingToOrganizers(true);
                       const userName = `${user?.first_name || user?.username || "Пользователь"} ${user?.last_name || ""}`.trim();
-                      const result = await sendToOrganizers(userName, user?.telegram_id, organizerMessage);
+                      const result = await sendToOrganizers(userName, user?.telegram_id, organizerMessage, user?.username);
                       setSendingToOrganizers(false);
                       if (result.sent > 0) {
                         alert(`Сообщение отправлено ${result.sent} организаторам`);
