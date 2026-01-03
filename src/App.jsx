@@ -4183,11 +4183,15 @@ export default function MTKCupApp() {
   const handleCreateMatch = async (matchData) => {
     try {
       setActionLoading(true);
+      // Конвертируем местное время в UTC для сохранения
+      const localDate = new Date(matchData.scheduled_time);
+      const utcTime = localDate.toISOString();
+      
       const { error } = await supabase.from("matches").insert({
         tour_id: matchData.tour_id,
         team1_id: matchData.team1_id,
         team2_id: matchData.team2_id,
-        scheduled_time: matchData.scheduled_time,
+        scheduled_time: utcTime,
         status: "upcoming",
         sets_team1: 0,
         sets_team2: 0,
@@ -4206,11 +4210,15 @@ export default function MTKCupApp() {
   const handleUpdateMatchInfo = async (matchId, matchData) => {
     try {
       setActionLoading(true);
+      // Конвертируем местное время в UTC для сохранения
+      const localDate = new Date(matchData.scheduled_time);
+      const utcTime = localDate.toISOString();
+      
       await supabase.from("matches").update({
         tour_id: matchData.tour_id,
         team1_id: matchData.team1_id,
         team2_id: matchData.team2_id,
-        scheduled_time: matchData.scheduled_time,
+        scheduled_time: utcTime,
       }).eq("id", matchId);
       await loadData();
       alert("Информация о матче обновлена!");
