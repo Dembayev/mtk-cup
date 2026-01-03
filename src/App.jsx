@@ -1415,8 +1415,10 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
       <Container>
         <div style={{ padding: "20px 0" }}>
           <Card style={{ textAlign: "center", marginBottom: "20px" }}>
-            <Avatar name={player?.users?.first_name || player?.users?.username} size={80} url={player?.users?.avatar_url} />
-            <h2 style={{ margin: "16px 0 4px", fontSize: "22px", fontWeight: 700 }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+              <Avatar name={player?.users?.first_name || player?.users?.username} size={80} url={player?.users?.avatar_url} />
+            </div>
+            <h2 style={{ margin: "0 0 4px", fontSize: "22px", fontWeight: 700 }}>
               {player?.users?.first_name || `@${player?.users?.username}`} {player?.users?.last_name || ""}
             </h2>
             {player?.users?.username && userRoles?.isAdmin && (
