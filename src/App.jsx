@@ -2825,7 +2825,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           alert("Введите название команды");
                           return;
                         }
-                        await onCreateTeamAdmin(newTeam);
+                        await onCreateTeam(newTeam);
                         setNewTeam({ name: "", logo_url: "" });
                         setShowCreateTeam(false);
                       }} 
