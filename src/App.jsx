@@ -3688,6 +3688,19 @@ export default function MTKCupApp() {
     console.log("🏐 AcceptOffer: Starting for player:", currentPlayer.id, "team:", teamId);
     try {
       setActionLoading(true);
+      
+      // Проверка: не тренирую ли я другую команду
+      const coachOfOtherTeam = teams?.find(t => 
+        t.coach_id === currentPlayer.user_id && 
+        t.id !== teamId
+      );
+      
+      if (coachOfOtherTeam) {
+        alert(`Ошибка: Вы являетесь тренером команды "${coachOfOtherTeam.name}". Тренер может играть только в команде, которую тренирует.`);
+        setActionLoading(false);
+        return;
+      }
+      
       // Сначала отклоняем все другие pending офферы
       console.log("🏐 AcceptOffer: Rejecting other pending offers");
       await supabase.from("offers").update({ status: "rejected" }).eq("player_id", currentPlayer.id).eq("status", "pending").neq("id", offerId);
@@ -3729,6 +3742,19 @@ export default function MTKCupApp() {
     if (!currentPlayer) return;
     try {
       setActionLoading(true);
+      
+      // Проверка: не тренирую ли я другую команду
+      const coachOfOtherTeam = teams?.find(t => 
+        t.coach_id === currentPlayer.user_id && 
+        t.id !== teamId
+      );
+      
+      if (coachOfOtherTeam) {
+        alert(`Ошибка: Вы являетесь тренером команды "${coachOfOtherTeam.name}". Тренер может играть только в команде, которую тренирует.`);
+        setActionLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase.from("team_requests").insert({ 
         team_id: teamId, 
         player_id: currentPlayer.id, 
@@ -3764,6 +3790,20 @@ export default function MTKCupApp() {
   const handleAcceptTeamRequest = async (requestId, playerId) => {
     try {
       setActionLoading(true);
+      
+      // Проверка: не тренирует ли этот игрок другую команду
+      const player = players?.find(p => p.id === playerId);
+      const coachOfOtherTeam = teams?.find(t => 
+        t.coach_id === player?.user_id && 
+        t.id !== coachTeam.id
+      );
+      
+      if (coachOfOtherTeam) {
+        alert(`Ошибка: Этот игрок является тренером команды "${coachOfOtherTeam.name}". Тренер может играть только в команде, которую тренирует.`);
+        setActionLoading(false);
+        return;
+      }
+      
       // Принимаем заявку
       await supabase.from("team_requests").update({ status: "accepted" }).eq("id", requestId);
       // Добавляем игрока в команду
@@ -3771,7 +3811,6 @@ export default function MTKCupApp() {
       // Отклоняем другие заявки этого игрока
       await supabase.from("team_requests").update({ status: "rejected" }).eq("player_id", playerId).eq("status", "pending").neq("id", requestId);
       // Очищаем favorite_team_id
-      const player = players.find(p => p.id === playerId);
       if (player?.user_id) {
         await supabase.from("users").update({ favorite_team_id: null }).eq("id", player.user_id);
       }
@@ -4318,6 +4357,21 @@ export default function MTKCupApp() {
   const handleAssignCoach = async (teamId, coachId) => {
     try {
       setActionLoading(true);
+      
+      // Проверка: не играет ли этот человек в другой команде
+      const playerInOtherTeam = players?.find(p => 
+        p.user_id === coachId && 
+        p.team_id !== teamId && 
+        p.team_id !== null
+      );
+      
+      if (playerInOtherTeam) {
+        const otherTeam = teams?.find(t => t.id === playerInOtherTeam.team_id);
+        alert(`Ошибка: Этот человек играет в команде "${otherTeam?.name}". Тренер может играть только в команде, которую тренирует.`);
+        setActionLoading(false);
+        return;
+      }
+      
       await supabase.from("teams").update({ coach_id: coachId }).eq("id", teamId);
       await loadData();
       alert("Тренер назначен!");
