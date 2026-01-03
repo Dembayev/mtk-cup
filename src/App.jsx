@@ -2014,6 +2014,56 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [teamInfo, setTeamInfo] = useState({ name: "", logo_url: "" });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   
+  // Функция загрузки логотипа команды
+  const handleUploadTeamLogo = async (file) => {
+    try {
+      setUploadingLogo(true);
+      
+      // Валидация файла
+      if (!file) return null;
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return null;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Размер файла не должен превышать 2MB');
+        return null;
+      }
+      
+      // Создаём уникальное имя файла
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `team-logos/${fileName}`;
+      
+      // Загружаем в Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('team-logos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('Storage upload error:', error);
+        alert('Ошибка загрузки изображения. Попробуйте ещё раз.');
+        return null;
+      }
+      
+      // Получаем публичный URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('team-logos')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      alert('Ошибка загрузки логотипа');
+      return null;
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+  
   // Редактирование видео
   const [editingVideo, setEditingVideo] = useState(null);
   const [videoData, setVideoData] = useState({ stream_url: "", video_url: "" });
@@ -4229,55 +4279,6 @@ export default function MTKCupApp() {
   };
 
 
-
-  const handleUploadTeamLogo = async (file) => {
-    try {
-      setUploadingLogo(true);
-      
-      // Валидация файла
-      if (!file) return null;
-      if (!file.type.startsWith('image/')) {
-        alert('Пожалуйста, выберите изображение');
-        return null;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Размер файла не должен превышать 2MB');
-        return null;
-      }
-      
-      // Создаём уникальное имя файла
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `team-logos/${fileName}`;
-      
-      // Загружаем в Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('team-logos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) {
-        console.error('Storage upload error:', error);
-        alert('Ошибка загрузки изображения. Попробуйте ещё раз.');
-        return null;
-      }
-      
-      // Получаем публичный URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('team-logos')
-        .getPublicUrl(filePath);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      alert('Ошибка загрузки логотипа');
-      return null;
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
 
   const handleCreateTeamAdmin = async (teamData) => {
     try {
