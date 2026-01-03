@@ -2047,6 +2047,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [editingTeam, setEditingTeam] = useState(null);
   const [teamCoach, setTeamCoach] = useState("");
   const [coachSearchQuery, setCoachSearchQuery] = useState("");
+  const [isCoachListOpen, setIsCoachListOpen] = useState(false);
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [teamMessage, setTeamMessage] = useState("");
   const [expandedMatch, setExpandedMatch] = useState(null);
@@ -2226,13 +2227,15 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const startEditTeam = (team) => {
     setEditingTeam(team);
     setTeamCoach(team.coach_id || "");
-    setCoachSearchQuery(""); // Очищаем поиск при открытии
+    setCoachSearchQuery("");
+    setIsCoachListOpen(false);
   };
 
   const saveTeam = async () => {
     await onAssignCoach(editingTeam.id, teamCoach || null);
     setEditingTeam(null);
-    setCoachSearchQuery(""); // Очищаем поиск
+    setCoachSearchQuery("");
+    setIsCoachListOpen(false);
   };
 
   const toggleTeamExpand = (teamId) => {
@@ -3140,51 +3143,138 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     ) : isEditing ? (
                       <div>
                         <div style={{ fontWeight: 600, marginBottom: "12px" }}>{team.name}</div>
-                        <Input 
-                          label="Поиск тренера" 
-                          placeholder="Введите имя..."
-                          value={coachSearchQuery}
-                          onChange={setCoachSearchQuery}
-                          style={{ marginBottom: "12px" }}
-                        />
                         <div style={{ marginBottom: "12px" }}>
-                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "6px" }}>Тренер команды</label>
-                          <select
-                            value={teamCoach}
-                            onChange={e => setTeamCoach(e.target.value)}
-                            size="10"
+                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "6px" }}>Поиск и выбор тренера</label>
+                          <input
+                            type="text"
+                            value={coachSearchQuery}
+                            onChange={e => setCoachSearchQuery(e.target.value)}
+                            onFocus={() => setIsCoachListOpen(true)}
+                            placeholder="Введите имя тренера..."
                             style={{
                               width: "100%",
-                              padding: "8px",
+                              padding: "10px 12px",
                               borderRadius: "8px",
                               border: `1px solid ${colors.grayBorder}`,
                               fontSize: "14px",
                               outline: "none",
-                              background: colors.bg,
                               boxSizing: "border-box",
+                              marginBottom: "8px"
                             }}
-                          >
-                            <option value="">Не назначен</option>
-                            {(users || [])
-                              .filter(u => {
-                                if (!coachSearchQuery) return true;
-                                const query = coachSearchQuery.toLowerCase();
-                                const name = `${u.first_name || ""} ${u.last_name || ""} ${u.username || ""}`.toLowerCase();
-                                return name.includes(query);
-                              })
-                              .map(u => (
-                                <option key={u.id} value={u.id}>
-                                  {`${u.first_name || u.username || "—"} ${u.last_name || ""}`.trim()}
-                                </option>
-                              ))
-                            }
-                          </select>
+                          />
+                          
+                          {/* Выбранный тренер */}
+                          {teamCoach && (() => {
+                            const selected = users?.find(u => u.id === teamCoach);
+                            return selected ? (
+                              <div style={{ 
+                                padding: "8px 12px", 
+                                background: colors.goldLight, 
+                                borderRadius: "6px", 
+                                fontSize: "13px",
+                                marginBottom: "8px",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center"
+                              }}>
+                                <span>✓ {`${selected.first_name || selected.username || "—"} ${selected.last_name || ""}`.trim()}</span>
+                                <button 
+                                  onClick={() => setTeamCoach("")}
+                                  style={{ 
+                                    background: "none", 
+                                    border: "none", 
+                                    color: colors.gold, 
+                                    cursor: "pointer",
+                                    fontSize: "16px",
+                                    padding: "0 4px"
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : null;
+                          })()}
+                          
+                          {/* Список тренеров */}
+                          {isCoachListOpen && (
+                            <div style={{ position: "relative" }}>
+                              <div 
+                                style={{ 
+                                  position: "fixed", 
+                                  top: 0, 
+                                  left: 0, 
+                                  right: 0, 
+                                  bottom: 0, 
+                                  zIndex: 999 
+                                }}
+                                onClick={() => setIsCoachListOpen(false)}
+                              />
+                              <div style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                background: "#fff",
+                                border: `1px solid ${colors.grayBorder}`,
+                                borderRadius: "8px",
+                                maxHeight: "300px",
+                                overflowY: "auto",
+                                zIndex: 1000,
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+                              }}>
+                                {(() => {
+                                  const filteredUsers = [
+                                    { id: "", name: "Не назначен" },
+                                    ...(users || [])
+                                      .filter(u => {
+                                        if (!coachSearchQuery) return true;
+                                        const query = coachSearchQuery.toLowerCase();
+                                        const name = `${u.first_name || ""} ${u.last_name || ""} ${u.username || ""}`.toLowerCase();
+                                        return name.includes(query);
+                                      })
+                                      .map(u => ({
+                                        id: u.id,
+                                        name: `${u.first_name || u.username || "—"} ${u.last_name || ""}`.trim()
+                                      }))
+                                  ];
+                                  
+                                  if (filteredUsers.length === 1) {
+                                    return (
+                                      <div style={{ padding: "12px", color: colors.goldDark, textAlign: "center" }}>
+                                        Нет результатов
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  return filteredUsers.map(user => (
+                                    <div
+                                      key={user.id}
+                                      onClick={() => {
+                                        setTeamCoach(user.id);
+                                        setIsCoachListOpen(false);
+                                        setCoachSearchQuery("");
+                                      }}
+                                      style={{
+                                        padding: "10px 12px",
+                                        cursor: "pointer",
+                                        background: user.id === teamCoach ? colors.goldLight : "#fff",
+                                        borderBottom: `1px solid ${colors.grayBorder}`,
+                                        fontSize: "14px"
+                                      }}
+                                    >
+                                      {user.name}
+                                    </div>
+                                  ));
+                                })()}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                           <Button onClick={saveTeam} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                             <Icons.Save /> Сохранить
                           </Button>
-                          <Button variant="outline" onClick={() => { setEditingTeam(null); setCoachSearchQuery(""); }} style={{ flex: 1, padding: "10px" }}>
+                          <Button variant="outline" onClick={() => { setEditingTeam(null); setCoachSearchQuery(""); setIsCoachListOpen(false); }} style={{ flex: 1, padding: "10px" }}>
                             Отмена
                           </Button>
                         </div>
