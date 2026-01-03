@@ -892,13 +892,14 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
 const MatchCard = ({ match, teams, onTeamClick }) => {
   const team1 = teams.find(t => t.id === match.team1_id);
   const team2 = teams.find(t => t.id === match.team2_id);
-  const matchTime = new Date(match.scheduled_time);
+  // Извлекаем время напрямую из строки без конвертации часовых поясов
+  const timeString = match.scheduled_time ? match.scheduled_time.substring(11, 16) : "00:00";
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
         <span style={{ fontSize: "13px", color: colors.goldDark, display: "flex", alignItems: "center", gap: "4px" }}>
-          <Icons.Clock />{matchTime.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+          <Icons.Clock />{timeString}
         </span>
         {match.status === "live" && <Badge variant="live">● LIVE</Badge>}
         {match.status === "finished" && <Badge>Завершён</Badge>}
@@ -4183,15 +4184,12 @@ export default function MTKCupApp() {
   const handleCreateMatch = async (matchData) => {
     try {
       setActionLoading(true);
-      // Конвертируем местное время в UTC для сохранения
-      const localDate = new Date(matchData.scheduled_time);
-      const utcTime = localDate.toISOString();
-      
+      // Сохраняем время БЕЗ конвертации, чтобы оно отображалось одинаково везде
       const { error } = await supabase.from("matches").insert({
         tour_id: matchData.tour_id,
         team1_id: matchData.team1_id,
         team2_id: matchData.team2_id,
-        scheduled_time: utcTime,
+        scheduled_time: matchData.scheduled_time,
         status: "upcoming",
         sets_team1: 0,
         sets_team2: 0,
@@ -4210,15 +4208,12 @@ export default function MTKCupApp() {
   const handleUpdateMatchInfo = async (matchId, matchData) => {
     try {
       setActionLoading(true);
-      // Конвертируем местное время в UTC для сохранения
-      const localDate = new Date(matchData.scheduled_time);
-      const utcTime = localDate.toISOString();
-      
+      // Сохраняем время БЕЗ конвертации, чтобы оно отображалось одинаково везде
       await supabase.from("matches").update({
         tour_id: matchData.tour_id,
         team1_id: matchData.team1_id,
         team2_id: matchData.team2_id,
-        scheduled_time: utcTime,
+        scheduled_time: matchData.scheduled_time,
       }).eq("id", matchId);
       await loadData();
       alert("Информация о матче обновлена!");
