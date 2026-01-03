@@ -32,7 +32,7 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
     } else if (type === "result") {
       message = `🏆 МАТЧ ЗАВЕРШЁН!\n\n🏐 ${team1Name} ${score} ${team2Name}`;
     } else if (type === "hour_before") {
-      message = `⏰ МАТЧ ЧЕРЕЗ 1 ЧАС!\n\n🏐 ${team1Name} vs ${team2Name}\n\nНе пропустите!`;
+      message = `⏰ МАТЧ НАЧНЁТСЯ СКОРО!\n\n🏐 ${team1Name} vs ${team2Name}\n\nНе пропустите!`;
     }
     
     // Отправляем уведомления
