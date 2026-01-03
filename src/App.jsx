@@ -1059,13 +1059,6 @@ const TeamDetailScreen = ({ setScreen, team, players, setSelectedPlayer, user, o
 };
 
 const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setScreen }) => {
-  // Debug: проверяем данные матчей
-  console.log('🔍 ScheduleScreen matches:', matches?.map(m => ({ 
-    id: m.id, 
-    time: m.scheduled_time,
-    teams: `${m.team1_id} vs ${m.team2_id}`
-  })));
-  
   const today = new Date();
   const sortedTours = [...tours].sort((a, b) => {
     const dateA = new Date(a.date);
