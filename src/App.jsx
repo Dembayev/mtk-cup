@@ -1943,7 +1943,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo }) => {
   console.log("🔧 AdminScreen: Rendering");
   console.log("🔧 Props:", {
     matches: matches?.length ?? "undefined",
@@ -1990,6 +1990,10 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [editingMatchInfo, setEditingMatchInfo] = useState(null);
   const [matchInfo, setMatchInfo] = useState({ tour_id: "", team1_id: "", team2_id: "", scheduled_time: "" });
   const [newMatch, setNewMatch] = useState({ tour_id: "", team1_id: "", team2_id: "", scheduled_time: "" });
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
+  const [newTeam, setNewTeam] = useState({ name: "", logo_url: "" });
+  const [editingTeamInfo, setEditingTeamInfo] = useState(null);
+  const [teamInfo, setTeamInfo] = useState({ name: "", logo_url: "" });
   
   // Редактирование видео
   const [editingVideo, setEditingVideo] = useState(null);
@@ -2788,10 +2792,58 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           {/* Teams tab - ИСПРАВЛЕННЫЙ */}
           {tab === "teams" && (
             <>
-              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Управление командами ({teams.length})</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Управление командами ({teams.length})</h3>
+                <Button onClick={() => setShowCreateTeam(true)} style={{ padding: "8px 16px", fontSize: "13px" }}>
+                  <Icons.Plus /> Создать команду
+                </Button>
+              </div>
               <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "16px" }}>
-                Назначьте тренера для команды. Любой пользователь может быть тренером.
+                Создавайте команды, назначайте тренеров и редактируйте информацию.
               </p>
+
+              {showCreateTeam && (
+                <Card style={{ marginBottom: "16px", background: "#f0fdf4", border: "2px solid #16a34a" }}>
+                  <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600, color: "#16a34a" }}>Новая команда</h4>
+                  <Input 
+                    label="Название команды" 
+                    value={newTeam.name} 
+                    onChange={v => setNewTeam(p => ({ ...p, name: v }))} 
+                    placeholder="Например: Амур Rockets"
+                  />
+                  <Input 
+                    label="Логотип (эмодзи)" 
+                    value={newTeam.logo_url} 
+                    onChange={v => setNewTeam(p => ({ ...p, logo_url: v }))} 
+                    placeholder="🏐"
+                    style={{ marginTop: "8px" }}
+                  />
+                  <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                    <Button 
+                      onClick={async () => {
+                        if (!newTeam.name.trim()) {
+                          alert("Введите название команды");
+                          return;
+                        }
+                        await onCreateTeamAdmin(newTeam);
+                        setNewTeam({ name: "", logo_url: "" });
+                        setShowCreateTeam(false);
+                      }} 
+                      disabled={actionLoading || !newTeam.name.trim()} 
+                      style={{ flex: 1, padding: "10px" }}
+                    >
+                      <Icons.Save /> Создать
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowCreateTeam(false)} 
+                      style={{ flex: 1, padding: "10px" }}
+                    >
+                      Отмена
+                    </Button>
+                  </div>
+                </Card>
+              )}
               {teams.map(team => {
                 const coach = users.find(u => u.id === team.coach_id);
                 const isEditing = editingTeam?.id === team.id;
@@ -2800,7 +2852,45 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 
                 return (
                   <Card key={team.id} style={{ marginBottom: "8px", padding: "12px" }}>
-                    {isEditing ? (
+                    {editingTeamInfo?.id === team.id ? (
+                      <div>
+                        <h4 style={{ margin: "0 0 12px", fontSize: "14px", fontWeight: 600 }}>Редактирование информации</h4>
+                        <Input 
+                          label="Название команды" 
+                          value={teamInfo.name} 
+                          onChange={v => setTeamInfo(p => ({ ...p, name: v }))} 
+                        />
+                        <Input 
+                          label="Логотип (эмодзи)" 
+                          value={teamInfo.logo_url} 
+                          onChange={v => setTeamInfo(p => ({ ...p, logo_url: v }))} 
+                          style={{ marginTop: "8px" }}
+                        />
+                        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                          <Button 
+                            onClick={async () => {
+                              if (!teamInfo.name.trim()) {
+                                alert("Введите название команды");
+                                return;
+                              }
+                              await onUpdateTeamInfo(editingTeamInfo.id, teamInfo);
+                              setEditingTeamInfo(null);
+                            }} 
+                            disabled={actionLoading || !teamInfo.name.trim()} 
+                            style={{ flex: 1, padding: "10px" }}
+                          >
+                            <Icons.Save /> Сохранить
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setEditingTeamInfo(null)} 
+                            style={{ flex: 1, padding: "10px" }}
+                          >
+                            Отмена
+                          </Button>
+                        </div>
+                      </div>
+                    ) : isEditing ? (
                       <div>
                         <div style={{ fontWeight: 600, marginBottom: "12px" }}>{team.name}</div>
                         <Select label="Тренер команды" value={teamCoach} onChange={setTeamCoach}
@@ -2839,7 +2929,17 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           >
                             <Icons.ChevronRight />
                           </button>
-                          <button onClick={() => startEditTeam(team)} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }}>
+                          <button 
+                            onClick={() => {
+                              setEditingTeamInfo(team);
+                              setTeamInfo({ name: team.name, logo_url: team.logo_url || "" });
+                            }} 
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", padding: "4px" }} 
+                            title="Редактировать название и логотип"
+                          >
+                            ℹ️
+                          </button>
+                          <button onClick={() => startEditTeam(team)} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }} title="Назначить тренера">
                             <Icons.Edit />
                           </button>
                           <button onClick={() => onDeleteTeam(team.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }} title="Удалить команду">
@@ -3981,6 +4081,42 @@ export default function MTKCupApp() {
     }
   };
 
+
+  const handleCreateTeamAdmin = async (teamData) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.from("teams").insert({
+        name: teamData.name,
+        logo_url: teamData.logo_url || null,
+      });
+      if (error) throw error;
+      await loadData();
+      alert("Команда создана!");
+    } catch (error) {
+      console.error("Error creating team:", error);
+      alert("Ошибка создания команды");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateTeamInfo = async (teamId, teamData) => {
+    try {
+      setActionLoading(true);
+      await supabase.from("teams").update({
+        name: teamData.name,
+        logo_url: teamData.logo_url || null,
+      }).eq("id", teamId);
+      await loadData();
+      alert("Информация о команде обновлена!");
+    } catch (error) {
+      console.error("Error updating team:", error);
+      alert("Ошибка обновления");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDeleteTeam = async (teamId) => {
     const team = teams.find(t => t.id === teamId);
     if (!confirm(`Удалить команду "${team?.name}"? Игроки станут свободными агентами, статистика сохранится.`)) {
@@ -4529,11 +4665,11 @@ const handleGuest = () => {
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
-      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeam} />;
+      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} />;
+      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
     }
   };
