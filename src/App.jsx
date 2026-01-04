@@ -1289,7 +1289,7 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
   );
 };
 
-const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId, teams, playerStats }) => {
+const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId, teams, playerStats, users }) => {
   const [filter, setFilter] = useState("all");
   const [positionFilter, setPositionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1317,19 +1317,23 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
       // Проверяем есть ли уже этот человек как игрок
       const existingPlayer = allPeople.find(p => p.user_id === team.coach_id);
       if (!existingPlayer) {
-        // Создаем запись для тренера
-        allPeople.push({
-          id: `coach_${team.coach_id}`,
-          user_id: team.coach_id,
-          users: team.coach,
-          team_id: team.id,
-          teams: team,
-          is_free_agent: false,
-          positions: [],
-          totalPoints: 0,
-          type: 'coach',
-          sortName: team.coach?.first_name || team.coach?.username || ''
-        });
+        // Находим данные тренера в users
+        const coachUser = (users || []).find(u => u.id === team.coach_id);
+        if (coachUser) {
+          // Создаем запись для тренера
+          allPeople.push({
+            id: `coach_${team.coach_id}`,
+            user_id: team.coach_id,
+            users: coachUser,
+            team_id: team.id,
+            teams: team,
+            is_free_agent: false,
+            positions: [],
+            totalPoints: 0,
+            type: 'coach',
+            sortName: coachUser.first_name || coachUser.username || ''
+          });
+        }
       }
     }
   });
@@ -1359,7 +1363,12 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
     const bIsMy = b.id === myPlayerId || b.team_id === user?.favorite_team_id;
     if (aIsMy && !bIsMy) return -1;
     if (!aIsMy && bIsMy) return 1;
-    return 0;
+    
+    // Сортировка по очкам (больше очков - выше)
+    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+    
+    // Сортировка по имени
+    return (a.sortName || '').localeCompare(b.sortName || '');
   });
   
   const hasPendingOffer = (playerId) => (sentOffers || []).some(o => o.player_id === playerId && o.status === "pending");
@@ -5177,7 +5186,7 @@ const handleGuest = () => {
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
-      case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} />;
+      case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} users={users} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
