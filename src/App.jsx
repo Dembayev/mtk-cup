@@ -2902,6 +2902,11 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: "14px" }}>{u.first_name || "—"} {u.last_name || ""}</div>
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>@{u.username || "—"}</div>
+                          {u.created_at && (
+                            <div style={{ fontSize: "11px", color: colors.goldDark, marginTop: "2px" }}>
+                              Регистрация: {new Date(u.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", maxWidth: "200px", justifyContent: "flex-end" }}>
                           {displayRoles.map((role, i) => (
