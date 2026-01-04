@@ -1081,7 +1081,9 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
             );
           })()}
           
-          {teamPlayers.length > 0 ? teamPlayers.map(player => (
+          {teamPlayers.length > 0 ? teamPlayers
+            .filter(player => player.user_id !== team?.coach_id) // Убираем тренера - он уже показан выше
+            .map(player => (
             <Card 
               key={player.id} 
               style={{ marginBottom: "8px", padding: "12px 16px", cursor: "pointer" }}
