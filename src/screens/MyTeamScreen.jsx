@@ -7,7 +7,7 @@ export const MyTeamScreen = ({
   setScreen, user, teams, players, coachTeam, currentPlayer, sentOffers, 
   onRemovePlayer, onSelectFavoriteTeam, onLeaveTeam, actionLoading, userRoles, 
   setSelectedPlayer, teamRequests, onAcceptTeamRequest, onRejectTeamRequest, 
-  onUpdateJerseyNumber, onSetCaptain 
+  onUpdateJerseyNumber, onSetCaptain, teamNotifications, onMarkNotificationRead 
 }) => {
   // Debug logging
   console.log('🔍 MyTeamScreen render:', {
@@ -65,6 +65,8 @@ export const MyTeamScreen = ({
   const teamPlayers = myTeam ? players.filter(p => p.team_id === myTeam.id) : [];
   const pendingSentOffers = (sentOffers || []).filter(o => o.status === "pending");
   const pendingTeamRequests = (teamRequests || []).filter(r => r.team_id === myTeam?.id && r.status === "pending");
+  const myTeamNotifications = (teamNotifications || []).filter(n => n.team_id === myTeam?.id);
+  const unreadNotifications = myTeamNotifications.filter(n => !n.is_read);
   const canManageTeam = teamRelation === "coach";
 
   console.log('📊 Team data:', {
@@ -239,6 +241,74 @@ export const MyTeamScreen = ({
                   </Card>
                 );
               })}
+            </>
+          )}
+
+          {/* Team Notifications (for coach) */}
+          {canManageTeam && myTeamNotifications.length > 0 && (
+            <>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "20px 0 12px" }}>
+                📬 Уведомления 
+                {unreadNotifications.length > 0 && (
+                  <span style={{ marginLeft: "8px", background: "#dc2626", color: "white", borderRadius: "12px", padding: "2px 8px", fontSize: "12px" }}>
+                    {unreadNotifications.length}
+                  </span>
+                )}
+              </h3>
+              {myTeamNotifications.slice(0, 10).map(notification => {
+                const notifIcon = 
+                  notification.type === 'team_request' ? '📝' :
+                  notification.type === 'player_accepted' ? '✅' :
+                  notification.type === 'player_left' ? '📤' : '🔔';
+                
+                const notifColor = 
+                  notification.type === 'team_request' ? colors.goldDark :
+                  notification.type === 'player_accepted' ? '#16a34a' :
+                  notification.type === 'player_left' ? '#dc2626' : colors.text;
+
+                return (
+                  <Card 
+                    key={notification.id} 
+                    style={{ 
+                      marginBottom: "8px", 
+                      padding: "12px 16px",
+                      background: notification.is_read ? colors.bg : colors.goldLight,
+                      cursor: notification.is_read ? "default" : "pointer"
+                    }}
+                    onClick={() => !notification.is_read && onMarkNotificationRead && onMarkNotificationRead(notification.id)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ fontSize: "24px" }}>{notifIcon}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: "14px", color: notifColor }}>
+                          {notification.message}
+                        </div>
+                        <div style={{ fontSize: "11px", color: colors.goldDark, marginTop: "4px" }}>
+                          {new Date(notification.created_at).toLocaleString('ru-RU', { 
+                            day: 'numeric', 
+                            month: 'short', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </div>
+                      </div>
+                      {!notification.is_read && (
+                        <div style={{ 
+                          width: "8px", 
+                          height: "8px", 
+                          borderRadius: "50%", 
+                          background: "#dc2626" 
+                        }} />
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+              {myTeamNotifications.length > 10 && (
+                <div style={{ textAlign: "center", fontSize: "13px", color: colors.goldDark, marginTop: "8px" }}>
+                  Показаны последние 10 уведомлений
+                </div>
+              )}
             </>
           )}
 

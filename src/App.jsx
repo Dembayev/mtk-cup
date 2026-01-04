@@ -3803,6 +3803,7 @@ export default function MTKCupApp() {
   const [playerStats, setPlayerStats] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [teamNotifications, setTeamNotifications] = useState([]);
 
   const userRoles = getUserRoles(user, players, teams, roleRequests);
   const currentPlayer = userRoles.playerRecord;
@@ -3823,6 +3824,30 @@ export default function MTKCupApp() {
     loadData();
   }, []);
 
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      await supabase.from("team_notifications").update({ is_read: true }).eq("id", notificationId);
+      setTeamNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  const createTeamNotification = async (teamId, type, message, playerId = null, playerName = null) => {
+    try {
+      await supabase.from("team_notifications").insert({
+        team_id: teamId,
+        type,
+        message,
+        player_id: playerId,
+        player_name: playerName,
+        is_read: false
+      });
+    } catch (error) {
+      console.error("Error creating team notification:", error);
+    }
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -3835,6 +3860,7 @@ export default function MTKCupApp() {
       const { data: teamRequestsData } = await supabase.from("team_requests").select("*").order("created_at", { ascending: false });
       const { data: playerStatsData } = await supabase.from("match_player_stats").select("*");
       const { data: roleRequestsData } = await supabase.from("role_requests").select("*").order("created_at", { ascending: false });
+      const { data: teamNotificationsData } = await supabase.from("team_notifications").select("*").order("created_at", { ascending: false });
 
       const playersWithDetails = (playersData || []).map(player => ({
         ...player,
@@ -3851,6 +3877,7 @@ export default function MTKCupApp() {
       setUsers(usersData || []);
       setPlayerStats(playerStatsData || []);
       setRoleRequests(roleRequestsData || []);
+      setTeamNotifications(teamNotificationsData || []);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -3988,8 +4015,18 @@ export default function MTKCupApp() {
       if (error) throw error;
       setTeamRequests(prev => [data, ...prev]);
       
-      // Уведомляем тренера команды
+      // Создаем уведомление для команды
       const team = teams.find(t => t.id === teamId);
+      const playerName = user?.first_name || user?.username || "Игрок";
+      await createTeamNotification(
+        teamId,
+        'team_request',
+        `${playerName} подал заявку в команду`,
+        currentPlayer.id,
+        playerName
+      );
+      
+      // Уведомляем тренера команды
       const coach = players.find(p => p.team_id === teamId && p.id === team?.coach_id);
       if (coach?.users?.telegram_id) {
         const playerName = user?.first_name || user?.username || "Игрок";
@@ -4039,6 +4076,16 @@ export default function MTKCupApp() {
       if (player?.user_id) {
         await supabase.from("users").update({ favorite_team_id: null }).eq("id", player.user_id);
       }
+      // Создаем уведомление для команды
+      const acceptedPlayerName = player?.users?.first_name || player?.users?.username || "Игрок";
+      await createTeamNotification(
+        coachTeam.id,
+        'player_accepted',
+        `${acceptedPlayerName} принят в команду`,
+        playerId,
+        acceptedPlayerName
+      );
+      
       await loadData();
       alert("Игрок принят в команду!");
     } catch (error) {
@@ -4121,6 +4168,18 @@ export default function MTKCupApp() {
       }
       
       if (isPlayer && currentPlayer) {
+        // Создаем уведомление для команды
+        if (currentPlayer.team_id) {
+          const leavingPlayerName = user?.first_name || user?.username || "Игрок";
+          await createTeamNotification(
+            currentPlayer.team_id,
+            'player_left',
+            `${leavingPlayerName} покинул команду`,
+            currentPlayer.id,
+            leavingPlayerName
+          );
+        }
+        
         // Удаляем из игроков команды
         await supabase.from("players").update({ team_id: null, is_free_agent: true, is_captain: false }).eq("id", currentPlayer.id);
         alert("Вы покинули команду и стали свободным игроком");
@@ -5210,7 +5269,7 @@ const handleGuest = () => {
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} users={users} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
-      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
+      case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} teamNotifications={teamNotifications} onMarkNotificationRead={markNotificationAsRead} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} />;
