@@ -114,7 +114,7 @@ const sendToOrganizers = async (userName, userTelegramId, message, userUsername 
 };
 
 
-const sendTeamMessage = async (teamId, teamName, message) => {
+const sendTeamMessage = async (teamId, teamName, message, senderName) => {
   console.log("📢 SendTeamMessage: Starting for team:", teamName);
   try {
     // Получаем игроков команды с их user данными
@@ -3392,7 +3392,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                     alert("Введите сообщение");
                                     return;
                                   }
-                                  const result = await sendTeamMessage(team.id, team.name, teamMessage);
+                                  const result = await sendTeamMessage(team.id, team.name, teamMessage, "Администратор");
                                   setTeamMessage("");
                                   alert(`Сообщение отправлено: ${result.sent} из ${result.usersFound || 0}`);
                                 }}
@@ -4659,7 +4659,8 @@ export default function MTKCupApp() {
 
   // Send team message
   const handleSendTeamMessage = async (teamId, teamName, message) => {
-    return await sendTeamMessage(teamId, teamName, message);
+    const senderName = user?.first_name || user?.username || "Администратор";
+    return await sendTeamMessage(teamId, teamName, message, senderName);
   };
 
   // Create team (for coach)
