@@ -4107,6 +4107,10 @@ export default function MTKCupApp() {
         }
       }
       
+      
+      // Мгновенно удаляем принятую заявку из UI
+      setTeamRequests(prev => prev.filter(r => r.id !== requestId));
+      
       await loadData();
       alert("Игрок принят в команду!");
     } catch (error) {
