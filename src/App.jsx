@@ -1908,9 +1908,6 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
                   </Card>
                 );
               })}
-                  </Card>
-                );
-              })}
             </>
           )}
 
@@ -4138,8 +4135,6 @@ export default function MTKCupApp() {
       setActionLoading(false);
     }
   };
-    }
-  };
 
   const handleRejectTeamRequest = async (requestId) => {
     try {
@@ -4264,7 +4259,6 @@ export default function MTKCupApp() {
         console.log("🔍 Total notified:", notified);
         
         alert("Вы покинули команду и стали свободным игроком");
-      }
       }
       
       await loadData();
