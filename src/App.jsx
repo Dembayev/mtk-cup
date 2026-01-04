@@ -4005,6 +4005,25 @@ export default function MTKCupApp() {
         } catch (e) { console.error("Failed to notify coach:", e); }
       }
       
+      
+      // Уведомляем всю команду о новой заявке
+      const teamPlayers = players.filter(p => p.team_id === teamId);
+      const fullPlayerName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.username || "Игрок";
+      for (const teamPlayer of teamPlayers) {
+        const playerUser = users.find(u => u.id === teamPlayer.user_id);
+        if (playerUser?.telegram_id && playerUser.id !== user.id) {
+          try {
+            await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                chat_id: playerUser.telegram_id, 
+                text: `📝 Новая заявка!\n\n${fullPlayerName} хочет вступить в команду "${team?.name}".` 
+              }),
+            });
+          } catch (e) { console.error("Failed to notify team:", e); }
+        }
+      }
       alert("Заявка отправлена!");
     } catch (error) {
       console.error("Error sending team request:", error);
