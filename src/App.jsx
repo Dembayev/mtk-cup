@@ -4063,6 +4063,46 @@ export default function MTKCupApp() {
         await supabase.from("users").update({ favorite_team_id: null }).eq("id", player.user_id);
       }
       await loadData();
+      
+      // Уведомляем принятого игрока
+      const acceptedPlayer = players?.find(p => p.id === playerId);
+      const acceptedUser = users?.find(u => u.id === acceptedPlayer?.user_id);
+      if (acceptedUser?.telegram_id) {
+        try {
+          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              chat_id: acceptedUser.telegram_id, 
+              text: `✅ Вас приняли в команду!\n\nВы теперь в команде "${coachTeam.name}". Добро пожаловать!`,
+              reply_markup: {
+                inline_keyboard: [[
+                  { text: "📱 Открыть приложение", web_app: { url: "https://mtk-cup.vercel.app" } }
+                ]]
+              }
+            }),
+          });
+        } catch (e) { console.error("Failed to notify accepted player:", e); }
+      }
+      
+      // Уведомляем всю команду о новом игроке
+      const teamPlayers = players?.filter(p => p.team_id === coachTeam.id);
+      const newPlayerName = `${acceptedUser?.first_name || ""} ${acceptedUser?.last_name || ""}`.trim() || acceptedUser?.username || "Новый игрок";
+      for (const teamPlayer of teamPlayers) {
+        const playerUser = users?.find(u => u.id === teamPlayer.user_id);
+        if (playerUser?.telegram_id && playerUser.id !== acceptedUser?.id) {
+          try {
+            await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                chat_id: playerUser.telegram_id, 
+                text: `🎉 Новый игрок в команде!\n\n${newPlayerName} присоединился к команде "${coachTeam.name}".` 
+              }),
+            });
+          } catch (e) { console.error("Failed to notify team about new player:", e); }
+        }
+      }
       alert("Игрок принят в команду!");
     } catch (error) {
       console.error("Error accepting team request:", error);
