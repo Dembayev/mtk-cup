@@ -1379,6 +1379,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
 
 const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerStats, matches, user, onToggleFavorite, userRoles }) => {
   const team = teams.find(t => t.id === player?.team_id);
+  const coachOfTeam = teams?.find(t => t.coach_id === player?.user_id); // Проверяем является ли игрок тренером
   
   const getAge = (birthDate) => {
     if (!birthDate) return null;
@@ -1431,6 +1432,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
             )}
             <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
               {player?.is_captain && <Badge variant="captain">Капитан</Badge>}
+              {coachOfTeam && <Badge variant="gold">Тренер ({coachOfTeam.name})</Badge>}
               <Badge variant={player?.is_free_agent ? "free" : "gold"}>
                 {player?.is_free_agent ? "Свободный игрок" : "В команде"}
               </Badge>
