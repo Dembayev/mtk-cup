@@ -4734,6 +4734,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       if (playerData && playerData.length > 0) {
         for (const player of playerData) {
           await supabase.from("player_stats").delete().eq("player_id", player.id);
+          await supabase.from("match_player_stats").delete().eq("player_id", player.id);
         }
       }
 
