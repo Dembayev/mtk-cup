@@ -141,7 +141,7 @@ const sendTeamMessage = async (teamId, teamName, message, senderName) => {
     
     if (!users || users.length === 0) return { sent: 0, failed: 0, playersFound: teamPlayers.length, usersFound: 0, debug: "no telegram_id" };
     
-    const fullMessage = `📢 СООБЩЕНИЕ КОМАНДЕ "${teamName}"\n\n${message}`;
+    const fullMessage = `📢 СООБЩЕНИЕ КОМАНДЕ "${teamName}"\nОт: ${senderName}\n\n${message}`;
     
     let sent = 0, failed = 0, lastError = "";
     for (const user of users) {
