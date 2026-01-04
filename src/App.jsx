@@ -3878,6 +3878,7 @@ export default function MTKCupApp() {
       setPlayerStats(playerStatsData || []);
       setRoleRequests(roleRequestsData || []);
       setTeamNotifications(teamNotificationsData || []);
+      console.log('📬 Team Notifications loaded:', teamNotificationsData?.length || 0, teamNotificationsData);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
