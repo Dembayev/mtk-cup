@@ -4159,6 +4159,7 @@ export default function MTKCupApp() {
       setActionLoading(true);
       await supabase.from("users").update({ favorite_team_id: teamId }).eq("id", user.id);
       setUser(prev => ({ ...prev, favorite_team_id: teamId }));
+      await loadData(); // Reload to show team selection screen
     } catch (error) {
       console.error("Error selecting favorite team:", error);
       alert("Ошибка выбора команды");
