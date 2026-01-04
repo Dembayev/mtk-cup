@@ -1740,6 +1740,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   }
   
   const teamPlayers = myTeam ? (players || []).filter(p => p.team_id === myTeam.id) : [];
+  const teamCoach = myTeam?.coaches;
   const pendingSentOffers = (sentOffers || []).filter(o => o.status === "pending");
   const pendingTeamRequests = (teamRequests || []).filter(r => r.team_id === myTeam?.id && r.status === "pending");
 
@@ -1939,7 +1940,20 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
             <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Состав ({teamPlayers.length})</h3>
             {canManageTeam && <Button variant="outline" onClick={() => setScreen("players")} style={{ padding: "6px 12px", fontSize: "12px" }}>+ Пригласить</Button>}
           </div>
-
+          {teamCoach && (
+            <Card style={{ marginBottom: "8px", padding: "12px 16px", background: colors.goldLight }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <Avatar name={teamCoach.first_name || teamCoach.username} size={44} url={teamCoach.avatar_url} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: "14px" }}>
+                    {teamCoach.first_name || `@${teamCoach.username}`} {teamCoach.last_name || ""}
+                  </div>
+                  <div style={{ fontSize: "12px", color: colors.goldDark }}>Тренер</div>
+                </div>
+                <Badge variant="gold">Тренер</Badge>
+              </div>
+            </Card>
+          )}
           {teamPlayers.length > 0 ? teamPlayers.map(player => (
             <Card key={player.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
