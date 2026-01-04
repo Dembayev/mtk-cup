@@ -3956,6 +3956,8 @@ export default function MTKCupApp() {
       // Сначала отклоняем все другие pending офферы
       console.log("🏐 AcceptOffer: Rejecting other pending offers");
       await supabase.from("offers").update({ status: "rejected" }).eq("player_id", currentPlayer.id).eq("status", "pending").neq("id", offerId);
+      // Отклоняем все pending team_requests для этого игрока
+      await supabase.from("team_requests").update({ status: "rejected" }).eq("player_id", currentPlayer.id).eq("status", "pending");
       // Принимаем выбранный оффер
       await supabase.from("offers").update({ status: "accepted" }).eq("id", offerId);
       // Обновляем игрока
@@ -3980,7 +3982,7 @@ export default function MTKCupApp() {
     try {
       setActionLoading(true);
       await supabase.from("offers").update({ status: "rejected" }).eq("id", offerId);
-      setOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: "rejected" } : o));
+      await loadData();
     } catch (error) {
       console.error("Error rejecting offer:", error);
       alert("Ошибка при отклонении приглашения");
@@ -4072,6 +4074,8 @@ export default function MTKCupApp() {
       await supabase.from("players").update({ team_id: coachTeam.id, is_free_agent: false }).eq("id", playerId);
       // Отклоняем другие заявки этого игрока
       await supabase.from("team_requests").update({ status: "rejected" }).eq("player_id", playerId).eq("status", "pending").neq("id", requestId);
+      // Отклоняем все pending offers для этого игрока
+      await supabase.from("offers").update({ status: "rejected" }).eq("player_id", playerId).eq("status", "pending");
       // Очищаем favorite_team_id
       if (player?.user_id) {
         await supabase.from("users").update({ favorite_team_id: null }).eq("id", player.user_id);
