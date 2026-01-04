@@ -3992,15 +3992,15 @@ export default function MTKCupApp() {
       
       // Уведомляем тренера команды
       const team = teams.find(t => t.id === teamId);
-      const coach = players.find(p => p.team_id === teamId && p.id === team?.coach_id);
-      if (coach?.users?.telegram_id) {
+      const coachUser = users.find(u => u.id === team?.coach_id);
+      if (coachUser?.telegram_id) {
         const playerName = user?.first_name || user?.username || "Игрок";
         const message = `📝 Новая заявка в команду!\n\n${playerName} хочет вступить в команду "${team?.name}".\n\nПроверьте в разделе "Моя команда".`;
         try {
           await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: coach.users.telegram_id, text: message }),
+            body: JSON.stringify({ chat_id: coachUser.telegram_id, text: message }),
           });
         } catch (e) { console.error("Failed to notify coach:", e); }
       }
