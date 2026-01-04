@@ -4212,9 +4212,40 @@ export default function MTKCupApp() {
         alert("Вы покинули команду как тренер");
       }
       
+      
       if (isPlayer && currentPlayer) {
+        // Сохраняем данные о команде и игроке ДО удаления
+        const leavingTeam = teams.find(t => t.id === currentPlayer.team_id);
+        const leavingPlayerName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.username || "Игрок";
+        
+        // Получаем всех игроков команды ДО удаления
+        const { data: teamPlayersData } = await supabase
+          .from("players")
+          .select("*, users(*)")
+          .eq("team_id", currentPlayer.team_id);
+        
         // Удаляем из игроков команды
         await supabase.from("players").update({ team_id: null, is_free_agent: true, is_captain: false }).eq("id", currentPlayer.id);
+        
+        // Уведомляем всех оставшихся игроков команды
+        for (const teamPlayer of teamPlayersData || []) {
+          if (teamPlayer.user_id !== user?.id) { // Не уведомляем самого игрока
+            const playerUser = teamPlayer.users;
+            if (playerUser?.telegram_id) {
+              try {
+                await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ 
+                    chat_id: playerUser.telegram_id, 
+                    text: `📤 Игрок покинул команду\n\n${leavingPlayerName} вышел из команды "${leavingTeam?.name}".` 
+                  }),
+                });
+              } catch (e) { console.error("Failed to notify team about player leaving:", e); }
+            }
+          }
+        }
+        
         alert("Вы покинули команду и стали свободным игроком");
       }
       
