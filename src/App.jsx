@@ -4214,9 +4214,17 @@ export default function MTKCupApp() {
       
       
       if (isPlayer && currentPlayer) {
+        console.log("🔍 Leave team debug:", {
+          currentPlayer,
+          team_id: currentPlayer.team_id,
+          user
+        });
+        
         // Сохраняем данные о команде и игроке ДО удаления
         const leavingTeam = teams.find(t => t.id === currentPlayer.team_id);
         const leavingPlayerName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.username || "Игрок";
+        
+        console.log("🔍 Leaving team:", leavingTeam?.name, "Player:", leavingPlayerName);
         
         // Получаем всех игроков команды ДО удаления
         const { data: teamPlayersData } = await supabase
@@ -4224,16 +4232,21 @@ export default function MTKCupApp() {
           .select("*, users(*)")
           .eq("team_id", currentPlayer.team_id);
         
+        console.log("🔍 Team players to notify:", teamPlayersData?.length, teamPlayersData);
+        
         // Удаляем из игроков команды
         await supabase.from("players").update({ team_id: null, is_free_agent: true, is_captain: false }).eq("id", currentPlayer.id);
         
         // Уведомляем всех оставшихся игроков команды
+        let notified = 0;
         for (const teamPlayer of teamPlayersData || []) {
-          if (teamPlayer.user_id !== user?.id) { // Не уведомляем самого игрока
+          console.log("🔍 Checking player:", teamPlayer.users?.first_name, "user_id:", teamPlayer.user_id, "vs", user?.id);
+          if (teamPlayer.user_id !== user?.id) {
             const playerUser = teamPlayer.users;
+            console.log("🔍 Player telegram_id:", playerUser?.telegram_id);
             if (playerUser?.telegram_id) {
               try {
-                await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+                const response = await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ 
@@ -4241,12 +4254,17 @@ export default function MTKCupApp() {
                     text: `📤 Игрок покинул команду\n\n${leavingPlayerName} вышел из команды "${leavingTeam?.name}".` 
                   }),
                 });
-              } catch (e) { console.error("Failed to notify team about player leaving:", e); }
+                const result = await response.json();
+                console.log("✅ Notification sent:", result);
+                notified++;
+              } catch (e) { console.error("❌ Failed to notify:", e); }
             }
           }
         }
+        console.log("🔍 Total notified:", notified);
         
         alert("Вы покинули команду и стали свободным игроком");
+      }
       }
       
       await loadData();
