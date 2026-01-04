@@ -4062,11 +4062,14 @@ export default function MTKCupApp() {
       if (player?.user_id) {
         await supabase.from("users").update({ favorite_team_id: null }).eq("id", player.user_id);
       }
-      await loadData();
+      
+      // Получаем свежие данные для уведомлений ПЕРЕД loadData
+      const { data: freshPlayers } = await supabase.from("players").select("*, users(*)");
+      const { data: freshUsers } = await supabase.from("users").select("*");
       
       // Уведомляем принятого игрока
-      const acceptedPlayer = players?.find(p => p.id === playerId);
-      const acceptedUser = users?.find(u => u.id === acceptedPlayer?.user_id);
+      const acceptedPlayer = freshPlayers?.find(p => p.id === playerId);
+      const acceptedUser = acceptedPlayer?.users || freshUsers?.find(u => u.id === acceptedPlayer?.user_id);
       if (acceptedUser?.telegram_id) {
         try {
           await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
@@ -4086,10 +4089,10 @@ export default function MTKCupApp() {
       }
       
       // Уведомляем всю команду о новом игроке
-      const teamPlayers = players?.filter(p => p.team_id === coachTeam.id);
+      const teamPlayers = freshPlayers?.filter(p => p.team_id === coachTeam.id);
       const newPlayerName = `${acceptedUser?.first_name || ""} ${acceptedUser?.last_name || ""}`.trim() || acceptedUser?.username || "Новый игрок";
       for (const teamPlayer of teamPlayers) {
-        const playerUser = users?.find(u => u.id === teamPlayer.user_id);
+        const playerUser = teamPlayer?.users || freshUsers?.find(u => u.id === teamPlayer.user_id);
         if (playerUser?.telegram_id && playerUser.id !== acceptedUser?.id) {
           try {
             await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
@@ -4103,6 +4106,8 @@ export default function MTKCupApp() {
           } catch (e) { console.error("Failed to notify team about new player:", e); }
         }
       }
+      
+      await loadData();
       alert("Игрок принят в команду!");
     } catch (error) {
       console.error("Error accepting team request:", error);
