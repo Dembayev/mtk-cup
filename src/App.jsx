@@ -1289,14 +1289,52 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
   );
 };
 
-const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId }) => {
+const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId, teams, playerStats }) => {
   const [filter, setFilter] = useState("all");
   const [positionFilter, setPositionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   
   const canInvite = (userRoles.isCoach || userRoles.isAdmin) && coachTeam;
   
-  const filteredPlayers = (players || []).filter(p => {
+  // Создаем список всех людей: игроки + тренеры
+  const allPeople = [];
+  
+  // Добавляем всех игроков с их очками
+  (players || []).forEach(player => {
+    const stats = (playerStats || []).filter(s => s.player_id === player.id);
+    const totalPoints = stats.reduce((sum, s) => sum + (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0), 0);
+    allPeople.push({ 
+      ...player, 
+      totalPoints,
+      type: 'player',
+      sortName: player.users?.first_name || player.users?.username || ''
+    });
+  });
+  
+  // Добавляем тренеров которых нет в списке игроков
+  (teams || []).forEach(team => {
+    if (team.coach_id) {
+      // Проверяем есть ли уже этот человек как игрок
+      const existingPlayer = allPeople.find(p => p.user_id === team.coach_id);
+      if (!existingPlayer) {
+        // Создаем запись для тренера
+        allPeople.push({
+          id: `coach_${team.coach_id}`,
+          user_id: team.coach_id,
+          users: team.coach,
+          team_id: team.id,
+          teams: team,
+          is_free_agent: false,
+          positions: [],
+          totalPoints: 0,
+          type: 'coach',
+          sortName: team.coach?.first_name || team.coach?.username || ''
+        });
+      }
+    }
+  });
+  
+  const filteredPlayers = allPeople.filter(p => {
     if (filter === "free" && !p.is_free_agent) return false;
     if (filter === "team" && p.is_free_agent) return false;
     if (positionFilter !== "all" && !p.positions?.includes(positionFilter)) return false;
@@ -1361,7 +1399,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
 
           {/* Поиск по ФИО */}
           <Input 
-            label="Поиск игрока"
+            label="Поиск"
             placeholder="Введите имя или фамилию..."
             value={searchQuery} 
             onChange={setSearchQuery}
@@ -1370,8 +1408,13 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
           {filteredPlayers.map(player => (
             <Card 
               key={player.id} 
-              style={{ marginBottom: "12px", cursor: "pointer" }}
-              onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }}
+              style={{ marginBottom: "12px", cursor: player.type === 'player' ? "pointer" : "default" }}
+              onClick={() => { 
+                if (player.type === 'player') {
+                  setSelectedPlayer(player); 
+                  setScreen("playerDetail");
+                }
+              }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <Avatar name={player.users?.first_name || player.users?.username} size={48} url={player.users?.avatar_url} />
@@ -1384,8 +1427,15 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
                   <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{player.teams?.name || "Без команды"}</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
-                  <Badge variant={player.is_free_agent ? "free" : "default"}>{player.is_free_agent ? "Свободен" : "В команде"}</Badge>
-                  {canInvite && player.is_free_agent && (
+                  {player.totalPoints > 0 && (
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>{player.totalPoints}</div>
+                      <div style={{ fontSize: "10px", color: colors.goldDark }}>очков</div>
+                    </div>
+                  )}
+                  {player.type === 'coach' && <Badge variant="gold">Тренер</Badge>}
+                  {player.type === 'player' && <Badge variant={player.is_free_agent ? "free" : "default"}>{player.is_free_agent ? "Свободен" : "В команде"}</Badge>}
+                  {canInvite && player.type === 'player' && player.is_free_agent && (
                     hasPendingOffer(player.id) ? <Badge variant="pending">Приглашён</Badge> : (
                       <Button onClick={(e) => { e.stopPropagation(); onSendOffer(player.id); }} style={{ padding: "6px 12px", fontSize: "12px" }}><Icons.Send /> Пригласить</Button>
                     )
@@ -1394,7 +1444,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
               </div>
             </Card>
           ))}
-          {filteredPlayers.length === 0 && <Card style={{ textAlign: "center", color: colors.goldDark }}>Игроки не найдены</Card>}
+          {filteredPlayers.length === 0 && <Card style={{ textAlign: "center", color: colors.goldDark }}>Никого не найдено</Card>}
         </div>
       </Container>
     </div>
@@ -5127,7 +5177,7 @@ const handleGuest = () => {
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
-      case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} />;
+      case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
