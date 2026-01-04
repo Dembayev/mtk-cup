@@ -569,8 +569,27 @@ const Avatar = ({ name, size = 48, url }) => {
 };
 
 const Loading = () => (
-  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px", color: colors.goldDark }}>
-    Загрузка...
+  <div style={{ 
+    display: "flex", 
+    flexDirection: "column",
+    justifyContent: "center", 
+    alignItems: "center", 
+    minHeight: "100vh",
+    padding: "40px", 
+    color: colors.goldDark 
+  }}>
+    <img 
+      src="/logo.jpg" 
+      alt="Кубок МТК" 
+      style={{ 
+        width: "120px", 
+        height: "120px", 
+        borderRadius: "50%",
+        marginBottom: "24px",
+        objectFit: "cover"
+      }} 
+    />
+    <div style={{ fontSize: "18px", fontWeight: 600 }}>Загрузка...</div>
   </div>
 );
 
@@ -712,15 +731,20 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
       <div style={{
         width: "120px",
         height: "120px",
-        background: colors.gold,
         borderRadius: "50%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         marginBottom: "32px",
         boxShadow: `0 8px 32px ${colors.gold}44`,
+        overflow: "hidden",
       }}>
-        <span style={{ fontSize: "56px" }}>🏐</span>
+        <img 
+          src="/logo.jpg" 
+          alt="Кубок МТК" 
+          style={{ 
+            width: "100%", 
+            height: "100%", 
+            objectFit: "cover" 
+          }} 
+        />
       </div>
       <h1 style={{ fontSize: "32px", fontWeight: 700, color: colors.text, margin: "0 0 8px" }}>Кубок МТК</h1>
       
