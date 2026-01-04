@@ -1934,8 +1934,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
           )}
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "24px 0 12px" }}>
-            <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Состав ({teamPlayers.length})</h3>
-            {canManageTeam && <Button variant="outline" onClick={() => setScreen("players")} style={{ padding: "6px 12px", fontSize: "12px" }}>+ Пригласить</Button>}
+            <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Состав ({teamPlayers.length + (teamCoach ? 1 : 0)})</h3>
           </div>
           {teamCoach && (
             <Card style={{ marginBottom: "8px", padding: "12px 16px", background: colors.goldLight }}>
