@@ -1976,8 +1976,8 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
             <Card style={{ textAlign: "center", color: colors.goldDark }}>Состав пока не заполнен</Card>
           )}
 
-          {/* Team Message (for coach) */}
-          {canManageTeam && (
+          {/* Team Message (for coach, players, captains) */}
+          {(canManageTeam || teamRelation === "player" || teamRelation === "captain") && (
             <Card style={{ marginTop: "20px" }}>
               <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>📢 СООБЩЕНИЕ КОМАНДЕ</h3>
               <textarea
