@@ -4729,7 +4729,16 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       await supabase.from("role_requests").delete().eq("user_id", userId);
       await supabase.from("players").delete().eq("user_id", userId);
       await supabase.from("offers").delete().eq("player_id", userId);
-      
+      // Удаляем статистику игрока
+      const { data: playerData } = await supabase.from("players").select("id").eq("user_id", userId);
+      if (playerData && playerData.length > 0) {
+        for (const player of playerData) {
+          await supabase.from("player_stats").delete().eq("player_id", player.id);
+        }
+      }
+
+      // Удаляем заявки в команды
+      await supabase.from("team_requests").delete().eq("user_id", userId);
       // Удаляем пользователя
       await supabase.from("users").delete().eq("id", userId);
       await loadData();
