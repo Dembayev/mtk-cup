@@ -4659,7 +4659,7 @@ export default function MTKCupApp() {
 
   // Send team message
   const handleSendTeamMessage = async (teamId, teamName, message) => {
-    const senderName = user?.first_name || user?.username || "Администратор";
+    const senderName = `${user?.first_name || user?.username || "Администратор"} ${user?.last_name || ""}`.trim();
     return await sendTeamMessage(teamId, teamName, message, senderName);
   };
 
