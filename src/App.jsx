@@ -1750,6 +1750,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
   const [jerseyValue, setJerseyValue] = useState("");
   const [teamMessage, setTeamMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [processedRequests, setProcessedRequests] = useState(new Set());
 
 
   if (userRoles.isFan && !myTeam) {
@@ -1826,6 +1827,17 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
     );
   }
 
+  
+  const handleAcceptRequest = async (requestId, playerId) => {
+    setProcessedRequests(prev => new Set(prev).add(requestId));
+    await onAcceptTeamRequest(requestId, playerId);
+  };
+  
+  const handleRejectRequest = async (requestId) => {
+    setProcessedRequests(prev => new Set(prev).add(requestId));
+    await onRejectTeamRequest(requestId);
+  };
+
   const handleSendMessage = async () => {
     if (!teamMessage.trim() || !myTeam) return;
     setSendingMessage(true);
@@ -1875,10 +1887,10 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
             </div>
           </Card>
 
-          {canManageTeam && pendingTeamRequests.length > 0 && (
+          {canManageTeam && pendingTeamRequests.filter(r => !processedRequests.has(r.id)).length > 0 && (
             <>
-              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Заявки в команду ({pendingTeamRequests.length})</h3>
-              {pendingTeamRequests.map(request => {
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Заявки в команду ({pendingTeamRequests.filter(r => !processedRequests.has(r.id)).length})</h3>
+              {pendingTeamRequests.filter(r => !processedRequests.has(r.id)).map(request => {
                 const player = players.find(p => p.id === request.player_id);
                 return (
                   <Card key={request.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
@@ -1890,9 +1902,12 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
-                      <Button variant="success" onClick={() => onAcceptTeamRequest(request.id, request.player_id)} disabled={actionLoading} style={{ flex: 1, padding: "8px" }}>Принять</Button>
-                      <Button variant="danger" onClick={() => onRejectTeamRequest(request.id)} disabled={actionLoading} style={{ flex: 1, padding: "8px" }}>Отклонить</Button>
+                      <Button variant="success" onClick={() => handleAcceptRequest(request.id, request.player_id)} disabled={actionLoading} style={{ flex: 1, padding: "8px" }}>Принять</Button>
+                      <Button variant="danger" onClick={() => handleRejectRequest(request.id)} disabled={actionLoading} style={{ flex: 1, padding: "8px" }}>Отклонить</Button>
                     </div>
+                  </Card>
+                );
+              })}
                   </Card>
                 );
               })}
