@@ -4037,6 +4037,9 @@ export default function MTKCupApp() {
     try {
       setActionLoading(true);
       
+      // Мгновенно удаляем принятую заявку из UI
+      setTeamRequests(prev => prev.filter(r => r.id !== requestId));
+      
       // Проверка: не тренирует ли этот игрок другую команду
       const player = players?.find(p => p.id === playerId);
       const coachOfOtherTeam = teams?.find(t => 
@@ -4045,6 +4048,8 @@ export default function MTKCupApp() {
       );
       
       if (coachOfOtherTeam) {
+        // Восстанавливаем заявку в UI если ошибка
+        setTeamRequests(prev => [...prev, teamRequests.find(r => r.id === requestId)].filter(Boolean));
         alert(`Ошибка: Этот игрок является тренером команды "${coachOfOtherTeam.name}". Тренер может играть только в команде, которую тренирует.`);
         setActionLoading(false);
         return;
@@ -4107,17 +4112,17 @@ export default function MTKCupApp() {
         }
       }
       
-      
-      // Мгновенно удаляем принятую заявку из UI
-      setTeamRequests(prev => prev.filter(r => r.id !== requestId));
-      
       await loadData();
       alert("Игрок принят в команду!");
     } catch (error) {
       console.error("Error accepting team request:", error);
       alert("Ошибка при принятии заявки");
+      // Перезагружаем данные в случае ошибки
+      await loadData();
     } finally {
       setActionLoading(false);
+    }
+  };
     }
   };
 
