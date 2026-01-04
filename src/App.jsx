@@ -1340,8 +1340,9 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   
   const filteredPlayers = allPeople.filter(p => {
     if (filter === "free" && !p.is_free_agent) return false;
-    if (filter === "team" && p.is_free_agent) return false;
-    if (positionFilter !== "all" && !p.positions?.includes(positionFilter)) return false;
+    if (filter === "team" && (p.is_free_agent || p.type === 'coach')) return false;
+    if (filter === "coach" && p.type !== 'coach') return false;
+    if (positionFilter !== "all" && p.type !== 'coach' && !p.positions?.includes(positionFilter)) return false;
     
     // Поиск по ФИО
     if (searchQuery) {
@@ -1380,7 +1381,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
         <div style={{ padding: "20px 0" }}>
           {/* Фильтры */}
           <div style={{ display: "flex", gap: "8px", marginBottom: "12px", overflowX: "auto" }}>
-            {[{ id: "all", label: "Все" }, { id: "free", label: "Свободные" }, { id: "team", label: "В команде" }].map(tab => (
+            {[{ id: "all", label: "Все" }, { id: "free", label: "Свободные" }, { id: "team", label: "В команде" }, { id: "coach", label: "Тренеры" }].map(tab => (
               <button key={tab.id} onClick={() => setFilter(tab.id)} style={{
                 padding: "8px 16px", borderRadius: "20px", border: "none",
                 background: filter === tab.id ? colors.gold : colors.gray,
