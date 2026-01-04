@@ -1311,12 +1311,16 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
     });
   });
   
-  // Добавляем тренеров которых нет в списке игроков
+  // Добавляем тренеров и помечаем игроков-тренеров
   (teams || []).forEach(team => {
     if (team.coach_id) {
       // Проверяем есть ли уже этот человек как игрок
       const existingPlayer = allPeople.find(p => p.user_id === team.coach_id);
-      if (!existingPlayer) {
+      if (existingPlayer) {
+        // Если это игрок - помечаем что он также тренер
+        existingPlayer.isCoach = true;
+        existingPlayer.coachTeamId = team.id;
+      } else {
         // Находим данные тренера в users
         const coachUser = (users || []).find(u => u.id === team.coach_id);
         if (coachUser) {
@@ -1331,6 +1335,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
             positions: [],
             totalPoints: 0,
             type: 'coach',
+            isCoach: true,
             sortName: coachUser.first_name || coachUser.username || ''
           });
         }
@@ -1341,7 +1346,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   const filteredPlayers = allPeople.filter(p => {
     if (filter === "free" && !p.is_free_agent) return false;
     if (filter === "team" && (p.is_free_agent || p.type === 'coach')) return false;
-    if (filter === "coach" && p.type !== 'coach') return false;
+    if (filter === "coach" && !p.isCoach) return false;
     if (positionFilter !== "all" && p.type !== 'coach' && !p.positions?.includes(positionFilter)) return false;
     
     // Поиск по ФИО
@@ -1443,7 +1448,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
                       <div style={{ fontSize: "10px", color: colors.goldDark }}>очков</div>
                     </div>
                   )}
-                  {player.type === 'coach' && <Badge variant="gold">Тренер</Badge>}
+                  {player.isCoach && <Badge variant="gold">Тренер</Badge>}
                   {player.type === 'player' && <Badge variant={player.is_free_agent ? "free" : "default"}>{player.is_free_agent ? "Свободен" : "В команде"}</Badge>}
                   {canInvite && player.type === 'player' && player.is_free_agent && (
                     hasPendingOffer(player.id) ? <Badge variant="pending">Приглашён</Badge> : (
