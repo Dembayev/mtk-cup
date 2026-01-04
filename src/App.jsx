@@ -3852,8 +3852,7 @@ export default function MTKCupApp() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const { data: teamsData } = await supabase.from("teams").select("*").order("points", { ascending: false });
-      const { data: toursData } = await supabase.from("tours").select("*").order("number");
+const { data: teamsData } = await supabase.from("teams").select("*, coaches:coach_id(id, first_name, last_name, username, avatar_url)").order("points", { ascending: false });      const { data: toursData } = await supabase.from("tours").select("*").order("number");
       const { data: matchesData } = await supabase.from("matches").select("*").order("scheduled_time");
       const { data: playersData } = await supabase.from("players").select("*");
       const { data: usersData } = await supabase.from("users").select("*");
