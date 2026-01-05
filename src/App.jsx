@@ -934,7 +934,7 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
           style={{ textAlign: "center", flex: 1, cursor: onTeamClick ? "pointer" : "default" }}
           onClick={() => onTeamClick && team1 && onTeamClick(team1)}
         >
-          <div style={{ width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "4px" }}>
+      <div style={{ width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "4px", margin: "0 auto 4px auto" }}>
           {team1?.logo_url && team1.logo_url.startsWith('http') ? (
             <img src={team1.logo_url} alt={team1.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
           ) : (
@@ -950,8 +950,7 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
           style={{ textAlign: "center", flex: 1, cursor: onTeamClick ? "pointer" : "default" }}
           onClick={() => onTeamClick && team2 && onTeamClick(team2)}
         >
-          <div style={{ width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "4px" }}>
-          {team2?.logo_url && team2.logo_url.startsWith('http') ? (
+      <div style={{ width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 4px auto" }}>          {team2?.logo_url && team2.logo_url.startsWith('http') ? (
             <img src={team2.logo_url} alt={team2.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
           ) : (
             <span style={{ fontSize: "28px" }}>{team2?.logo_url || "🏐"}</span>
