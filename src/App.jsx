@@ -4067,6 +4067,7 @@ export default function MTKCupApp() {
   const [actionLoading, setActionLoading] = useState(false);
   const [playerStats, setPlayerStats] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showRoleRequestForm, setShowRoleRequestForm] = useState(false);
   const [roleRequestData, setRoleRequestData] = useState({ 
     role: "", 
