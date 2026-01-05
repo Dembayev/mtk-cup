@@ -5561,8 +5561,15 @@ const handleTelegramLogin = async (tgUser) => {
     // Отправляем уведомление админам
     const roleName = requestedRole === "player" ? "игроком" : requestedRole === "coach" ? "тренером" : "болельщиком";
     const userName = formData?.first_name ? `${formData.first_name} ${formData.last_name}` : user.first_name || user.username || "Пользователь";
-    const teamInfo = formData?.team_name ? `\nКоманда: ${formData.team_name}` : '';
-    const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.${teamInfo}\n\nПроверьте в админ-панели.`;
+    // Получаем название команды из formData или из списка teams по team_id
+    let teamName = formData?.team_name;
+    if (!teamName && formData?.team_id) {
+      const selectedTeam = teams.find(t => t.id === formData.team_id);
+      teamName = selectedTeam?.name;
+    }
+    const teamInfo = teamName ? `\nКоманда: ${teamName}` : '';
+    const currentRole = requestedRole === "coach" ? " (сейчас игрок)" : "";
+    const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.${currentRole}${teamInfo}\n\nПроверьте в админ-панели.`;
     
     // Получаем всех админов
     const { data: admins } = await supabase.from("users").select("telegram_id").eq("role", "admin");
