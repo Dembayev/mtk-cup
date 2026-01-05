@@ -2917,14 +2917,31 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   </h3>
                   {(roleRequests || []).filter(r => r.status === "pending").map(request => {
                     const requestUser = users.find(u => u.id === request.user_id);
+                    const positionLabels = {
+                      setter: "Связующий",
+                      outside: "Доигровщик", 
+                      opposite: "Диагональный",
+                      middle: "Центральный блокирующий",
+                      libero: "Либеро"
+                    };
                     return (
                       <div key={request.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "white", borderRadius: "8px", marginBottom: "8px" }}>
                         <Avatar name={requestUser?.first_name || requestUser?.username} size={40} url={requestUser?.avatar_url} />
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600 }}>{requestUser?.first_name || requestUser?.username} {requestUser?.last_name || ""}</div>
+                          <div style={{ fontWeight: 600 }}>
+                            {request.first_name && request.last_name 
+                              ? `${request.first_name} ${request.last_name}` 
+                              : (requestUser?.first_name || requestUser?.username) + (requestUser?.last_name ? ` ${requestUser.last_name}` : "")}
+                            {request.first_name && <span style={{ fontSize: "11px", color: "#16a34a", marginLeft: "6px" }}>✓ Указал имя</span>}
+                          </div>
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>
                             Хочет стать: <strong>{request.requested_role === "player" ? "Игроком" : request.requested_role === "coach" ? "Тренером" : "Болельщиком"}</strong>
                           </div>
+                          {request.positions && request.positions.length > 0 && (
+                            <div style={{ fontSize: "11px", color: colors.goldDark, marginTop: "4px" }}>
+                              Амплуа: <strong>{request.positions.map(p => positionLabels[p] || p).join(", ")}</strong>
+                            </div>
+                          )}
                           <div style={{ fontSize: "11px", color: colors.goldDark }}>
                             {new Date(request.created_at).toLocaleDateString("ru-RU")}
                           </div>
@@ -5449,127 +5466,130 @@ const handleTelegramLogin = async (tgUser) => {
 
   // Одобрение заявки (для админа)
   const handleApproveRoleRequest = async (requestId, userId, role) => {
-    console.log("👤 ApproveRole: Starting -", {requestId, userId, role});
-    try {
-      setActionLoading(true);
+  console.log("👤 ApproveRole: Starting -", {requestId, userId, role});
+  try {
+    setActionLoading(true);
+    
+    // Получаем данные из заявки
+    const request = roleRequests.find(r => r.id === requestId);
+    
+    // Обновляем статус заявки
+    await supabase.from("role_requests").update({ 
+      status: "approved", 
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user?.id 
+    }).eq("id", requestId);
+    
+    // Копируем имя и фамилию из заявки в профиль пользователя
+    if (request?.first_name || request?.last_name) {
+      const updateData = {};
+      if (request.first_name) updateData.first_name = request.first_name;
+      if (request.last_name) updateData.last_name = request.last_name;
       
-      // Обновляем статус заявки
-      await supabase.from("role_requests").update({ 
-        status: "approved", 
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: user?.id 
-      }).eq("id", requestId);
-      
-      if (role === "player") {
-        // Проверяем является ли человек тренером какой-то команды
-        const coachingTeam = teams.find(t => t.coach_id === userId);
-        console.log("👤 ApproveRole (player): Coaching team?", coachingTeam ? coachingTeam.name : "NO");
-        
-        // Проверяем есть ли уже player record
-        const existing = players.find(p => p.user_id === userId);
-        console.log("👤 ApproveRole: Existing player record?", existing ? "YES" : "NO");
-        
-        if (existing) {
-          console.log("👤 ApproveRole: Updating existing player record");
-          // Если тренер своей команды - добавляем как игрока в ту же команду
-          if (coachingTeam) {
-            await supabase.from("players").update({
-              team_id: coachingTeam.id,
-              is_free_agent: false,
-              is_captain: false,
-            }).eq("user_id", userId);
-            console.log("👤 ApproveRole: Added as player to coached team:", coachingTeam.name);
-          } else {
-            // Если не тренер - делаем свободным агентом
-            await supabase.from("players").update({
-              is_free_agent: true,
-              team_id: null,
-              is_captain: false,
-            }).eq("user_id", userId);
-          }
-        } else {
-          // Создаем новый player record
-          if (coachingTeam) {
-            // Если тренер - добавляем в свою команду
-            await supabase.from("players").insert({
-              user_id: userId,
-              team_id: coachingTeam.id,
-              is_free_agent: false,
-              is_captain: false,
-              positions: [],
-            });
-            console.log("👤 ApproveRole: Created player in coached team:", coachingTeam.name);
-          } else {
-            // Если не тренер - свободный агент
-            await supabase.from("players").insert({
-              user_id: userId,
-              is_free_agent: true,
-              is_captain: false,
-              positions: [],
-            });
-          }
-        }
-        // НЕ снимаем с тренерства! Тренер может быть игроком своей команды
-      } 
-      else if (role === "coach") {
-        // Для тренера нужно будет назначить команду отдельно
-        const playerRecord = players.find(p => p.user_id === userId);
-        console.log("👤 ApproveRole (coach): Player record:", playerRecord?.id, "team:", playerRecord?.team_id);
-        if (playerRecord && playerRecord.team_id) {
-          const hisTeam = teams.find(t => t.coach_id === userId);
-          console.log("👤 ApproveRole (coach): His coaching team:", hisTeam?.id, hisTeam?.name);
-          // Если игрок в другой команде (не та где он тренер) - выводим
-          if (!hisTeam || hisTeam.id !== playerRecord.team_id) {
-            console.log("👤 ApproveRole (coach): Removing from player team (incompatible)");
-            await supabase.from("players").update({ team_id: null, is_captain: false, is_free_agent: true }).eq("id", playerRecord.id);
-          } else {
-            console.log("👤 ApproveRole (coach): Keeping as player of same team (allowed)");
-          }
-        }
-      }
-      else if (role === "fan") {
-        // Удаляем из игроков
-        await supabase.from("players").delete().eq("user_id", userId);
-        // Снимаем с тренерства
-        await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
-      }
-      
-      // Отправляем Telegram уведомление пользователю
-      const approvedUser = users.find(u => u.id === userId);
-      if (approvedUser?.telegram_id) {
-        const roleNames = {
-          player: "игрок",
-          coach: "тренер", 
-          fan: "болельщик"
-        };
-        const roleName = roleNames[role] || role;
-        const message = `✅ Ваша заявка принята!\n\nВы теперь ${roleName} в турнире "Кубок МТК".\n\nОткройте приложение чтобы продолжить.`;
-        try {
-          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              chat_id: approvedUser.telegram_id, 
-              text: message,
-              reply_markup: {
-                inline_keyboard: [[
-                  { text: "📱 Открыть приложение", web_app: { url: "https://mtk-cup.vercel.app" } }
-                ]]
-              }
-            }),
-          });
-        } catch (e) { console.error("Failed to notify user:", e); }
-      }
-      
-      await loadData();
-      alert("Заявка одобрена и роль изменена!");
-    } catch (error) {
-      console.error("Error approving request:", error);
-      alert("Ошибка");
-    } finally {
-      setActionLoading(false);
+      await supabase.from("users").update(updateData).eq("id", userId);
+      console.log("👤 ApproveRole: Updated user profile with name from request");
     }
-  };
+    
+    if (role === "player") {
+      // Проверяем является ли человек тренером какой-то команды
+      const coachingTeam = teams.find(t => t.coach_id === userId);
+      console.log("👤 ApproveRole (player): Coaching team?", coachingTeam ? coachingTeam.name : "NO");
+      
+      // Проверяем есть ли уже player record
+      const existing = players.find(p => p.user_id === userId);
+      console.log("👤 ApproveRole: Existing player record?", existing ? "YES" : "NO");
+      
+      if (existing) {
+        console.log("👤 ApproveRole: Updating existing player record");
+        const updateData = {
+          is_free_agent: coachingTeam ? false : true,
+          is_captain: false,
+        };
+        if (coachingTeam) updateData.team_id = coachingTeam.id;
+        
+        // Добавляем позиции из заявки
+        if (request?.positions && request.positions.length > 0) {
+          updateData.positions = request.positions;
+        }
+        
+        await supabase.from("players").update(updateData).eq("user_id", userId);
+        
+        if (coachingTeam) {
+          console.log("👤 ApproveRole: Added as player to coached team:", coachingTeam.name);
+        }
+      } else {
+        // Создаем новый player record
+        const insertData = {
+          user_id: userId,
+          is_free_agent: coachingTeam ? false : true,
+          is_captain: false,
+          positions: request?.positions || [],
+        };
+        if (coachingTeam) insertData.team_id = coachingTeam.id;
+        
+        await supabase.from("players").insert(insertData);
+        console.log("👤 ApproveRole: Created player", coachingTeam ? `in coached team: ${coachingTeam.name}` : "as free agent");
+      }
+    } 
+    else if (role === "coach") {
+      // Для тренера нужно будет назначить команду отдельно
+      const playerRecord = players.find(p => p.user_id === userId);
+      console.log("👤 ApproveRole (coach): Player record:", playerRecord?.id, "team:", playerRecord?.team_id);
+      if (playerRecord && playerRecord.team_id) {
+        const hisTeam = teams.find(t => t.coach_id === userId);
+        console.log("👤 ApproveRole (coach): His coaching team:", hisTeam?.id, hisTeam?.name);
+        // Если игрок в другой команде (не та где он тренер) - выводим
+        if (!hisTeam || hisTeam.id !== playerRecord.team_id) {
+          console.log("👤 ApproveRole (coach): Removing from player team (incompatible)");
+          await supabase.from("players").update({ team_id: null, is_captain: false, is_free_agent: true }).eq("id", playerRecord.id);
+        } else {
+          console.log("👤 ApproveRole (coach): Keeping as player of same team (allowed)");
+        }
+      }
+    }
+    else if (role === "fan") {
+      // Удаляем из игроков
+      await supabase.from("players").delete().eq("user_id", userId);
+      // Снимаем с тренерства
+      await supabase.from("teams").update({ coach_id: null }).eq("coach_id", userId);
+    }
+    
+    // Отправляем Telegram уведомление пользователю
+    const approvedUser = users.find(u => u.id === userId);
+    if (approvedUser?.telegram_id) {
+      const roleNames = {
+        player: "игрок",
+        coach: "тренер", 
+        fan: "болельщик"
+      };
+      const roleName = roleNames[role] || role;
+      const message = `✅ Ваша заявка принята!\n\nВы теперь ${roleName} в турнире "Кубок МТК".\n\nОткройте приложение чтобы продолжить.`;
+      try {
+        await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            chat_id: approvedUser.telegram_id, 
+            text: message,
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "📱 Открыть приложение", web_app: { url: "https://app.mtkcup.ru" } }
+              ]]
+            }
+          }),
+        });
+      } catch (e) { console.error("Failed to notify user:", e); }
+    }
+    
+    await loadData();
+    alert("Заявка одобрена и роль изменена!");
+  } catch (error) {
+    console.error("Error approving request:", error);
+    alert("Ошибка");
+  } finally {
+    setActionLoading(false);
+  }
+};
 
   // Отклонение заявки
   const handleRejectRoleRequest = async (requestId) => {
