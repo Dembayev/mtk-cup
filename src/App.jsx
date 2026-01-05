@@ -3632,7 +3632,7 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
   };
   
   // При первом открытии подставляем заблокированные значения
-  React.useEffect(() => {
+  useEffect(() => {
     if (lockedFirstName && !roleRequestData.first_name) {
       setRoleRequestData(prev => ({ ...prev, first_name: lockedFirstName }));
     }
