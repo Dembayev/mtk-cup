@@ -5674,18 +5674,19 @@ const handleTelegramLogin = async (tgUser) => {
         console.log("👤 ApproveRole (coach): Assigning to team:", request.team_id);
         await supabase.from("teams").update({ coach_id: userId }).eq("id", request.team_id);
         console.log("👤 ApproveRole (coach): Successfully assigned as coach");
+        
+        // Если пользователь уже игрок - переводим его в эту команду
+        const playerRecord = players.find(p => p.user_id === userId);
+        if (playerRecord) {
+          console.log("👤 ApproveRole (coach): Moving player to coached team");
+          await supabase.from("players").update({ 
+            team_id: request.team_id, 
+            is_free_agent: false,
+            is_captain: false 
+          }).eq("id", playerRecord.id);
+        }
       } else {
         console.log("👤 ApproveRole (coach): No team_id in request, coach approved but not assigned to team");
-      }
-      
-      // Если у пользователя есть player record в другой команде - убираем
-      const playerRecord = players.find(p => p.user_id === userId);
-      if (playerRecord && playerRecord.team_id) {
-        const assignedTeamId = request?.team_id;
-        if (assignedTeamId && playerRecord.team_id !== assignedTeamId) {
-          console.log("👤 ApproveRole (coach): Removing from old player team");
-          await supabase.from("players").update({ team_id: null, is_captain: false, is_free_agent: true }).eq("id", playerRecord.id);
-        }
       }
     }
     else if (role === "fan") {
