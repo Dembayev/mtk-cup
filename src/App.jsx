@@ -5649,7 +5649,7 @@ const handleGuest = () => {
 
 return (
   <div style={{
-    fontFamily: "'-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif'",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     background: colors.bg,
     minHeight: "100vh",
     paddingTop: isTelegram ? (safeAreaTop > 0 ? `${safeAreaTop}px` : "60px") : "0",
