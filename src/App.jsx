@@ -1073,7 +1073,12 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
           </Card>
 
 
-          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Состав команды ({teamPlayers.length + (team?.coaches ? 1 : 0)})</h3>          
+          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Состав команды ({(() => {
+            // Считаем уникальных членов команды
+            const coachIsPlayer = team?.coach_id && teamPlayers.some(p => p.user_id === team.coach_id);
+            const coachCount = team?.coach_id && !coachIsPlayer ? 1 : 0;
+            return teamPlayers.length + coachCount;
+          })()})</h3>          
           {/* Тренер как первый элемент состава */}
           {team?.coach_id && (() => {
             const coach = users?.find(u => u.id === team.coach_id);
