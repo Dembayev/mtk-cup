@@ -934,7 +934,13 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
           style={{ textAlign: "center", flex: 1, cursor: onTeamClick ? "pointer" : "default" }}
           onClick={() => onTeamClick && team1 && onTeamClick(team1)}
         >
-          <div style={{ fontSize: "28px", marginBottom: "4px" }}>{team1?.logo_url || "🏐"}</div>
+          <div style={{ width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "4px" }}>
+          {team1?.logo_url && team1.logo_url.startsWith('http') ? (
+            <img src={team1.logo_url} alt={team1.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
+          ) : (
+            <span style={{ fontSize: "28px" }}>{team1?.logo_url || "🏐"}</span>
+          )}
+        </div>
           <div style={{ fontWeight: 600, fontSize: "14px" }}>{team1?.name || "—"}</div>
         </div>
         <div style={{ padding: "8px 16px", background: colors.gray, borderRadius: "8px", fontWeight: 700, fontSize: "20px", minWidth: "80px", textAlign: "center" }}>
@@ -944,7 +950,13 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
           style={{ textAlign: "center", flex: 1, cursor: onTeamClick ? "pointer" : "default" }}
           onClick={() => onTeamClick && team2 && onTeamClick(team2)}
         >
-          <div style={{ fontSize: "28px", marginBottom: "4px" }}>{team2?.logo_url || "🏐"}</div>
+          <div style={{ width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "4px" }}>
+          {team2?.logo_url && team2.logo_url.startsWith('http') ? (
+            <img src={team2.logo_url} alt={team2.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
+          ) : (
+            <span style={{ fontSize: "28px" }}>{team2?.logo_url || "🏐"}</span>
+          )}
+        </div>
           <div style={{ fontWeight: 600, fontSize: "14px" }}>{team2?.name || "—"}</div>
         </div>
       </div>
