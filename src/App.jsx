@@ -2944,6 +2944,11 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               Амплуа: <strong>{request.positions.map(p => positionLabels[p] || p).join(", ")}</strong>
                             </div>
                           )}
+                          {request.team_name && (
+                            <div style={{ fontSize: "11px", color: "#2563eb", marginTop: "4px" }}>
+                              🏐 Команда: <strong>{request.team_name}</strong>
+                            </div>
+                          )}
                           <div style={{ fontSize: "11px", color: colors.goldDark }}>
                             {new Date(request.created_at).toLocaleDateString("ru-RU")}
                           </div>
@@ -3616,6 +3621,10 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
       alert("Пожалуйста, заполните имя и фамилию");
       return;
     }
+    if (isCoach && !roleRequestData.team_name?.trim()) {
+      alert("Пожалуйста, укажите название команды");
+      return;
+    }
     onSubmit();
   };
   
@@ -3689,6 +3698,31 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
           />
         </div>
         
+        {isCoach && (
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: 600 }}>
+              Команда <span style={{ color: "#dc2626" }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={roleRequestData.team_name || ""}
+              onChange={(e) => setRoleRequestData(prev => ({ ...prev, team_name: e.target.value }))}
+              placeholder="Название команды которую хотите тренировать"
+              style={{ 
+                width: "100%", 
+                padding: "10px", 
+                borderRadius: "8px", 
+                border: `1px solid ${colors.grayBorder}`, 
+                fontSize: "14px",
+                boxSizing: "border-box"
+              }}
+            />
+            <p style={{ margin: "6px 0 0", fontSize: "12px", color: colors.goldDark }}>
+              Укажите существующую команду или название новой
+            </p>
+          </div>
+        )}
+
         {isPlayer && (
           <div style={{ marginBottom: "20px" }}>
             <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: 600 }}>
@@ -5421,6 +5455,9 @@ const handleTelegramLogin = async (tgUser) => {
       if (formData.positions && formData.positions.length > 0) {
         insertData.positions = formData.positions;
       }
+      if (formData.team_name) {
+        insertData.team_name = formData.team_name;
+      }
     }
     
     await supabase.from("role_requests").insert(insertData);
@@ -5435,7 +5472,8 @@ const handleTelegramLogin = async (tgUser) => {
     // Отправляем уведомление админам
     const roleName = requestedRole === "player" ? "игроком" : requestedRole === "coach" ? "тренером" : "болельщиком";
     const userName = formData?.first_name ? `${formData.first_name} ${formData.last_name}` : user.first_name || user.username || "Пользователь";
-    const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.\n\nПроверьте в админ-панели.`;
+    const teamInfo = formData?.team_name ? `\nКоманда: ${formData.team_name}` : '';
+    const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.${teamInfo}\n\nПроверьте в админ-панели.`;
     
     // Получаем всех админов
     const { data: admins } = await supabase.from("users").select("telegram_id").eq("role", "admin");
