@@ -1440,12 +1440,10 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
           {filteredPlayers.map(player => (
             <Card 
               key={player.id} 
-              style={{ marginBottom: "12px", cursor: player.type === 'player' ? "pointer" : "default" }}
+              style={{ marginBottom: "12px", cursor: "pointer" }}
               onClick={() => { 
-                if (player.type === 'player') {
-                  setSelectedPlayer(player); 
-                  setScreen("playerDetail");
-                }
+                setSelectedPlayer(player); 
+                setScreen("playerDetail");
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1455,7 +1453,11 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
                     {user?.favorite_players?.includes(player.id) && <span style={{ color: colors.gold, marginRight: "4px" }}>★</span>}
                     {player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}
                   </div>
-                  <div style={{ fontSize: "13px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ") || "Амплуа не указано"}</div>
+                  {(player.type !== 'coach' || player.positions?.length > 0) && (
+                    <div style={{ fontSize: "13px", color: colors.goldDark }}>
+                      {player.positions?.length > 0 ? player.positions.map(p => positionLabels[p] || p).join(", ") : "Амплуа не указано"}
+                    </div>
+                  )}
                   <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{player.teams?.name || "Без команды"}</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
@@ -1539,9 +1541,11 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
             <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
               {player?.is_captain && <Badge variant="captain">Капитан</Badge>}
               {coachOfTeam && <Badge variant="gold">Тренер ({coachOfTeam.name})</Badge>}
-              <Badge variant={player?.is_free_agent ? "free" : "gold"}>
-                {player?.is_free_agent ? "Свободный игрок" : "В команде"}
-              </Badge>
+              {player?.type !== 'coach' && (
+                <Badge variant={player?.is_free_agent ? "free" : "gold"}>
+                  {player?.is_free_agent ? "Свободный игрок" : "В команде"}
+                </Badge>
+              )}
             </div>
             {onToggleFavorite && user && (
               <Button 
@@ -1587,10 +1591,12 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                   <span style={{ fontWeight: 600 }}>Без команды</span>
                 )}
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: colors.goldDark }}>Амплуа</span>
-                <span style={{ fontWeight: 600 }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</span>
-              </div>
+              {(player?.type !== 'coach' || player?.positions?.length > 0) && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: colors.goldDark }}>Амплуа</span>
+                  <span style={{ fontWeight: 600 }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</span>
+                </div>
+              )}
               {player?.jersey_number && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: colors.goldDark }}>Номер</span>
