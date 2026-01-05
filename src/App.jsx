@@ -3823,8 +3823,8 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
           <Button variant="outline" onClick={onClose} style={{ flex: 1 }}>
             Отмена
           </Button>
-          <Button onClick={handleSubmit} style={{ flex: 1 }}>
-            Отправить заявку
+          <Button onClick={handleSubmit} style={{ flex: 1 }} disabled={roleRequestData.submitting}>
+            {roleRequestData.submitting ? "Отправка..." : "Отправить заявку"}
           </Button>
         </div>
       </div>
@@ -5520,6 +5520,15 @@ const handleTelegramLogin = async (tgUser) => {
     // Если это игрок или тренер - проверяем данные формы
     if ((requestedRole === "player" || requestedRole === "coach") && !formData) {
       alert("Пожалуйста, заполните все обязательные поля");
+      return;
+    }
+    
+    // Проверяем нет ли уже pending заявки от этого пользователя
+    const existingPending = (roleRequests || []).find(r => 
+      r.user_id === user.id && r.status === "pending"
+    );
+    if (existingPending) {
+      alert("У вас уже есть заявка на рассмотрении. Дождитесь решения администратора.");
       return;
     }
     
