@@ -1877,8 +1877,13 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
       <Container>
         <div style={{ padding: "20px 0" }}>
           <Card style={{ textAlign: "center", marginBottom: "20px" }}>
-            <div style={{ width: "80px", height: "80px", background: colors.goldLight, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: "40px" }}>{myTeam?.logo_url || "🏐"}</div>
-            <h2 style={{ margin: "0 0 8px", fontSize: "24px", fontWeight: 700 }}>{myTeam?.name}</h2>
+          <div style={{ width: "80px", height: "80px", background: colors.goldLight, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: "40px", overflow: "hidden" }}>
+            {myTeam?.logo_url && myTeam.logo_url.startsWith('http') ? (
+              <img src={myTeam.logo_url} alt={myTeam.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              myTeam?.logo_url || "🏐"
+            )}
+          </div>            <h2 style={{ margin: "0 0 8px", fontSize: "24px", fontWeight: 700 }}>{myTeam?.name}</h2>
             <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
               {teamRelation === "coach" && <Badge variant="gold">Вы тренер</Badge>}
               {teamRelation === "captain" && <Badge variant="captain">Вы капитан</Badge>}
