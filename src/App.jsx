@@ -5383,8 +5383,20 @@ const handleTelegramLogin = async (tgUser) => {
           role: "fan",
           onboarding_completed: false,
         }).select().single();
-        if (!error) currentUser = newUser;
+        if (error) {
+          console.error("Error creating user:", error);
+          alert("Ошибка создания пользователя. Попробуйте перезайти.");
+          return;
+        }
+        currentUser = newUser;
       }
+      
+      if (!currentUser?.id) {
+        console.error("User ID is missing after login");
+        alert("Ошибка авторизации. Попробуйте перезайти.");
+        return;
+      }
+      
       setUser(currentUser);
       setIsGuest(false);
       
