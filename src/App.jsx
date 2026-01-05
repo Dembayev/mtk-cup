@@ -5614,6 +5614,7 @@ const handleTelegramLogin = async (tgUser) => {
       const updateData = {};
       if (request.first_name) updateData.first_name = request.first_name;
       if (request.last_name) updateData.last_name = request.last_name;
+      updateData.name_edited_by_admin = true;
       
       await supabase.from("users").update(updateData).eq("id", userId);
       console.log("👤 ApproveRole: Updated user profile with name from request");
@@ -5661,18 +5662,22 @@ const handleTelegramLogin = async (tgUser) => {
       }
     } 
     else if (role === "coach") {
-      // Для тренера нужно будет назначить команду отдельно
+      // Если в заявке указана команда - назначаем тренера на неё
+      if (request?.team_id) {
+        console.log("👤 ApproveRole (coach): Assigning to team:", request.team_id);
+        await supabase.from("teams").update({ coach_id: userId }).eq("id", request.team_id);
+        console.log("👤 ApproveRole (coach): Successfully assigned as coach");
+      } else {
+        console.log("👤 ApproveRole (coach): No team_id in request, coach approved but not assigned to team");
+      }
+      
+      // Если у пользователя есть player record в другой команде - убираем
       const playerRecord = players.find(p => p.user_id === userId);
-      console.log("👤 ApproveRole (coach): Player record:", playerRecord?.id, "team:", playerRecord?.team_id);
       if (playerRecord && playerRecord.team_id) {
-        const hisTeam = teams.find(t => t.coach_id === userId);
-        console.log("👤 ApproveRole (coach): His coaching team:", hisTeam?.id, hisTeam?.name);
-        // Если игрок в другой команде (не та где он тренер) - выводим
-        if (!hisTeam || hisTeam.id !== playerRecord.team_id) {
-          console.log("👤 ApproveRole (coach): Removing from player team (incompatible)");
+        const assignedTeamId = request?.team_id;
+        if (assignedTeamId && playerRecord.team_id !== assignedTeamId) {
+          console.log("👤 ApproveRole (coach): Removing from old player team");
           await supabase.from("players").update({ team_id: null, is_captain: false, is_free_agent: true }).eq("id", playerRecord.id);
-        } else {
-          console.log("👤 ApproveRole (coach): Keeping as player of same team (allowed)");
         }
       }
     }
