@@ -1679,7 +1679,13 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, i
                 return (
                   <Card key={offer.id} style={{ marginBottom: "12px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                      <div style={{ width: "48px", height: "48px", background: colors.goldLight, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>{team?.logo_url || "🏐"}</div>
+                      <div style={{ width: "48px", height: "48px", background: colors.goldLight, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", overflow: "hidden" }}>
+                        {team?.logo_url && team.logo_url.startsWith('http') ? (
+                          <img src={team.logo_url} alt={team.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          team?.logo_url || "🏐"
+                        )}
+                      </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: "15px" }}>{team?.name || "Команда"}</div>
                         <div style={{ fontSize: "13px", color: colors.goldDark }}>Приглашает вас в состав</div>
@@ -1716,8 +1722,14 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, i
                 return (
                   <Card key={offer.id} style={{ marginBottom: "8px", padding: "12px 16px", opacity: 0.7 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ width: "40px", height: "40px", background: colors.gray, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>{team?.logo_url || "🏐"}</div>
-                      <div style={{ flex: 1 }}>
+                        <div style={{ width: "40px", height: "40px", background: colors.gray, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", overflow: "hidden" }}>
+                          {team?.logo_url && team.logo_url.startsWith('http') ? (
+                            <img src={team.logo_url} alt={team.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            team?.logo_url || "🏐"
+                          )}
+                        </div>                    
+                          <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 500, fontSize: "14px" }}>{team?.name || "Команда"}</div>
                         <div style={{ fontSize: "12px", color: colors.goldDark }}>{new Date(offer.created_at).toLocaleDateString("ru-RU")}</div>
                       </div>
