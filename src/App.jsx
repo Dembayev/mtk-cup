@@ -5460,13 +5460,23 @@ const handleTelegramLogin = async (tgUser) => {
       }
     }
     
-    await supabase.from("role_requests").insert(insertData);
+    const { error: insertError } = await supabase.from("role_requests").insert(insertData);
+    if (insertError) {
+      console.error("Insert error:", insertError);
+      alert("Ошибка: " + insertError.message);
+      return;
+    }
+    
     await supabase.from("users").update({ onboarding_completed: true }).eq("id", user.id);
     setUser(prev => ({ ...prev, onboarding_completed: true }));
     setShowOnboarding(false);
     setShowRoleRequestForm(false);
-    setRoleRequestData({ role: "", first_name: "", last_name: "", positions: [] });
+    setRoleRequestData({ role: "", first_name: "", last_name: "", positions: [], team_name: "" });
     setScreen("home");
+    
+    // Показываем успех до загрузки данных
+    alert("✅ Заявка отправлена! Ожидайте одобрения администратора.");
+    
     await loadData();
   
     // Отправляем уведомление админам
