@@ -3587,11 +3587,26 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   );
 };
 // Модальное окно формы заявки на роль
-const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit, onClose }) => {
+const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit, onClose, teams, user, roleRequests }) => {
   if (!show) return null;
   
   const isPlayer = roleRequestData.role === "player";
   const isCoach = roleRequestData.role === "coach";
+  
+  // Проверяем есть ли одобренная заявка с именем/фамилией
+  const approvedRequest = (roleRequests || []).find(r => 
+    r.user_id === user?.id && 
+    r.status === "approved" && 
+    r.first_name && r.last_name
+  );
+  
+  // Или имя уже установлено в профиле (после одобрения заявки)
+  const hasApprovedName = approvedRequest || (user?.first_name && user?.name_edited_by_admin);
+  const lockedFirstName = approvedRequest?.first_name || (user?.name_edited_by_admin ? user?.first_name : null);
+  const lockedLastName = approvedRequest?.last_name || (user?.name_edited_by_admin ? user?.last_name : null);
+  
+  // Команды без тренера (доступны для выбора)
+  const availableTeams = (teams || []).filter(t => !t.coach_id);
   
   const positionOptions = [
     { value: "setter", label: "Связующий" },
@@ -3616,15 +3631,30 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
     }
   };
   
+  // При первом открытии подставляем заблокированные значения
+  React.useEffect(() => {
+    if (lockedFirstName && !roleRequestData.first_name) {
+      setRoleRequestData(prev => ({ ...prev, first_name: lockedFirstName }));
+    }
+    if (lockedLastName && !roleRequestData.last_name) {
+      setRoleRequestData(prev => ({ ...prev, last_name: lockedLastName }));
+    }
+  }, [lockedFirstName, lockedLastName]);
+  
   const handleSubmit = () => {
-    if (!roleRequestData.first_name.trim() || !roleRequestData.last_name.trim()) {
+    const firstName = lockedFirstName || roleRequestData.first_name;
+    const lastName = lockedLastName || roleRequestData.last_name;
+    if (!firstName?.trim() || !lastName?.trim()) {
       alert("Пожалуйста, заполните имя и фамилию");
       return;
     }
-    if (isCoach && !roleRequestData.team_name?.trim()) {
-      alert("Пожалуйста, укажите название команды");
+    if (isCoach && !roleRequestData.team_id) {
+      alert("Пожалуйста, выберите команду");
       return;
     }
+    // Подставляем заблокированные значения если есть
+    if (lockedFirstName) roleRequestData.first_name = lockedFirstName;
+    if (lockedLastName) roleRequestData.last_name = lockedLastName;
     onSubmit();
   };
   
@@ -3664,18 +3694,22 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
           </label>
           <input
             type="text"
-            value={roleRequestData.first_name}
-            onChange={(e) => setRoleRequestData(prev => ({ ...prev, first_name: e.target.value }))}
+            value={lockedFirstName || roleRequestData.first_name}
+            onChange={(e) => !lockedFirstName && setRoleRequestData(prev => ({ ...prev, first_name: e.target.value }))}
             placeholder="Введите ваше имя"
+            disabled={!!lockedFirstName}
             style={{ 
               width: "100%", 
               padding: "10px", 
               borderRadius: "8px", 
               border: `1px solid ${colors.grayBorder}`, 
               fontSize: "14px",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
+              background: lockedFirstName ? "#f3f4f6" : "white",
+              color: lockedFirstName ? "#6b7280" : "inherit"
             }}
           />
+          {lockedFirstName && <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#16a34a" }}>✓ Имя подтверждено</p>}
         </div>
         
         <div style={{ marginBottom: "16px" }}>
@@ -3684,18 +3718,22 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
           </label>
           <input
             type="text"
-            value={roleRequestData.last_name}
-            onChange={(e) => setRoleRequestData(prev => ({ ...prev, last_name: e.target.value }))}
+            value={lockedLastName || roleRequestData.last_name}
+            onChange={(e) => !lockedLastName && setRoleRequestData(prev => ({ ...prev, last_name: e.target.value }))}
             placeholder="Введите вашу фамилию"
+            disabled={!!lockedLastName}
             style={{ 
               width: "100%", 
               padding: "10px", 
               borderRadius: "8px", 
               border: `1px solid ${colors.grayBorder}`, 
               fontSize: "14px",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
+              background: lockedLastName ? "#f3f4f6" : "white",
+              color: lockedLastName ? "#6b7280" : "inherit"
             }}
           />
+          {lockedLastName && <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#16a34a" }}>✓ Фамилия подтверждена</p>}
         </div>
         
         {isCoach && (
@@ -3703,23 +3741,42 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
             <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: 600 }}>
               Команда <span style={{ color: "#dc2626" }}>*</span>
             </label>
-            <input
-              type="text"
-              value={roleRequestData.team_name || ""}
-              onChange={(e) => setRoleRequestData(prev => ({ ...prev, team_name: e.target.value }))}
-              placeholder="Название команды которую хотите тренировать"
+            <select
+              value={roleRequestData.team_id || ""}
+              onChange={(e) => {
+                const selectedTeam = availableTeams.find(t => t.id === e.target.value);
+                setRoleRequestData(prev => ({ 
+                  ...prev, 
+                  team_id: e.target.value,
+                  team_name: selectedTeam?.name || ""
+                }));
+              }}
               style={{ 
                 width: "100%", 
                 padding: "10px", 
                 borderRadius: "8px", 
                 border: `1px solid ${colors.grayBorder}`, 
                 fontSize: "14px",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                background: "white",
+                cursor: "pointer"
               }}
-            />
-            <p style={{ margin: "6px 0 0", fontSize: "12px", color: colors.goldDark }}>
-              Укажите существующую команду или название новой
-            </p>
+            >
+              <option value="">Выберите команду...</option>
+              {availableTeams.map(team => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+            {availableTeams.length === 0 && (
+              <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#dc2626" }}>
+                Нет доступных команд без тренера
+              </p>
+            )}
+            {availableTeams.length > 0 && (
+              <p style={{ margin: "6px 0 0", fontSize: "12px", color: colors.goldDark }}>
+                Выберите команду которую хотите тренировать
+              </p>
+            )}
           </div>
         )}
 
@@ -5468,6 +5525,9 @@ const handleTelegramLogin = async (tgUser) => {
       if (formData.positions && formData.positions.length > 0) {
         insertData.positions = formData.positions;
       }
+      if (formData.team_id) {
+        insertData.team_id = formData.team_id;
+      }
       if (formData.team_name) {
         insertData.team_name = formData.team_name;
       }
@@ -5731,8 +5791,11 @@ return (
         onSubmit={() => handleSubmitRoleRequest(roleRequestData.role, roleRequestData)}
         onClose={() => {
           setShowRoleRequestForm(false);
-          setRoleRequestData({ role: "", first_name: "", last_name: "", positions: [] });
+          setRoleRequestData({ role: "", first_name: "", last_name: "", positions: [], team_id: "", team_name: "" });
         }}
+        teams={teams}
+        user={user}
+        roleRequests={roleRequests}
       />
     )}
   </div>
