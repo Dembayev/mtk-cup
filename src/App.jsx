@@ -3562,6 +3562,154 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     </div>
   );
 };
+// Модальное окно формы заявки на роль
+const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit, onClose }) => {
+  if (!show) return null;
+  
+  const isPlayer = roleRequestData.role === "player";
+  const isCoach = roleRequestData.role === "coach";
+  
+  const positionOptions = [
+    { value: "setter", label: "Связующий" },
+    { value: "outside", label: "Доигровщик" },
+    { value: "opposite", label: "Диагональный" },
+    { value: "middle", label: "Центральный блокирующий" },
+    { value: "libero", label: "Либеро" }
+  ];
+  
+  const togglePosition = (pos) => {
+    const current = roleRequestData.positions || [];
+    if (current.includes(pos)) {
+      setRoleRequestData(prev => ({ 
+        ...prev, 
+        positions: current.filter(p => p !== pos) 
+      }));
+    } else {
+      setRoleRequestData(prev => ({ 
+        ...prev, 
+        positions: [...current, pos] 
+      }));
+    }
+  };
+  
+  const handleSubmit = () => {
+    if (!roleRequestData.first_name.trim() || !roleRequestData.last_name.trim()) {
+      alert("Пожалуйста, заполните имя и фамилию");
+      return;
+    }
+    onSubmit();
+  };
+  
+  return (
+    <div style={{ 
+      position: "fixed", 
+      top: 0, 
+      left: 0, 
+      right: 0, 
+      bottom: 0, 
+      background: "rgba(0,0,0,0.5)", 
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "center", 
+      zIndex: 9999,
+      padding: "20px"
+    }}>
+      <div style={{ 
+        background: colors.bg, 
+        borderRadius: "16px", 
+        padding: "24px", 
+        maxWidth: "400px", 
+        width: "100%",
+        maxHeight: "90vh",
+        overflowY: "auto"
+      }}>
+        <h3 style={{ margin: "0 0 8px", fontSize: "20px", fontWeight: 700 }}>
+          {isPlayer ? "🏃 Заявка на роль Игрока" : "📋 Заявка на роль Тренера"}
+        </h3>
+        <p style={{ margin: "0 0 20px", fontSize: "13px", color: colors.goldDark }}>
+          ⚠️ После одобрения заявки вы не сможете изменить имя и фамилию самостоятельно
+        </p>
+        
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: 600 }}>
+            Имя <span style={{ color: "#dc2626" }}>*</span>
+          </label>
+          <input
+            type="text"
+            value={roleRequestData.first_name}
+            onChange={(e) => setRoleRequestData(prev => ({ ...prev, first_name: e.target.value }))}
+            placeholder="Введите ваше имя"
+            style={{ 
+              width: "100%", 
+              padding: "10px", 
+              borderRadius: "8px", 
+              border: `1px solid ${colors.grayBorder}`, 
+              fontSize: "14px",
+              boxSizing: "border-box"
+            }}
+          />
+        </div>
+        
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: 600 }}>
+            Фамилия <span style={{ color: "#dc2626" }}>*</span>
+          </label>
+          <input
+            type="text"
+            value={roleRequestData.last_name}
+            onChange={(e) => setRoleRequestData(prev => ({ ...prev, last_name: e.target.value }))}
+            placeholder="Введите вашу фамилию"
+            style={{ 
+              width: "100%", 
+              padding: "10px", 
+              borderRadius: "8px", 
+              border: `1px solid ${colors.grayBorder}`, 
+              fontSize: "14px",
+              boxSizing: "border-box"
+            }}
+          />
+        </div>
+        
+        {isPlayer && (
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: 600 }}>
+              Амплуа (можно выбрать несколько)
+            </label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {positionOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => togglePosition(opt.value)}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "20px",
+                    border: `2px solid ${(roleRequestData.positions || []).includes(opt.value) ? colors.gold : colors.grayBorder}`,
+                    background: (roleRequestData.positions || []).includes(opt.value) ? colors.goldLight : colors.bg,
+                    color: (roleRequestData.positions || []).includes(opt.value) ? colors.goldDark : colors.text,
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    cursor: "pointer"
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <div style={{ display: "flex", gap: "8px", marginTop: "24px" }}>
+          <Button variant="outline" onClick={onClose} style={{ flex: 1 }}>
+            Отмена
+          </Button>
+          <Button onClick={handleSubmit} style={{ flex: 1 }}>
+            Отправить заявку
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone, currentPlayer, onUpdatePosition }) => {
   const displayName = getDisplayName(user);
@@ -3687,13 +3835,19 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
               ) : (
                 <div style={{ display: "flex", gap: "8px" }}>
                   <Button 
-                    onClick={() => onSubmitRoleRequest("player")} 
+                    onClick={() => {
+                    setRoleRequestData({ role: "player", first_name: "", last_name: "", positions: [] });
+                    setShowRoleRequestForm(true);
+                  }}
                     style={{ flex: 1, background: "#16a34a" }}
                   >
                     🏃 Стать игроком
                   </Button>
                   <Button 
-                    onClick={() => onSubmitRoleRequest("coach")} 
+                    onClick={() => {
+                    setRoleRequestData({ role: "coach", first_name: "", last_name: "", positions: [] });
+                    setShowRoleRequestForm(true);
+                  }} 
                     variant="outline"
                     style={{ flex: 1 }}
                   >
@@ -3714,7 +3868,10 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <Button onClick={() => onSubmitRoleRequest("coach")} style={{ flex: 1, background: "#0284c7" }}>📋 Стать тренером</Button>
+                  <Button onClick={() => {
+                    setRoleRequestData({ role: "coach", first_name: "", last_name: "", positions: [] });
+                    setShowRoleRequestForm(true);
+                  }} style={{ flex: 1, background: "#0284c7" }}>📋 Стать тренером</Button>
                   <Button onClick={() => onSubmitRoleRequest("fan")} variant="outline" style={{ flex: 1 }}>👤 Стать болельщиком</Button>
                 </div>
               )}
@@ -3731,7 +3888,10 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <Button onClick={() => onSubmitRoleRequest("player")} style={{ flex: 1, background: "#16a34a" }}>🏃 Стать игроком</Button>
+                  <Button onClick={() => {
+                  setRoleRequestData({ role: "player", first_name: "", last_name: "", positions: [] });
+                  setShowRoleRequestForm(true);
+                }} style={{ flex: 1, background: "#16a34a" }}>🏃 Стать игроком</Button>
                   <Button onClick={() => onSubmitRoleRequest("fan")} variant="outline" style={{ flex: 1 }}>👤 Стать болельщиком</Button>
                 </div>
               )}
@@ -3854,8 +4014,13 @@ export default function MTKCupApp() {
   const [actionLoading, setActionLoading] = useState(false);
   const [playerStats, setPlayerStats] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
+  const [showRoleRequestForm, setShowRoleRequestForm] = useState(false);
+  const [roleRequestData, setRoleRequestData] = useState({ 
+    role: "", 
+    first_name: "", 
+    last_name: "", 
+    positions: [] 
+  });
   const userRoles = getUserRoles(user, players, teams, roleRequests);
   const currentPlayer = userRoles.playerRecord;
   const pendingOffers = offers.filter(o => o.player_id === currentPlayer?.id && o.status === "pending");
@@ -5211,26 +5376,46 @@ const handleTelegramLogin = async (tgUser) => {
   };
 
   // Отправка заявки на роль
-  const handleSubmitRoleRequest = async (requestedRole) => {
-    try {
-      if (!user?.id) {
-        alert("Ошибка: пользователь не найден. Попробуйте перезайти.");
-        return;
-      }
-      await supabase.from("role_requests").insert({
-        user_id: user.id,
-        requested_role: requestedRole,
-        status: "pending",
-      });
-      await supabase.from("users").update({ onboarding_completed: true }).eq("id", user.id);
-      setUser(prev => ({ ...prev, onboarding_completed: true }));
-      setShowOnboarding(false);
-      setScreen("home");
-      await loadData();
+  const handleSubmitRoleRequest = async (requestedRole, formData = null) => {
+  try {
+    if (!user?.id) {
+      alert("Ошибка: пользователь не найден. Попробуйте перезайти.");
+      return;
+    }
     
+    // Если это игрок или тренер - проверяем данные формы
+    if ((requestedRole === "player" || requestedRole === "coach") && !formData) {
+      alert("Пожалуйста, заполните все обязательные поля");
+      return;
+    }
+    
+    const insertData = {
+      user_id: user.id,
+      requested_role: requestedRole,
+      status: "pending",
+    };
+    
+    // Добавляем данные из формы
+    if (formData) {
+      insertData.first_name = formData.first_name;
+      insertData.last_name = formData.last_name;
+      if (formData.positions && formData.positions.length > 0) {
+        insertData.positions = formData.positions;
+      }
+    }
+    
+    await supabase.from("role_requests").insert(insertData);
+    await supabase.from("users").update({ onboarding_completed: true }).eq("id", user.id);
+    setUser(prev => ({ ...prev, onboarding_completed: true }));
+    setShowOnboarding(false);
+    setShowRoleRequestForm(false);
+    setRoleRequestData({ role: "", first_name: "", last_name: "", positions: [] });
+    setScreen("home");
+    await loadData();
+  
     // Отправляем уведомление админам
     const roleName = requestedRole === "player" ? "игроком" : requestedRole === "coach" ? "тренером" : "болельщиком";
-    const userName = user.first_name || user.username || "Пользователь";
+    const userName = formData?.first_name ? `${formData.first_name} ${formData.last_name}` : user.first_name || user.username || "Пользователь";
     const message = `🆕 Новая заявка!\n\n${userName} хочет стать ${roleName}.\n\nПроверьте в админ-панели.`;
     
     // Получаем всех админов
@@ -5242,19 +5427,25 @@ const handleTelegramLogin = async (tgUser) => {
             await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ chat_id: admin.telegram_id, text: message }),
+              body: JSON.stringify({ 
+                chat_id: admin.telegram_id, 
+                text: message,
+                reply_markup: {
+                  inline_keyboard: [[
+                    { text: "📱 Открыть админ-панель", web_app: { url: "https://app.mtkcup.ru" } }
+                  ]]
+                }
+              }),
             });
           } catch (e) { console.error("Failed to notify admin:", e); }
         }
       }
     }
-    
-    alert("Заявка отправлена! Ожидайте одобрения администратора.");
-    } catch (error) {
-      console.error("Error submitting role request:", error);
-      alert("Ошибка отправки заявки. Попробуйте ещё раз.");
-    }
-  };
+  } catch (error) {
+    console.error("Error submitting role request:", error);
+    alert("Ошибка при отправке заявки");
+  }
+};
 
   // Одобрение заявки (для админа)
   const handleApproveRoleRequest = async (requestId, userId, role) => {
@@ -5434,15 +5625,27 @@ const handleGuest = () => {
   const showNav = !["welcome", "admin"].includes(screen);
   const safeAreaTop = tg?.safeAreaInset?.top || tg?.contentSafeAreaInset?.top || 0;
 
-  return (
-    <div style={{ 
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", 
-      background: colors.bg, 
-      minHeight: "100vh",
-      paddingTop: isTelegram ? (safeAreaTop > 0 ? `${safeAreaTop}px` : "60px") : "0",
-    }}>
-      {renderScreen()}
-      {showNav && <NavBar active={screen} setScreen={setScreen} />}
-    </div>
-  );
+return (
+  <div style={{
+    fontFamily: "'-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif'",
+    background: colors.bg,
+    minHeight: "100vh",
+    paddingTop: isTelegram ? (safeAreaTop > 0 ? `${safeAreaTop}px` : "60px") : "0",
+  }}>
+    {renderScreen()}
+    {showNav && <NavBar active={screen} setScreen={setScreen} />}
+    {showRoleRequestForm && (
+      <RoleRequestModal
+        show={showRoleRequestForm}
+        roleRequestData={roleRequestData}
+        setRoleRequestData={setRoleRequestData}
+        onSubmit={() => handleSubmitRoleRequest(roleRequestData.role, roleRequestData)}
+        onClose={() => {
+          setShowRoleRequestForm(false);
+          setRoleRequestData({ role: "", first_name: "", last_name: "", positions: [] });
+        }}
+      />
+    )}
+  </div>
+);
 }
