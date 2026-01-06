@@ -1187,6 +1187,7 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
 
 // Экран прогнозов
 const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, predictions, user, onMakePrediction, users }) => {
+  console.log("🎯 PredictionsScreen props:", { matches: matches?.length, teams: teams?.length, sponsors: sponsors?.length, prizes: prizes?.length, predictions: predictions?.length, user: user?.id });
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [prediction, setPrediction] = useState({ team1: 3, team2: 0 });
   
