@@ -855,9 +855,9 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", marginBottom: "24px" }}>
             {[
+              { label: "Прогнозы", icon: "🎯", screen: "predictions" },
               { label: "Моя команда", icon: "💛", screen: "myteam" },
               { label: "Команды", icon: "👥", screen: "teams", count: teams.length },
-              { label: "Расписание", icon: "📅", screen: "schedule" },
               { label: "Игроки", icon: "⚡", screen: "players" },
             ].map(item => (
               <Card key={item.screen} onClick={() => setScreen(item.screen)} style={{ textAlign: "center", padding: "20px" }}>
@@ -1179,6 +1179,208 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
             <Card style={{ textAlign: "center", color: colors.goldDark }}>Состав пока не заполнен</Card>
           )}
         </div>
+      </Container>
+    </div>
+  );
+};
+
+
+// Экран прогнозов
+const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, predictions, user, onMakePrediction, users }) => {
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [prediction, setPrediction] = useState({ team1: 3, team2: 0 });
+  
+  // Ближайшие матчи для прогнозов (только upcoming)
+  const upcomingMatches = (matches || [])
+    .filter(m => m.status === "upcoming")
+    .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+  
+  // Мои прогнозы
+  const myPredictions = (predictions || []).filter(p => p.user_id === user?.id);
+  
+  // Таблица лидеров
+  const leaderboard = (() => {
+    const scores = {};
+    (predictions || []).forEach(p => {
+      if (!scores[p.user_id]) scores[p.user_id] = 0;
+      scores[p.user_id] += p.points_earned || 0;
+    });
+    return Object.entries(scores)
+      .map(([id, pts]) => ({ user: (users || []).find(u => u.id === id), points: pts }))
+      .filter(x => x.user && x.points > 0)
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 10);
+  })();
+  
+  // Активный приз
+  const activePrize = (prizes || []).find(p => p.is_active);
+  const prizeSponsor = activePrize ? (sponsors || []).find(s => s.id === activePrize.sponsor_id) : null;
+  
+  const handleSubmitPrediction = async () => {
+    if (!selectedMatch || !user) return;
+    await onMakePrediction(selectedMatch.id, prediction.team1, prediction.team2);
+    setSelectedMatch(null);
+    setPrediction({ team1: 3, team2: 0 });
+  };
+  
+  const hasPrediction = (matchId) => myPredictions.some(p => p.match_id === matchId);
+  const getPrediction = (matchId) => myPredictions.find(p => p.match_id === matchId);
+  
+  return (
+    <div style={{ paddingBottom: "100px" }}>
+      <Header title="Прогнозы" />
+      <Container>
+        {/* Активный розыгрыш */}
+        {activePrize && prizeSponsor && (
+          <Card style={{ marginBottom: "20px", background: `linear-gradient(135deg, ${colors.gold} 0%, ${colors.goldDark} 100%)`, color: "white" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              {prizeSponsor.logo_url && (
+                <img src={prizeSponsor.logo_url} alt={prizeSponsor.name} style={{ width: 50, height: 50, borderRadius: "10px", objectFit: "cover", background: "white" }} />
+              )}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "12px", opacity: 0.9 }}>🎁 Розыгрыш от {prizeSponsor.name}</div>
+                <div style={{ fontSize: "16px", fontWeight: 700, marginTop: "4px" }}>{activePrize.title}</div>
+                {activePrize.description && <div style={{ fontSize: "12px", opacity: 0.9, marginTop: "2px" }}>{activePrize.description}</div>}
+              </div>
+            </div>
+          </Card>
+        )}
+        
+        {/* Как это работает */}
+        <Card style={{ marginBottom: "20px" }}>
+          <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 12px" }}>🎯 Как это работает</h3>
+          <div style={{ fontSize: "13px", color: colors.goldDark, lineHeight: 1.6 }}>
+            <div style={{ marginBottom: "8px" }}>• Угадай счёт матча до его начала</div>
+            <div style={{ marginBottom: "8px" }}>• <span style={{ color: colors.gold, fontWeight: 600 }}>+3 очка</span> за точный счёт</div>
+            <div style={{ marginBottom: "8px" }}>• <span style={{ color: colors.gold, fontWeight: 600 }}>+1 очко</span> за угаданного победителя</div>
+            <div>• Лучшие прогнозисты получают призы!</div>
+          </div>
+        </Card>
+        
+        {/* Форма прогноза */}
+        {selectedMatch && (
+          <Card style={{ marginBottom: "20px", border: `2px solid ${colors.gold}` }}>
+            <h4 style={{ fontSize: "14px", fontWeight: 600, margin: "0 0 16px", textAlign: "center" }}>Ваш прогноз</h4>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+              <div style={{ textAlign: "center", flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>
+                  {teams.find(t => t.id === selectedMatch.team1_id)?.name}
+                </div>
+                <select 
+                  value={prediction.team1} 
+                  onChange={e => setPrediction(p => ({ ...p, team1: parseInt(e.target.value) }))}
+                  style={{ width: "60px", padding: "12px", fontSize: "20px", fontWeight: 700, textAlign: "center", border: `2px solid ${colors.gold}`, borderRadius: "8px" }}
+                >
+                  {[0,1,2,3].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div style={{ fontSize: "24px", fontWeight: 700 }}>:</div>
+              <div style={{ textAlign: "center", flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>
+                  {teams.find(t => t.id === selectedMatch.team2_id)?.name}
+                </div>
+                <select 
+                  value={prediction.team2} 
+                  onChange={e => setPrediction(p => ({ ...p, team2: parseInt(e.target.value) }))}
+                  style={{ width: "60px", padding: "12px", fontSize: "20px", fontWeight: 700, textAlign: "center", border: `2px solid ${colors.gold}`, borderRadius: "8px" }}
+                >
+                  {[0,1,2,3].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+            </div>
+            {(prediction.team1 !== 3 && prediction.team2 !== 3) && (
+              <p style={{ color: "#dc2626", fontSize: "12px", textAlign: "center", marginTop: "8px" }}>Одна из команд должна набрать 3 сета</p>
+            )}
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <Button 
+                onClick={handleSubmitPrediction} 
+                disabled={prediction.team1 !== 3 && prediction.team2 !== 3}
+                style={{ flex: 1 }}
+              >
+                Отправить прогноз
+              </Button>
+              <Button variant="outline" onClick={() => setSelectedMatch(null)}>Отмена</Button>
+            </div>
+          </Card>
+        )}
+        
+        {/* Список матчей */}
+        <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Ближайшие матчи</h3>
+        {upcomingMatches.length === 0 ? (
+          <Card><p style={{ color: colors.goldDark, textAlign: "center" }}>Нет предстоящих матчей</p></Card>
+        ) : (
+          upcomingMatches.map(match => {
+            const team1 = teams.find(t => t.id === match.team1_id);
+            const team2 = teams.find(t => t.id === match.team2_id);
+            const myPred = getPrediction(match.id);
+            const matchTime = match.scheduled_time?.substring(11, 16) || "";
+            
+            return (
+              <Card key={match.id} style={{ marginBottom: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "14px", fontWeight: 600 }}>{team1?.name} vs {team2?.name}</div>
+                    <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "4px" }}>
+                      {matchTime && `⏰ ${matchTime}`}
+                    </div>
+                  </div>
+                  {myPred ? (
+                    <div style={{ textAlign: "center", padding: "8px 12px", background: colors.goldLight, borderRadius: "8px" }}>
+                      <div style={{ fontSize: "11px", color: colors.goldDark }}>Ваш прогноз</div>
+                      <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>
+                        {myPred.predicted_score_team1}:{myPred.predicted_score_team2}
+                      </div>
+                    </div>
+                  ) : user ? (
+                    <Button onClick={() => setSelectedMatch(match)} style={{ padding: "8px 16px" }}>
+                      Прогноз
+                    </Button>
+                  ) : (
+                    <Badge variant="default">Войдите</Badge>
+                  )}
+                </div>
+              </Card>
+            );
+          })
+        )}
+        
+        {/* Таблица лидеров */}
+        <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "24px 0 12px" }}>🏆 Таблица лидеров</h3>
+        <Card>
+          {leaderboard.length === 0 ? (
+            <p style={{ color: colors.goldDark, textAlign: "center" }}>Пока нет результатов</p>
+          ) : (
+            leaderboard.map((item, i) => (
+              <div key={item.user.id} style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "12px", 
+                padding: "10px 0",
+                borderBottom: i < leaderboard.length - 1 ? `1px solid ${colors.grayBorder}` : "none"
+              }}>
+                <div style={{ 
+                  width: "28px", 
+                  height: "28px", 
+                  borderRadius: "50%", 
+                  background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray,
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: "12px",
+                  color: i < 3 ? "white" : colors.text
+                }}>
+                  {i + 1}
+                </div>
+                <Avatar name={item.user.first_name || item.user.username} size={36} url={item.user.avatar_url} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: "14px" }}>{item.user.first_name || item.user.username} {item.user.last_name || ""}</div>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: "18px", color: colors.gold }}>{item.points}</div>
+              </div>
+            ))
+          )}
+        </Card>
       </Container>
     </div>
   );
@@ -2261,6 +2463,121 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [expandedMatch, setExpandedMatch] = useState(null);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   
+  // Прогнозы и спонсоры
+  const [showAddSponsor, setShowAddSponsor] = useState(false);
+  const [showAddPrize, setShowAddPrize] = useState(false);
+  const [newSponsor, setNewSponsor] = useState({ name: "", logo_url: "", description: "" });
+  const [newPrize, setNewPrize] = useState({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" });
+  
+  const handleCreateSponsor = async () => {
+    try {
+      setActionLoading(true);
+      await supabase.from("sponsors").insert({ name: newSponsor.name, logo_url: newSponsor.logo_url || null, description: newSponsor.description || null });
+      setNewSponsor({ name: "", logo_url: "", description: "" });
+      setShowAddSponsor(false);
+      await loadData();
+      alert("Спонсор добавлен!");
+    } catch (error) {
+      console.error("Error creating sponsor:", error);
+      alert("Ошибка добавления спонсора");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  
+  const handleDeleteSponsor = async (id) => {
+    if (!confirm("Удалить спонсора? Все связанные призы тоже будут удалены.")) return;
+    try {
+      setActionLoading(true);
+      await supabase.from("sponsors").delete().eq("id", id);
+      await loadData();
+    } catch (error) {
+      console.error("Error deleting sponsor:", error);
+      alert("Ошибка удаления");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  
+  const handleCreatePrize = async () => {
+    try {
+      setActionLoading(true);
+      await supabase.from("prizes").insert({
+        sponsor_id: newPrize.sponsor_id,
+        title: newPrize.title,
+        description: newPrize.description || null,
+        place: parseInt(newPrize.place),
+        tour_id: newPrize.tour_id || null
+      });
+      setNewPrize({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" });
+      setShowAddPrize(false);
+      await loadData();
+      alert("Приз добавлен!");
+    } catch (error) {
+      console.error("Error creating prize:", error);
+      alert("Ошибка добавления приза");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  
+  const handleDeletePrize = async (id) => {
+    if (!confirm("Удалить приз?")) return;
+    try {
+      setActionLoading(true);
+      await supabase.from("prizes").delete().eq("id", id);
+      await loadData();
+    } catch (error) {
+      console.error("Error deleting prize:", error);
+      alert("Ошибка удаления");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  
+  // Создание прогноза
+  const handleMakePrediction = async (matchId, team1Score, team2Score) => {
+    if (!user?.id) {
+      alert("Войдите чтобы делать прогнозы");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      
+      // Проверяем не начался ли уже матч
+      const match = matches.find(m => m.id === matchId);
+      if (match?.status !== "upcoming") {
+        alert("Матч уже начался, прогноз недоступен");
+        return;
+      }
+      
+      // Проверяем нет ли уже прогноза
+      const existing = predictions.find(p => p.user_id === user.id && p.match_id === matchId);
+      if (existing) {
+        alert("Вы уже сделали прогноз на этот матч");
+        return;
+      }
+      
+      const { error } = await supabase.from("predictions").insert({
+        user_id: user.id,
+        match_id: matchId,
+        predicted_score_team1: team1Score,
+        predicted_score_team2: team2Score,
+        points_earned: 0
+      });
+      
+      if (error) throw error;
+      
+      await loadData();
+      alert("✅ Прогноз принят!");
+    } catch (error) {
+      console.error("Error making prediction:", error);
+      alert("Ошибка сохранения прогноза");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  
   // Создание тура
   const [showCreateTour, setShowCreateTour] = useState(false);
   const [newTour, setNewTour] = useState({ number: "", date: "", location: "", address: "" });
@@ -2477,6 +2794,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
               { id: "videos", label: "Видео" },
               { id: "users", label: "Пользователи" },
               { id: "teams", label: "Команды" },
+              { id: "predictions", label: "Прогнозы" },
             ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)} style={{
                 padding: "10px 16px", borderRadius: "20px", border: "none",
@@ -3656,6 +3974,136 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
               })}
             </>
           )}
+
+          {/* Predictions tab */}
+          {tab === "predictions" && (
+            <>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 16px" }}>Система прогнозов</h3>
+              
+              {/* Спонсоры */}
+              <Card style={{ marginBottom: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Спонсоры ({sponsors?.length || 0})</h4>
+                  <Button onClick={() => setShowAddSponsor(true)} style={{ padding: "6px 12px", fontSize: "12px" }}>
+                    <Icons.Plus /> Добавить
+                  </Button>
+                </div>
+                
+                {showAddSponsor && (
+                  <div style={{ background: colors.goldLight, padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
+                    <Input label="Название" value={newSponsor.name} onChange={v => setNewSponsor(p => ({ ...p, name: v }))} placeholder="Название спонсора" />
+                    <Input label="Лого URL" value={newSponsor.logo_url} onChange={v => setNewSponsor(p => ({ ...p, logo_url: v }))} placeholder="https://..." style={{ marginTop: "8px" }} />
+                    <Input label="Описание" value={newSponsor.description} onChange={v => setNewSponsor(p => ({ ...p, description: v }))} placeholder="Описание (опционально)" style={{ marginTop: "8px" }} />
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button onClick={handleCreateSponsor} disabled={!newSponsor.name || actionLoading}>Сохранить</Button>
+                      <Button variant="outline" onClick={() => { setShowAddSponsor(false); setNewSponsor({ name: "", logo_url: "", description: "" }); }}>Отмена</Button>
+                    </div>
+                  </div>
+                )}
+                
+                {(sponsors || []).length === 0 ? (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Спонсоры не добавлены</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {(sponsors || []).map(s => (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                        {s.logo_url && <img src={s.logo_url} alt={s.name} style={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover" }} />}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: "14px" }}>{s.name}</div>
+                          {s.description && <div style={{ fontSize: "12px", color: colors.goldDark }}>{s.description}</div>}
+                        </div>
+                        <Badge variant={s.is_active ? "free" : "default"}>{s.is_active ? "Активен" : "Неактивен"}</Badge>
+                        <button onClick={() => handleDeleteSponsor(s.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}>
+                          <Icons.Close />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+              
+              {/* Призы */}
+              <Card style={{ marginBottom: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Призы ({prizes?.length || 0})</h4>
+                  <Button onClick={() => setShowAddPrize(true)} style={{ padding: "6px 12px", fontSize: "12px" }} disabled={(sponsors || []).length === 0}>
+                    <Icons.Plus /> Добавить
+                  </Button>
+                </div>
+                
+                {(sponsors || []).length === 0 && (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Сначала добавьте спонсора</p>
+                )}
+                
+                {showAddPrize && (
+                  <div style={{ background: colors.goldLight, padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
+                    <Select label="Спонсор" value={newPrize.sponsor_id} onChange={v => setNewPrize(p => ({ ...p, sponsor_id: v }))}
+                      options={[{ value: "", label: "Выберите спонсора" }, ...(sponsors || []).map(s => ({ value: s.id, label: s.name }))]} />
+                    <Input label="Название приза" value={newPrize.title} onChange={v => setNewPrize(p => ({ ...p, title: v }))} placeholder="Сертификат на 1000₽" style={{ marginTop: "8px" }} />
+                    <Input label="Описание" value={newPrize.description} onChange={v => setNewPrize(p => ({ ...p, description: v }))} placeholder="Описание приза" style={{ marginTop: "8px" }} />
+                    <Select label="За какое место" value={newPrize.place} onChange={v => setNewPrize(p => ({ ...p, place: v }))} style={{ marginTop: "8px" }}
+                      options={[{ value: "1", label: "1 место" }, { value: "2", label: "2 место" }, { value: "3", label: "3 место" }, { value: "10", label: "Топ-10" }]} />
+                    <Select label="За какой тур" value={newPrize.tour_id} onChange={v => setNewPrize(p => ({ ...p, tour_id: v }))} style={{ marginTop: "8px" }}
+                      options={[{ value: "", label: "Весь сезон" }, ...(tours || []).map(t => ({ value: t.id, label: `Тур ${t.number}` }))]} />
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button onClick={handleCreatePrize} disabled={!newPrize.sponsor_id || !newPrize.title || actionLoading}>Сохранить</Button>
+                      <Button variant="outline" onClick={() => { setShowAddPrize(false); setNewPrize({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" }); }}>Отмена</Button>
+                    </div>
+                  </div>
+                )}
+                
+                {(prizes || []).length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {(prizes || []).map(p => {
+                      const sponsor = (sponsors || []).find(s => s.id === p.sponsor_id);
+                      const tour = (tours || []).find(t => t.id === p.tour_id);
+                      return (
+                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: "14px" }}>{p.title}</div>
+                            <div style={{ fontSize: "12px", color: colors.goldDark }}>
+                              {sponsor?.name || "?"} • {p.place === 10 ? "Топ-10" : `${p.place} место`} • {tour ? `Тур ${tour.number}` : "Сезон"}
+                            </div>
+                          </div>
+                          <button onClick={() => handleDeletePrize(p.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}>
+                            <Icons.Close />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+              
+              {/* Таблица лидеров */}
+              <Card>
+                <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Таблица лидеров</h4>
+                {(() => {
+                  const leaderboard = {};
+                  (predictions || []).forEach(p => {
+                    if (!leaderboard[p.user_id]) leaderboard[p.user_id] = 0;
+                    leaderboard[p.user_id] += p.points_earned || 0;
+                  });
+                  const sorted = Object.entries(leaderboard)
+                    .map(([id, pts]) => ({ user: (users || []).find(u => u.id === id), points: pts }))
+                    .filter(x => x.user)
+                    .sort((a, b) => b.points - a.points)
+                    .slice(0, 10);
+                  
+                  if (sorted.length === 0) return <p style={{ color: colors.goldDark, fontSize: "13px" }}>Пока нет прогнозов</p>;
+                  
+                  return sorted.map((item, i) => (
+                    <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: i < sorted.length - 1 ? `1px solid ${colors.grayBorder}` : "none" }}>
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: i < 3 ? colors.gold : colors.gray, color: i < 3 ? "white" : colors.text, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>{i + 1}</div>
+                      <Avatar name={item.user.first_name} size={32} url={item.user.avatar_url} />
+                      <div style={{ flex: 1, fontSize: "14px", fontWeight: 500 }}>{item.user.first_name} {item.user.last_name || ""}</div>
+                      <div style={{ fontSize: "16px", fontWeight: 700, color: colors.gold }}>{item.points}</div>
+                    </div>
+                  ));
+                })()}
+              </Card>
+            </>
+          )}
         </div>
       </Container>
     </div>
@@ -4198,6 +4646,9 @@ export default function MTKCupApp() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [playerStats, setPlayerStats] = useState([]);
+  const [sponsors, setSponsors] = useState([]);
+  const [prizes, setPrizes] = useState([]);
+  const [predictions, setPredictions] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showRoleRequestForm, setShowRoleRequestForm] = useState(false);
@@ -4237,6 +4688,9 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       const { data: teamRequestsData } = await supabase.from("team_requests").select("*").order("created_at", { ascending: false });
       const { data: playerStatsData } = await supabase.from("match_player_stats").select("*");
       const { data: roleRequestsData } = await supabase.from("role_requests").select("*").order("created_at", { ascending: false });
+      const { data: sponsorsData } = await supabase.from("sponsors").select("*").order("created_at", { ascending: false });
+      const { data: prizesData } = await supabase.from("prizes").select("*").order("created_at", { ascending: false });
+      const { data: predictionsData } = await supabase.from("predictions").select("*").order("created_at", { ascending: false });
 
       const playersWithDetails = (playersData || []).map(player => ({
         ...player,
@@ -4253,6 +4707,9 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       setUsers(usersData || []);
       setPlayerStats(playerStatsData || []);
       setRoleRequests(roleRequestsData || []);
+      setSponsors(sponsorsData || []);
+      setPrizes(prizesData || []);
+      setPredictions(predictionsData || []);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -5870,6 +6327,7 @@ const handleGuest = () => {
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} users={users} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
+      case "predictions": return <PredictionsScreen matches={matches} teams={teams} tours={tours} sponsors={sponsors} prizes={prizes} predictions={predictions} user={user} onMakePrediction={handleMakePrediction} users={users} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
