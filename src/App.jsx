@@ -2259,6 +2259,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [teamMessage, setTeamMessage] = useState("");
   const [expandedMatch, setExpandedMatch] = useState(null);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
   
   // Создание тура
   const [showCreateTour, setShowCreateTour] = useState(false);
@@ -3040,10 +3041,26 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
               )}
               
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Управление пользователями ({users.length})</h3>
-              <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "16px" }}>
+              <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "12px" }}>
                 Роли вычисляются автоматически: Тренер — если назначен на команду, Капитан — если отмечен в составе, Игрок — если есть в players
               </p>
-              {users.map(u => {
+              
+              {/* Поиск пользователей */}
+              <div style={{ marginBottom: "16px" }}>
+                <Input 
+                  label="Поиск"
+                  value={userSearchQuery}
+                  onChange={setUserSearchQuery}
+                  placeholder="Введите имя или фамилию..."
+                />
+              </div>
+              
+              {users.filter(u => {
+                if (!userSearchQuery) return true;
+                const query = userSearchQuery.toLowerCase();
+                const fullName = `${u.first_name || ""} ${u.last_name || ""} ${u.username || ""}`.toLowerCase();
+                return fullName.includes(query);
+              }).map(u => {
                 const isEditing = editingUser?.id === u.id;
                 const userPlayerRecord = players.find(p => p.user_id === u.id);
                 const userCoachTeam = teams.find(t => t.coach_id === u.id);
