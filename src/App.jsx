@@ -4,8 +4,7 @@ import { supabase } from "./lib/supabase";
 // Supabase URL for edge functions
 const SUPABASE_URL = "https://ecayfpszkleyxuhsekhu.supabase.co";
 
-// Telegram Bot for notifications
-const BOT_TOKEN = "8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI";
+// Telegram notifications via Edge Function
 
 const sendNotification = async (type, team1Name, team2Name, score = "") => {
   try {
@@ -39,7 +38,7 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
     for (const user of users) {
       if (!user.telegram_id) continue;
       try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
@@ -96,7 +95,7 @@ const sendToOrganizers = async (userName, userTelegramId, message, userUsername 
           };
         }
         
-        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(messageData)
@@ -148,7 +147,7 @@ const sendTeamMessage = async (teamId, teamName, message, senderName) => {
       if (!user.telegram_id) continue;
       try {
         console.log("Sending to:", user.telegram_id);
-        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
@@ -4229,7 +4228,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       if (player?.users?.telegram_id) {
         const message = `🏐 Приглашение в команду!\n\nКоманда "${coachTeam.name}" приглашает вас в свой состав.\n\nОткройте приложение чтобы принять или отклонить.`;
         try {
-          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+          await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: player.users.telegram_id, text: message }),
@@ -4335,7 +4334,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         const playerName = user?.first_name || user?.username || "Игрок";
         const message = `📝 Новая заявка в команду!\n\n${playerName} хочет вступить в команду "${team?.name}".\n\nПроверьте в разделе "Моя команда".`;
         try {
-          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+          await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: coachUser.telegram_id, text: message }),
@@ -4351,7 +4350,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         const playerUser = users.find(u => u.id === teamPlayer.user_id);
         if (playerUser?.telegram_id && playerUser.id !== user.id) {
           try {
-            await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+            await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ 
@@ -4415,7 +4414,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       const acceptedUser = acceptedPlayer?.users || freshUsers?.find(u => u.id === acceptedPlayer?.user_id);
       if (acceptedUser?.telegram_id) {
         try {
-          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+          await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
@@ -4438,7 +4437,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         const playerUser = teamPlayer?.users || freshUsers?.find(u => u.id === teamPlayer.user_id);
         if (playerUser?.telegram_id && playerUser.id !== acceptedUser?.id) {
           try {
-            await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+            await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ 
@@ -4520,7 +4519,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
           for (const admin of admins) {
             if (admin.telegram_id) {
               try {
-                await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+                await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ chat_id: admin.telegram_id, text: message }),
@@ -4567,7 +4566,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
             console.log("🔍 Player telegram_id:", playerUser?.telegram_id);
             if (playerUser?.telegram_id) {
               try {
-                const response = await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+                const response = await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ 
@@ -4978,7 +4977,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       const message = `📋 Ваша роль изменена!\n\nНовая роль: ${roleNames[newRole]}\n\nИзменено администратором.`;
       if (targetUser?.telegram_id) {
         try {
-          await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+          await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: targetUser.telegram_id, text: message }),
@@ -5597,7 +5596,7 @@ const handleTelegramLogin = async (tgUser) => {
       for (const admin of admins) {
         if (admin.telegram_id) {
           try {
-            await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+            await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ 
@@ -5727,7 +5726,7 @@ const handleTelegramLogin = async (tgUser) => {
       const roleName = roleNames[role] || role;
       const message = `✅ Ваша заявка принята!\n\nВы теперь ${roleName} в турнире "Кубок МТК".\n\nОткройте приложение чтобы продолжить.`;
       try {
-        await fetch(`https://api.telegram.org/bot8513614914:AAFygkqgY7IBf5ktbzcdSXZF7QCOwjrCRAI/sendMessage`, {
+        await fetch(`https://ecayfpszkleyxuhsekhu.supabase.co/functions/v1/send-notification`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
