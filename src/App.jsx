@@ -3943,10 +3943,39 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           {tab === "predictions" && (
             <div>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 16px" }}>Система прогнозов</h3>
+              
+              {/* Спонсоры */}
               <Card style={{ marginBottom: "16px" }}>
-                <p>Спонсоров: {String((sponsors || []).length)}</p>
-                <p>Призов: {String((prizes || []).length)}</p>  
-                <p>Прогнозов: {String((predictions || []).length)}</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Спонсоры ({(sponsors || []).length})</h4>
+                  <Button onClick={() => setShowAddSponsor(true)} style={{ padding: "6px 12px", fontSize: "12px" }}>+ Добавить</Button>
+                </div>
+                
+                {(sponsors || []).length === 0 ? (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Спонсоры не добавлены</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {(sponsors || []).map(s => (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: "14px" }}>{s.name || "Без названия"}</div>
+                          <div style={{ fontSize: "12px", color: colors.goldDark }}>{s.description || ""}</div>
+                        </div>
+                        <button onClick={() => handleDeleteSponsor(s.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+              
+              {/* Призы - пока просто счётчик */}
+              <Card style={{ marginBottom: "16px" }}>
+                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Призы ({(prizes || []).length})</h4>
+              </Card>
+              
+              {/* Прогнозы - пока просто счётчик */}
+              <Card>
+                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Прогнозов: {(predictions || []).length}</h4>
               </Card>
             </div>
           )}
