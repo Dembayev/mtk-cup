@@ -3960,6 +3960,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           {tab === "predictions" && (
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 16px" }}>Система прогнозов</h3>
+              {console.log("📊 Predictions tab - sponsors:", sponsors, "prizes:", prizes, "predictions:", predictions)}
               
               {/* Спонсоры */}
               <Card style={{ marginBottom: "16px" }}>
