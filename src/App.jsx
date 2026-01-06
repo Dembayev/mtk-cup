@@ -2468,6 +2468,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [showAddSponsor, setShowAddSponsor] = useState(false);
   const [showAddPrize, setShowAddPrize] = useState(false);
   const [newSponsor, setNewSponsor] = useState({ name: "", logo_url: "", description: "" });
+  const [uploadingSponsorLogo, setUploadingSponsorLogo] = useState(false);
   const [newPrize, setNewPrize] = useState({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" });
   
   const handleCreateSponsor = async () => {
@@ -2586,6 +2587,40 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
       return null;
     } finally {
       setUploadingLogo(false);
+    }
+  };
+  
+  // Загрузка логотипа спонсора
+  const handleUploadSponsorLogo = async (file) => {
+    try {
+      setUploadingSponsorLogo(true);
+      if (!file) return null;
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return null;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Размер файла не должен превышать 2MB');
+        return null;
+      }
+      const fileExt = file.name.split('.').pop();
+      const fileName = `sponsor-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `sponsor-logos/${fileName}`;
+      
+      const { data, error } = await supabase.storage
+        .from('team-logos')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+      
+      if (error) throw error;
+      
+      const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(filePath);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading sponsor logo:', error);
+      alert('Ошибка загрузки логотипа');
+      return null;
+    } finally {
+      setUploadingSponsorLogo(false);
     }
   };
   
@@ -3938,10 +3973,34 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 {showAddSponsor && (
                   <div style={{ background: colors.goldLight, padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
                     <Input label="Название" value={newSponsor.name} onChange={v => setNewSponsor(p => ({ ...p, name: v }))} placeholder="Название спонсора" />
-                    <Input label="Лого URL" value={newSponsor.logo_url} onChange={v => setNewSponsor(p => ({ ...p, logo_url: v }))} placeholder="https://..." style={{ marginTop: "8px" }} />
+                    
+                    {/* Загрузка логотипа */}
+                    <div style={{ marginTop: "8px" }}>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, marginBottom: "4px", color: colors.goldDark }}>Логотип</label>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = await handleUploadSponsorLogo(file);
+                              if (url) setNewSponsor(p => ({ ...p, logo_url: url }));
+                            }
+                          }}
+                          style={{ fontSize: "13px" }}
+                        />
+                        {uploadingSponsorLogo && <span style={{ fontSize: "12px", color: colors.goldDark }}>Загрузка...</span>}
+                        {newSponsor.logo_url && <span style={{ fontSize: "12px", color: "green" }}>✓ Загружено</span>}
+                      </div>
+                      {newSponsor.logo_url && (
+                        <img src={newSponsor.logo_url} alt="Preview" style={{ width: 60, height: 60, borderRadius: "8px", objectFit: "cover", marginTop: "8px" }} />
+                      )}
+                    </div>
+                    
                     <Input label="Описание" value={newSponsor.description} onChange={v => setNewSponsor(p => ({ ...p, description: v }))} placeholder="Описание (опционально)" style={{ marginTop: "8px" }} />
                     <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                      <Button onClick={handleCreateSponsor} disabled={!newSponsor.name || actionLoading}>Сохранить</Button>
+                      <Button onClick={handleCreateSponsor} disabled={!newSponsor.name || uploadingSponsorLogo}>Сохранить</Button>
                       <Button variant="outline" onClick={() => { setShowAddSponsor(false); setNewSponsor({ name: "", logo_url: "", description: "" }); }}>Отмена</Button>
                     </div>
                   </div>
