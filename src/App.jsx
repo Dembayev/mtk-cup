@@ -889,26 +889,27 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
             <>
               {nextTour && (
                 <div style={{ 
-                  background: colors.goldLight, 
-                  borderRadius: "12px", 
+                  background: colors.gold, 
+                  color: colors.bg, 
                   padding: "12px 16px", 
-                  marginBottom: "12px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center"
+                  borderRadius: "12px", 
+                  marginBottom: "16px" 
                 }}>
-                  <div>
-                    <div style={{ fontSize: "16px", fontWeight: 700, color: colors.goldDark }}>Тур {nextTour.number}</div>
-                    {nextTour.date && (
-                      <div style={{ fontSize: "13px", color: colors.goldDark, marginTop: "2px" }}>
-                        {new Date(nextTour.date).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
-                      </div>
-                    )}
+                  <div style={{ fontSize: "18px", fontWeight: 700 }}>
+                    Тур {nextTour.number}
                   </div>
-                  <div style={{ fontSize: "24px" }}>🏐</div>
+                  {nextTour.date && (
+                    <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Icons.Calendar />{new Date(nextTour.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}
+                    </div>
+                  )}
+                  {nextTour.location && (
+                    <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Icons.MapPin />{nextTour.location}{nextTour.address ? `, ${nextTour.address}` : ""}
+                    </div>
+                  )}
                 </div>
               )}
-              <h3 style={{ fontSize: "18px", fontWeight: 700, margin: "0 0 12px" }}>Ближайшие матчи</h3>
               {upcomingMatches.map(match => (
                 <Card key={match.id} onClick={() => setScreen("schedule")} style={{ marginBottom: "12px", cursor: "pointer" }}><MatchCard match={match} teams={teams} /></Card>
               ))}
