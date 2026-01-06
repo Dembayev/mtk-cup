@@ -3951,12 +3951,41 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   <Button onClick={() => setShowAddSponsor(true)} style={{ padding: "6px 12px", fontSize: "12px" }}>+ Добавить</Button>
                 </div>
                 
+                {showAddSponsor && (
+                  <div style={{ background: colors.goldLight, padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
+                    <Input label="Название" value={newSponsor.name} onChange={v => setNewSponsor(p => ({ ...p, name: v }))} placeholder="Название спонсора" />
+                    <div style={{ marginTop: "8px" }}>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, marginBottom: "4px", color: colors.goldDark }}>Логотип</label>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files && e.target.files[0];
+                          if (file) {
+                            const url = await handleUploadSponsorLogo(file);
+                            if (url) setNewSponsor(p => ({ ...p, logo_url: url }));
+                          }
+                        }}
+                        style={{ fontSize: "13px" }}
+                      />
+                      {uploadingSponsorLogo && <span style={{ fontSize: "12px", color: colors.goldDark, marginLeft: "8px" }}>Загрузка...</span>}
+                      {newSponsor.logo_url && <span style={{ fontSize: "12px", color: "green", marginLeft: "8px" }}>✓</span>}
+                    </div>
+                    <Input label="Описание" value={newSponsor.description} onChange={v => setNewSponsor(p => ({ ...p, description: v }))} placeholder="Описание" style={{ marginTop: "8px" }} />
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button onClick={handleCreateSponsor} disabled={!newSponsor.name || uploadingSponsorLogo}>Сохранить</Button>
+                      <Button variant="outline" onClick={() => { setShowAddSponsor(false); setNewSponsor({ name: "", logo_url: "", description: "" }); }}>Отмена</Button>
+                    </div>
+                  </div>
+                )}
+                
                 {(sponsors || []).length === 0 ? (
                   <p style={{ color: colors.goldDark, fontSize: "13px" }}>Спонсоры не добавлены</p>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {(sponsors || []).map(s => (
                       <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                        {s.logo_url ? <img src={s.logo_url} alt="" style={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} /> : null}
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: "14px" }}>{s.name || "Без названия"}</div>
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>{s.description || ""}</div>
@@ -3968,14 +3997,76 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 )}
               </Card>
               
-              {/* Призы - пока просто счётчик */}
+              {/* Призы */}
               <Card style={{ marginBottom: "16px" }}>
-                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Призы ({(prizes || []).length})</h4>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Призы ({(prizes || []).length})</h4>
+                  <Button onClick={() => setShowAddPrize(true)} style={{ padding: "6px 12px", fontSize: "12px" }} disabled={(sponsors || []).length === 0}>+ Добавить</Button>
+                </div>
+                
+                {(sponsors || []).length === 0 && <p style={{ color: colors.goldDark, fontSize: "13px" }}>Сначала добавьте спонсора</p>}
+                
+                {showAddPrize && (
+                  <div style={{ background: colors.goldLight, padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
+                    <Select label="Спонсор" value={newPrize.sponsor_id} onChange={v => setNewPrize(p => ({ ...p, sponsor_id: v }))}
+                      options={[{ value: "", label: "Выберите спонсора" }].concat((sponsors || []).map(s => ({ value: s.id, label: s.name })))} />
+                    <Input label="Название приза" value={newPrize.title} onChange={v => setNewPrize(p => ({ ...p, title: v }))} placeholder="Сертификат на 1000₽" style={{ marginTop: "8px" }} />
+                    <Input label="Описание" value={newPrize.description} onChange={v => setNewPrize(p => ({ ...p, description: v }))} placeholder="Описание" style={{ marginTop: "8px" }} />
+                    <Select label="За какое место" value={newPrize.place} onChange={v => setNewPrize(p => ({ ...p, place: v }))} style={{ marginTop: "8px" }}
+                      options={[{ value: "1", label: "1 место" }, { value: "2", label: "2 место" }, { value: "3", label: "3 место" }]} />
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button onClick={handleCreatePrize} disabled={!newPrize.sponsor_id || !newPrize.title}>Сохранить</Button>
+                      <Button variant="outline" onClick={() => { setShowAddPrize(false); setNewPrize({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" }); }}>Отмена</Button>
+                    </div>
+                  </div>
+                )}
+                
+                {(prizes || []).length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {(prizes || []).map(p => {
+                      const sponsor = (sponsors || []).find(s => s.id === p.sponsor_id);
+                      return (
+                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: "14px" }}>{p.title}</div>
+                            <div style={{ fontSize: "12px", color: colors.goldDark }}>{sponsor ? sponsor.name : "?"} • {p.place} место</div>
+                          </div>
+                          <button onClick={() => handleDeletePrize(p.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}>✕</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </Card>
               
-              {/* Прогнозы - пока просто счётчик */}
+              {/* Таблица лидеров */}
               <Card>
-                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Прогнозов: {(predictions || []).length}</h4>
+                <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Таблица лидеров ({(predictions || []).length} прогнозов)</h4>
+                {(predictions || []).length === 0 ? (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Пока нет прогнозов</p>
+                ) : (
+                  <div>
+                    {Object.entries((predictions || []).reduce((acc, p) => {
+                      acc[p.user_id] = (acc[p.user_id] || 0) + (p.points_earned || 0);
+                      return acc;
+                    }, {}))
+                      .map(([id, pts]) => {
+                        const u = (users || []).find(x => x.id === id);
+                        return u ? { user: u, points: pts } : null;
+                      })
+                      .filter(Boolean)
+                      .sort((a, b) => b.points - a.points)
+                      .slice(0, 10)
+                      .map((item, i) => (
+                        <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: i < 9 ? "1px solid #eee" : "none" }}>
+                          <div style={{ width: 24, textAlign: "center", fontWeight: 700 }}>{i + 1}</div>
+                          <div style={{ flex: 1 }}>{item.user.first_name} {item.user.last_name || ""}</div>
+                          <div style={{ fontWeight: 700, color: colors.gold }}>{item.points}</div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
               </Card>
             </div>
           )}
