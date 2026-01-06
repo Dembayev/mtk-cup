@@ -2472,7 +2472,6 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   
   const handleCreateSponsor = async () => {
     try {
-      setActionLoading(true);
       await supabase.from("sponsors").insert({ name: newSponsor.name, logo_url: newSponsor.logo_url || null, description: newSponsor.description || null });
       setNewSponsor({ name: "", logo_url: "", description: "" });
       setShowAddSponsor(false);
@@ -2481,28 +2480,22 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     } catch (error) {
       console.error("Error creating sponsor:", error);
       alert("Ошибка добавления спонсора");
-    } finally {
-      setActionLoading(false);
     }
   };
-  
+
   const handleDeleteSponsor = async (id) => {
     if (!confirm("Удалить спонсора? Все связанные призы тоже будут удалены.")) return;
     try {
-      setActionLoading(true);
       await supabase.from("sponsors").delete().eq("id", id);
       await loadData();
     } catch (error) {
       console.error("Error deleting sponsor:", error);
       alert("Ошибка удаления");
-    } finally {
-      setActionLoading(false);
     }
   };
   
   const handleCreatePrize = async () => {
     try {
-      setActionLoading(true);
       await supabase.from("prizes").insert({
         sponsor_id: newPrize.sponsor_id,
         title: newPrize.title,
@@ -2517,22 +2510,17 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     } catch (error) {
       console.error("Error creating prize:", error);
       alert("Ошибка добавления приза");
-    } finally {
-      setActionLoading(false);
     }
   };
   
   const handleDeletePrize = async (id) => {
     if (!confirm("Удалить приз?")) return;
     try {
-      setActionLoading(true);
       await supabase.from("prizes").delete().eq("id", id);
       await loadData();
     } catch (error) {
       console.error("Error deleting prize:", error);
       alert("Ошибка удаления");
-    } finally {
-      setActionLoading(false);
     }
   };
   
