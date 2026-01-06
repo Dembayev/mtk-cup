@@ -2098,10 +2098,15 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
   
   const handleSave = async () => {
     const stat = {
-      aces, serve_errors: serveErrors, receive_errors: receiveErrors,
-      attack_points: attackPoints, attack_errors: attackErrors,
-      block_points: blockPoints, block_errors: blockErrors
+      aces: parseInt(aces) || 0, 
+      serve_errors: parseInt(serveErrors) || 0, 
+      receive_errors: parseInt(receiveErrors) || 0,
+      attack_points: parseInt(attackPoints) || 0, 
+      attack_errors: parseInt(attackErrors) || 0,
+      block_points: parseInt(blockPoints) || 0, 
+      block_errors: parseInt(blockErrors) || 0
     };
+    console.log("Saving stat:", { playerId: player.id, matchId, stat, existingId: existingStat?.id });
     await onSave(player.id, matchId, stat, existingStat?.id);
     setIsEditing(false);
   };
@@ -2111,7 +2116,10 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
         <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
-        <span style={{ fontSize: "13px", flex: 1 }}>{player.users?.first_name || player.users?.username}</span>
+        <span style={{ fontSize: "13px", flex: 1 }}>
+          {player.jersey_number && <span style={{ color: colors.gold, marginRight: "4px" }}>#{player.jersey_number}</span>}
+          {player.users?.first_name || player.users?.username} {player.users?.last_name || ""}
+        </span>
         {existingStat ? (
           <span style={{ fontSize: "11px", color: colors.goldDark }}>
             А:{existingStat.aces}/{existingStat.serve_errors} | Ат:{existingStat.attack_points}/{existingStat.attack_errors} | Б:{existingStat.block_points}
@@ -2130,7 +2138,10 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
     <div style={{ padding: "12px", background: colors.gray, borderRadius: "8px", marginBottom: "8px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
         <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
-        <span style={{ fontSize: "13px", fontWeight: 600 }}>{player.users?.first_name || player.users?.username}</span>
+        <span style={{ fontSize: "13px", fontWeight: 600 }}>
+          {player.jersey_number && <span style={{ color: colors.gold, marginRight: "4px" }}>#{player.jersey_number}</span>}
+          {player.users?.first_name || player.users?.username} {player.users?.last_name || ""}
+        </span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
         <div>
@@ -5398,22 +5409,32 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
 
   
   const handleSavePlayerStat = async (playerId, matchId, stat, existingId) => {
+    console.log("📊 handleSavePlayerStat called:", { playerId, matchId, stat, existingId });
     try {
       setActionLoading(true);
       
       // Находим игрока чтобы узнать его team_id в момент матча
       const player = players.find(p => p.id === playerId);
       const teamId = player?.team_id;
+      console.log("📊 Player found:", player?.id, "teamId:", teamId);
       
+      let result;
       if (existingId) {
-        await supabase.from("match_player_stats").update(stat).eq("id", existingId);
+        console.log("📊 Updating existing stat:", existingId);
+        result = await supabase.from("match_player_stats").update(stat).eq("id", existingId).select();
       } else {
-        await supabase.from("match_player_stats").insert({
+        console.log("📊 Inserting new stat");
+        result = await supabase.from("match_player_stats").insert({
           player_id: playerId,
           match_id: matchId,
-          team_id: teamId, // Сохраняем команду в момент матча
+          team_id: teamId,
           ...stat
-        });
+        }).select();
+      }
+      console.log("📊 Supabase result:", result);
+      if (result.error) {
+        console.error("📊 Supabase error:", result.error);
+        throw result.error;
       }
       await loadData();
       alert("Статистика сохранена!");
