@@ -2536,49 +2536,6 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     }
   };
   
-  // Создание прогноза
-  const handleMakePrediction = async (matchId, team1Score, team2Score) => {
-    if (!user?.id) {
-      alert("Войдите чтобы делать прогнозы");
-      return;
-    }
-    try {
-      setActionLoading(true);
-      
-      // Проверяем не начался ли уже матч
-      const match = matches.find(m => m.id === matchId);
-      if (match?.status !== "upcoming") {
-        alert("Матч уже начался, прогноз недоступен");
-        return;
-      }
-      
-      // Проверяем нет ли уже прогноза
-      const existing = predictions.find(p => p.user_id === user.id && p.match_id === matchId);
-      if (existing) {
-        alert("Вы уже сделали прогноз на этот матч");
-        return;
-      }
-      
-      const { error } = await supabase.from("predictions").insert({
-        user_id: user.id,
-        match_id: matchId,
-        predicted_score_team1: team1Score,
-        predicted_score_team2: team2Score,
-        points_earned: 0
-      });
-      
-      if (error) throw error;
-      
-      await loadData();
-      alert("✅ Прогноз принят!");
-    } catch (error) {
-      console.error("Error making prediction:", error);
-      alert("Ошибка сохранения прогноза");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-  
   // Создание тура
   const [showCreateTour, setShowCreateTour] = useState(false);
   const [newTour, setNewTour] = useState({ number: "", date: "", location: "", address: "" });
@@ -5953,6 +5910,49 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
     } catch (error) {
       console.error("Error saving player stat:", error);
       alert("Ошибка сохранения статистики");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Создание прогноза пользователем
+  const handleMakePrediction = async (matchId, team1Score, team2Score) => {
+    if (!user?.id) {
+      alert("Войдите чтобы делать прогнозы");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      
+      // Проверяем не начался ли уже матч
+      const match = matches.find(m => m.id === matchId);
+      if (match?.status !== "upcoming") {
+        alert("Матч уже начался, прогноз недоступен");
+        return;
+      }
+      
+      // Проверяем нет ли уже прогноза
+      const existing = predictions.find(p => p.user_id === user.id && p.match_id === matchId);
+      if (existing) {
+        alert("Вы уже сделали прогноз на этот матч");
+        return;
+      }
+      
+      const { error } = await supabase.from("predictions").insert({
+        user_id: user.id,
+        match_id: matchId,
+        predicted_score_team1: team1Score,
+        predicted_score_team2: team2Score,
+        points_earned: 0
+      });
+      
+      if (error) throw error;
+      
+      await loadData();
+      alert("✅ Прогноз принят!");
+    } catch (error) {
+      console.error("Error making prediction:", error);
+      alert("Ошибка сохранения прогноза");
     } finally {
       setActionLoading(false);
     }
