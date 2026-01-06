@@ -1,8 +1,8 @@
-import { colors } from '../../constants';
+import { colors } from '../../constants/colors';
 
-export const Input = ({ label, value, onChange, placeholder, type = "text", style = {} }) => (
-  <div style={{ marginBottom: "16px", ...style }}>
-    {label && <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: 500, color: colors.goldDark }}>{label}</label>}
+export const Input = ({ label, value, onChange, type = "text", placeholder, style }) => (
+  <div style={{ marginBottom: "12px", ...style }}>
+    {label && <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "6px" }}>{label}</label>}
     <input
       type={type}
       value={value}
@@ -10,10 +10,10 @@ export const Input = ({ label, value, onChange, placeholder, type = "text", styl
       placeholder={placeholder}
       style={{
         width: "100%",
-        padding: "12px 16px",
-        borderRadius: "10px",
+        padding: "10px 12px",
+        borderRadius: "8px",
         border: `1px solid ${colors.grayBorder}`,
-        fontSize: "15px",
+        fontSize: "14px",
         outline: "none",
         boxSizing: "border-box",
       }}

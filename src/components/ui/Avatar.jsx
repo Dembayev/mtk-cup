@@ -1,37 +1,28 @@
-import { colors } from '../../constants';
+import { useState } from 'react';
+import { colors } from '../../constants/colors';
 
 export const Avatar = ({ name, size = 48, url }) => {
-  if (url) {
-    return (
-      <img 
-        src={url} 
-        alt={name || "avatar"} 
-        style={{ 
-          width: size, 
-          height: size, 
-          borderRadius: "50%", 
-          objectFit: "cover",
-          border: `2px solid ${colors.goldLight}`
-        }} 
-      />
-    );
-  }
-  
-  const initials = (name || "?").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  const [imgError, setImgError] = useState(false);
+  const showImage = url && !imgError;
   return (
     <div style={{
       width: size,
       height: size,
+      background: showImage ? "transparent" : colors.goldLight,
       borderRadius: "50%",
-      background: `linear-gradient(135deg, ${colors.gold}, ${colors.goldDark})`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "white",
-      fontWeight: 700,
-      fontSize: size * 0.35,
+      fontWeight: 600,
+      fontSize: size * 0.4,
+      color: colors.goldDark,
+      overflow: "hidden",
     }}>
-      {initials}
+      {showImage ? (
+        <img src={url} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setImgError(true)} />
+      ) : (
+        name?.[0] === "@" ? name?.[1]?.toUpperCase() : name?.[0]?.toUpperCase()
+      )}
     </div>
   );
 };

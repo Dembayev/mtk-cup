@@ -1,20 +1,15 @@
-// Get display name for user
-export const getDisplayName = (user) => {
-  if (!user) return "Гость";
-  if (user.first_name) return `${user.first_name} ${user.last_name || ""}`.trim();
-  if (user.username) return `@${user.username}`;
-  return "Пользователь";
-};
-
-// Get user roles based on data
-export const getUserRoles = (user, players, teams) => {
+export const getUserRoles = (user, players, teams, roleRequests = []) => {
   if (!user) return { isGuest: true, isFan: false, isPlayer: false, isCaptain: false, isCoach: false, isAdmin: false, roles: [] };
   
   const isAdmin = user.role === "admin";
-  const playerRecord = players.find(p => p.user_id === user.id);
+  const playerRecord = players?.find(p => p.user_id === user.id);
   const isPlayer = !!playerRecord;
-  const isCaptain = playerRecord?.is_captain || false;
-  const isCoach = teams.some(t => t.coach_id === user.id);
+  const isCaptain = playerRecord?.is_captain === true;
+  
+  const isCoachByTeam = teams?.some(t => t.coach_id === user.id) || false;
+  const isCoachByRequest = roleRequests?.some(r => r.user_id === user.id && r.requested_role === "coach" && r.status === "approved") || false;
+  const isCoach = isCoachByTeam || isCoachByRequest;
+  
   const isFan = !isPlayer && !isCoach && !isAdmin;
   
   const roles = [];
@@ -27,17 +22,8 @@ export const getUserRoles = (user, players, teams) => {
   return { isGuest: false, isFan, isPlayer, isCaptain, isCoach, isAdmin, roles, playerRecord };
 };
 
-// Calculate player efficiency
-export const calculateEfficiency = (stats) => {
-  if (!stats || stats.length === 0) return 0;
-  
-  let totalPositive = 0;
-  let totalNegative = 0;
-  
-  stats.forEach(stat => {
-    totalPositive += (stat.aces || 0) + (stat.attack_points || 0) + (stat.block_points || 0);
-    totalNegative += (stat.serve_errors || 0) + (stat.receive_errors || 0) + (stat.attack_errors || 0) + (stat.block_errors || 0);
-  });
-  
-  return totalPositive - totalNegative;
+export const getDisplayName = (user) => {
+  if (user?.first_name) return user.first_name;
+  if (user?.username) return `@${user.username}`;
+  return "Гость";
 };

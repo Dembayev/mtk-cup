@@ -1,2 +1,2 @@
-export * from './colors';
-export * from './labels';
+export { colors } from './colors';
+export { positionLabels, roleLabels, badgeVariants, roleToBadgeVariant } from './labels';

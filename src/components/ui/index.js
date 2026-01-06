@@ -7,5 +7,6 @@ export { Input } from './Input';
 export { Select } from './Select';
 export { Header } from './Header';
 export { Container } from './Container';
-export { BottomNav } from './BottomNav';
+export { NavBar } from './NavBar';
+export { Loading } from './Loading';
 export { RoleBadges } from './RoleBadges';

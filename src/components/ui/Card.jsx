@@ -1,14 +1,14 @@
-import { colors } from '../../constants';
+import { colors } from '../../constants/colors';
 
-export const Card = ({ children, onClick, style = {} }) => (
+export const Card = ({ children, onClick, style }) => (
   <div onClick={onClick} style={{
-    background: "white",
-    borderRadius: "16px",
-    padding: "20px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+    background: colors.bg,
     border: `1px solid ${colors.grayBorder}`,
+    borderRadius: "12px",
+    padding: "16px",
     cursor: onClick ? "pointer" : "default",
-    ...style
+    transition: "all 0.2s",
+    ...style,
   }}>
     {children}
   </div>

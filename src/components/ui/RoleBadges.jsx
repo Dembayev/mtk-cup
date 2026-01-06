@@ -1,13 +1,20 @@
 import { Badge } from './Badge';
-import { roleLabels, roleToBadgeVariant } from '../../constants';
+import { roleLabels } from '../../constants/labels';
 
 export const RoleBadges = ({ roles }) => {
-  if (!roles || roles.length === 0) return null;
+  const roleVariants = {
+    admin: "admin",
+    coach: "gold",
+    captain: "captain",
+    player: "free",
+    fan: "default",
+  };
+  
   return (
-    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center" }}>
+    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
       {roles.map(role => (
-        <Badge key={role} variant={roleToBadgeVariant[role] || "default"}>
-          {roleLabels[role] || role}
+        <Badge key={role} variant={roleVariants[role]}>
+          {roleLabels[role]}
         </Badge>
       ))}
     </div>
