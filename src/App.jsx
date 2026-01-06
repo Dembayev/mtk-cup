@@ -3941,12 +3941,156 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
 
           {/* Predictions tab */}
           {tab === "predictions" && (
-            <Card>
+            <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 16px" }}>Система прогнозов</h3>
-              <p>Спонсоров: {(sponsors || []).length}</p>
-              <p>Призов: {(prizes || []).length}</p>
-              <p>Прогнозов: {(predictions || []).length}</p>
-            </Card>
+              
+              {/* Спонсоры */}
+              <Card style={{ marginBottom: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Спонсоры ({(sponsors || []).length})</h4>
+                  <Button onClick={() => setShowAddSponsor(true)} style={{ padding: "6px 12px", fontSize: "12px" }}>
+                    <Icons.Plus /> Добавить
+                  </Button>
+                </div>
+                
+                {showAddSponsor && (
+                  <div style={{ background: colors.goldLight, padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
+                    <Input label="Название" value={newSponsor.name} onChange={v => setNewSponsor(p => ({ ...p, name: v }))} placeholder="Название спонсора" />
+                    <div style={{ marginTop: "8px" }}>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, marginBottom: "4px", color: colors.goldDark }}>Логотип</label>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = await handleUploadSponsorLogo(file);
+                              if (url) setNewSponsor(p => ({ ...p, logo_url: url }));
+                            }
+                          }}
+                          style={{ fontSize: "13px" }}
+                        />
+                        {uploadingSponsorLogo && <span style={{ fontSize: "12px", color: colors.goldDark }}>Загрузка...</span>}
+                        {newSponsor.logo_url && <span style={{ fontSize: "12px", color: "green" }}>✓ Загружено</span>}
+                      </div>
+                      {newSponsor.logo_url && (
+                        <img src={newSponsor.logo_url} alt="Preview" style={{ width: 60, height: 60, borderRadius: "8px", objectFit: "cover", marginTop: "8px" }} />
+                      )}
+                    </div>
+                    <Input label="Описание" value={newSponsor.description} onChange={v => setNewSponsor(p => ({ ...p, description: v }))} placeholder="Описание (опционально)" style={{ marginTop: "8px" }} />
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button onClick={handleCreateSponsor} disabled={!newSponsor.name || uploadingSponsorLogo}>Сохранить</Button>
+                      <Button variant="outline" onClick={() => { setShowAddSponsor(false); setNewSponsor({ name: "", logo_url: "", description: "" }); }}>Отмена</Button>
+                    </div>
+                  </div>
+                )}
+                
+                {(sponsors || []).length === 0 ? (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Спонсоры не добавлены</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {(sponsors || []).map(s => (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                        {s.logo_url && <img src={s.logo_url} alt={s.name} style={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover" }} onError={(e) => e.target.style.display = "none"} />}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: "14px" }}>{s.name}</div>
+                          {s.description && <div style={{ fontSize: "12px", color: colors.goldDark }}>{s.description}</div>}
+                        </div>
+                        <Badge variant={s.is_active ? "free" : "default"}>{s.is_active ? "Активен" : "Неактивен"}</Badge>
+                        <button onClick={() => handleDeleteSponsor(s.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}>
+                          <Icons.Close />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+              
+              {/* Призы */}
+              <Card style={{ marginBottom: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Призы ({(prizes || []).length})</h4>
+                  <Button onClick={() => setShowAddPrize(true)} style={{ padding: "6px 12px", fontSize: "12px" }} disabled={(sponsors || []).length === 0}>
+                    <Icons.Plus /> Добавить
+                  </Button>
+                </div>
+                
+                {(sponsors || []).length === 0 && (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Сначала добавьте спонсора</p>
+                )}
+                
+                {showAddPrize && (
+                  <div style={{ background: colors.goldLight, padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
+                    <Select label="Спонсор" value={newPrize.sponsor_id} onChange={v => setNewPrize(p => ({ ...p, sponsor_id: v }))}
+                      options={[{ value: "", label: "Выберите спонсора" }, ...(sponsors || []).map(s => ({ value: s.id, label: s.name }))]} />
+                    <Input label="Название приза" value={newPrize.title} onChange={v => setNewPrize(p => ({ ...p, title: v }))} placeholder="Сертификат на 1000₽" style={{ marginTop: "8px" }} />
+                    <Input label="Описание" value={newPrize.description} onChange={v => setNewPrize(p => ({ ...p, description: v }))} placeholder="Описание приза" style={{ marginTop: "8px" }} />
+                    <Select label="За какое место" value={newPrize.place} onChange={v => setNewPrize(p => ({ ...p, place: v }))} style={{ marginTop: "8px" }}
+                      options={[{ value: "1", label: "1 место" }, { value: "2", label: "2 место" }, { value: "3", label: "3 место" }, { value: "10", label: "Топ-10" }]} />
+                    <Select label="За какой тур" value={newPrize.tour_id} onChange={v => setNewPrize(p => ({ ...p, tour_id: v }))} style={{ marginTop: "8px" }}
+                      options={[{ value: "", label: "Весь сезон" }, ...(tours || []).map(t => ({ value: t.id, label: `Тур ${t.number}` }))]} />
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button onClick={handleCreatePrize} disabled={!newPrize.sponsor_id || !newPrize.title}>Сохранить</Button>
+                      <Button variant="outline" onClick={() => { setShowAddPrize(false); setNewPrize({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" }); }}>Отмена</Button>
+                    </div>
+                  </div>
+                )}
+                
+                {(prizes || []).length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {(prizes || []).map(p => {
+                      const sponsor = (sponsors || []).find(s => s.id === p.sponsor_id);
+                      const tour = (tours || []).find(t => t.id === p.tour_id);
+                      return (
+                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: "14px" }}>{p.title}</div>
+                            <div style={{ fontSize: "12px", color: colors.goldDark }}>
+                              {sponsor?.name || "?"} • {p.place === 10 ? "Топ-10" : `${p.place} место`} • {tour ? `Тур ${tour.number}` : "Сезон"}
+                            </div>
+                          </div>
+                          <button onClick={() => handleDeletePrize(p.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}>
+                            <Icons.Close />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+              
+              {/* Таблица лидеров */}
+              <Card>
+                <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Таблица лидеров</h4>
+                {(!predictions || predictions.length === 0) ? (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Пока нет прогнозов</p>
+                ) : (
+                  <div>
+                    {(() => {
+                      const leaderboard = {};
+                      predictions.forEach(p => {
+                        if (!leaderboard[p.user_id]) leaderboard[p.user_id] = 0;
+                        leaderboard[p.user_id] += p.points_earned || 0;
+                      });
+                      return Object.entries(leaderboard)
+                        .map(([id, pts]) => ({ user: (users || []).find(u => u.id === id), points: pts }))
+                        .filter(x => x.user)
+                        .sort((a, b) => b.points - a.points)
+                        .slice(0, 10)
+                        .map((item, i) => (
+                          <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: i < 9 ? `1px solid ${colors.grayBorder}` : "none" }}>
+                            <div style={{ width: 24, height: 24, borderRadius: "50%", background: i < 3 ? colors.gold : colors.gray, color: i < 3 ? "white" : colors.text, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>{i + 1}</div>
+                            <Avatar name={item.user.first_name || "?"} size={32} url={item.user.avatar_url} />
+                            <div style={{ flex: 1, fontSize: "14px", fontWeight: 500 }}>{item.user.first_name} {item.user.last_name || ""}</div>
+                            <div style={{ fontSize: "16px", fontWeight: 700, color: colors.gold }}>{item.points}</div>
+                          </div>
+                        ));
+                    })()}
+                  </div>
+                )}
+              </Card>
+            </>
           )}
         </div>
       </Container>
