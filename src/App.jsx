@@ -4084,29 +4084,11 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
               {/* Таблица лидеров */}
               <Card>
                 <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Таблица лидеров</h4>
-                {(() => {
-                  const leaderboard = {};
-                  (predictions || []).forEach(p => {
-                    if (!leaderboard[p.user_id]) leaderboard[p.user_id] = 0;
-                    leaderboard[p.user_id] += p.points_earned || 0;
-                  });
-                  const sorted = Object.entries(leaderboard)
-                    .map(([id, pts]) => ({ user: (users || []).find(u => u.id === id), points: pts }))
-                    .filter(x => x.user)
-                    .sort((a, b) => b.points - a.points)
-                    .slice(0, 10);
-                  
-                  if (sorted.length === 0) return <p style={{ color: colors.goldDark, fontSize: "13px" }}>Пока нет прогнозов</p>;
-                  
-                  return sorted.map((item, i) => (
-                    <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: i < sorted.length - 1 ? `1px solid ${colors.grayBorder}` : "none" }}>
-                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: i < 3 ? colors.gold : colors.gray, color: i < 3 ? "white" : colors.text, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>{i + 1}</div>
-                      <Avatar name={item.user.first_name} size={32} url={item.user.avatar_url} />
-                      <div style={{ flex: 1, fontSize: "14px", fontWeight: 500 }}>{item.user.first_name} {item.user.last_name || ""}</div>
-                      <div style={{ fontSize: "16px", fontWeight: 700, color: colors.gold }}>{item.points}</div>
-                    </div>
-                  ));
-                })()}
+                {(!predictions || predictions.length === 0) ? (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Пока нет прогнозов</p>
+                ) : (
+                  <p style={{ color: colors.goldDark, fontSize: "13px" }}>Прогнозов: {predictions.length}</p>
+                )}
               </Card>
             </>
           )}
