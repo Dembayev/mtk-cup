@@ -5949,6 +5949,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
 const handleTelegramLogin = async (tgUser) => {
     try {
       const { data: existingUser } = await supabase.from("users").select("*").eq("telegram_id", tgUser.id).single();
+      console.log("👤 Loaded user from DB:", existingUser?.id, "favorite_players:", existingUser?.favorite_players);
       let currentUser;
       let isNewUser = false;
       if (existingUser) {
@@ -5962,6 +5963,7 @@ const handleTelegramLogin = async (tgUser) => {
         }
         const { data: updatedUser } = await supabase.from("users").update(updateData).eq("id", existingUser.id).select().single();
         currentUser = updatedUser || existingUser;
+        console.log("👤 Current user after update:", currentUser?.id, "favorite_players:", currentUser?.favorite_players);
       } else {
         isNewUser = true;
         const { data: newUser, error } = await supabase.from("users").insert({
