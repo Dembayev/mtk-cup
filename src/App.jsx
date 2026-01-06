@@ -5195,8 +5195,41 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         await recalculateTeamStats(match.team1_id);
         await recalculateTeamStats(match.team2_id);
         
-        // Отправляем уведомление о результате (только если статус ИЗМЕНИЛСЯ на finished)
+        // Подсчёт очков прогнозов (только если статус ИЗМЕНИЛСЯ на finished)
         if (data.status === "finished" && match.status !== "finished") {
+          console.log("🎯 Calculating prediction points for match:", matchId);
+          const { data: matchPredictions } = await supabase
+            .from("predictions")
+            .select("*")
+            .eq("match_id", matchId);
+          
+          if (matchPredictions && matchPredictions.length > 0) {
+            for (const pred of matchPredictions) {
+              let points = 0;
+              const predictedWinner = pred.predicted_score_team1 > pred.predicted_score_team2 ? 1 : 2;
+              const actualWinner = setsWon1 > setsWon2 ? 1 : 2;
+              
+              // Точный счёт = +3 очка
+              if (pred.predicted_score_team1 === setsWon1 && pred.predicted_score_team2 === setsWon2) {
+                points = 3;
+                console.log("🎯 Exact score! +3 points for user:", pred.user_id);
+              }
+              // Угадал победителя = +1 очко
+              else if (predictedWinner === actualWinner) {
+                points = 1;
+                console.log("🎯 Correct winner! +1 point for user:", pred.user_id);
+              }
+              
+              // Обновляем очки в прогнозе
+              await supabase
+                .from("predictions")
+                .update({ points_earned: points })
+                .eq("id", pred.id);
+            }
+            console.log("🎯 Updated points for", matchPredictions.length, "predictions");
+          }
+          
+          // Отправляем уведомление о результате
           sendNotification("result", team1?.name, team2?.name, `${setsWon1}:${setsWon2}`);
         }
       }
