@@ -791,7 +791,11 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
   // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
   const playersWithStats = (players || []).map(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
-    const totalPoints = stats.reduce((sum, s) => sum + (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0), 0);
+    const totalPoints = stats.reduce((sum, s) => {
+      const points = (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0);
+      const errors = (s.attack_errors || 0) + (s.serve_errors || 0) + (s.block_errors || 0) + (s.receive_errors || 0);
+      return sum + points - errors;
+    }, 0);
     return { ...player, totalPoints };
   }).sort((a, b) => b.totalPoints - a.totalPoints);
   const topPlayers = playersWithStats.slice(0, 5);
@@ -1346,7 +1350,11 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   // Добавляем всех игроков с их очками
   (players || []).forEach(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
-    const totalPoints = stats.reduce((sum, s) => sum + (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0), 0);
+    const totalPoints = stats.reduce((sum, s) => {
+      const points = (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0);
+      const errors = (s.attack_errors || 0) + (s.serve_errors || 0) + (s.block_errors || 0) + (s.receive_errors || 0);
+      return sum + points - errors;
+    }, 0);
     allPeople.push({ 
       ...player, 
       totalPoints,
