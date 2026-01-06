@@ -778,9 +778,16 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
   );
 };
 
-const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, playerStats }) => {
+const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, playerStats, tours }) => {
   const liveMatch = matches.find(m => m.status === "live");
   const upcomingMatches = (matches || []).filter(m => m.status === "upcoming").slice(0, 2);
+  
+  // Находим ближайший тур с матчами
+  const nextTour = (() => {
+    if (upcomingMatches.length === 0) return null;
+    const tourId = upcomingMatches[0]?.tour_id;
+    return (tours || []).find(t => t.id === tourId);
+  })();
   // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
   const playersWithStats = (players || []).map(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
@@ -876,6 +883,27 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
 
           {upcomingMatches.length > 0 && (
             <>
+              {nextTour && (
+                <div style={{ 
+                  background: colors.goldLight, 
+                  borderRadius: "12px", 
+                  padding: "12px 16px", 
+                  marginBottom: "12px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}>
+                  <div>
+                    <div style={{ fontSize: "16px", fontWeight: 700, color: colors.goldDark }}>Тур {nextTour.number}</div>
+                    {nextTour.date && (
+                      <div style={{ fontSize: "13px", color: colors.goldDark, marginTop: "2px" }}>
+                        {new Date(nextTour.date).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: "24px" }}>🏐</div>
+                </div>
+              )}
               <h3 style={{ fontSize: "18px", fontWeight: 700, margin: "0 0 12px" }}>Ближайшие матчи</h3>
               {upcomingMatches.map(match => (
                 <Card key={match.id} onClick={() => setScreen("schedule")} style={{ marginBottom: "12px", cursor: "pointer" }}><MatchCard match={match} teams={teams} /></Card>
@@ -5809,7 +5837,7 @@ const handleGuest = () => {
     switch (screen) {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} />;
+      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} tours={tours} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
