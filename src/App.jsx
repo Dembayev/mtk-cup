@@ -3953,7 +3953,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {(sponsors || []).map(s => (
                       <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
-                        {s.logo_url && <img src={s.logo_url} alt={s.name} style={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover" }} />}
+                        {s.logo_url && <img src={s.logo_url} alt={s.name} style={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover" }} onError={(e) => e.target.style.display = "none"} />}
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: "14px" }}>{s.name}</div>
                           {s.description && <div style={{ fontSize: "12px", color: colors.goldDark }}>{s.description}</div>}
