@@ -4099,8 +4099,6 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
 };
 // Модальное окно формы заявки на роль
 const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit, onClose, teams, user, roleRequests }) => {
-  if (!show) return null;
-  
   const isPlayer = roleRequestData.role === "player";
   const isCoach = roleRequestData.role === "coach";
   
@@ -4150,7 +4148,10 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
     if (lockedLastName && !roleRequestData.last_name) {
       setRoleRequestData(prev => ({ ...prev, last_name: lockedLastName }));
     }
-  }, [lockedFirstName, lockedLastName]);
+  }, [lockedFirstName, lockedLastName, roleRequestData.first_name, roleRequestData.last_name, setRoleRequestData]);
+  
+  // Ранний return ПОСЛЕ хуков
+  if (!show) return null;
   
   const handleSubmit = () => {
     const firstName = lockedFirstName || roleRequestData.first_name;
