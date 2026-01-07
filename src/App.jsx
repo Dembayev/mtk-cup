@@ -4151,7 +4151,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>{s.description || ""}</div>
                           {s.website_url && <a href={s.website_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold }}>🔗 {s.website_url}</a>}
                         </div>
-                        <button onClick={async () => { await supabase.from("sponsors").update({ is_active: !s.is_active }).eq("id", s.id); loadData(); }} style={{ background: s.is_active !== false ? "#dcfce7" : "#f3f4f6", border: "none", color: s.is_active !== false ? "#16a34a" : "#666", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>{s.is_active !== false ? "ВКЛ" : "ВЫКЛ"}</button>
+                        <button onClick={async () => { 
+                          try {
+                            console.log("Toggling sponsor", s.id, "from", s.is_active, "to", !s.is_active);
+                            const { error } = await supabase.from("sponsors").update({ is_active: s.is_active === false ? true : false }).eq("id", s.id); 
+                            if (error) { console.error("Error:", error); alert("Ошибка: " + error.message); return; }
+                            await loadData();
+                          } catch(e) { console.error(e); alert("Ошибка: " + e.message); }
+                        }} style={{ background: s.is_active !== false ? "#dcfce7" : "#f3f4f6", border: "none", color: s.is_active !== false ? "#16a34a" : "#666", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>{s.is_active !== false ? "ВКЛ" : "ВЫКЛ"}</button>
                         <button onClick={() => handleDeleteSponsor(s.id)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>УДЛ</button>
                       </div>
                     ))}
@@ -4204,7 +4211,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             </div>
                             {p.link_url && <a href={p.link_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold }}>🔗 Подробнее</a>}
                           </div>
-                          <button onClick={async () => { await supabase.from("prizes").update({ is_active: !p.is_active }).eq("id", p.id); loadData(); }} style={{ background: p.is_active !== false ? "#dcfce7" : "#f3f4f6", border: "none", color: p.is_active !== false ? "#16a34a" : "#666", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>{p.is_active !== false ? "ВКЛ" : "ВЫКЛ"}</button>
+                          <button onClick={async () => { 
+                            try {
+                              console.log("Toggling prize", p.id, "from", p.is_active, "to", !p.is_active);
+                              const { error } = await supabase.from("prizes").update({ is_active: p.is_active === false ? true : false }).eq("id", p.id); 
+                              if (error) { console.error("Error:", error); alert("Ошибка: " + error.message); return; }
+                              await loadData();
+                            } catch(e) { console.error(e); alert("Ошибка: " + e.message); }
+                          }} style={{ background: p.is_active !== false ? "#dcfce7" : "#f3f4f6", border: "none", color: p.is_active !== false ? "#16a34a" : "#666", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>{p.is_active !== false ? "ВКЛ" : "ВЫКЛ"}</button>
                           <button onClick={() => handleDeletePrize(p.id)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>УДЛ</button>
                         </div>
                       );
