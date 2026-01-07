@@ -1221,9 +1221,21 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
   
   const getPrediction = (matchId) => myPredictions.find(p => p.match_id === matchId);
   
-  // Активные спонсоры и призы
+  // Определяем текущий/ближайший тур
+  const now = new Date();
+  const currentTour = (tours || [])
+    .filter(t => t.date)
+    .sort((a, b) => Math.abs(new Date(a.date) - now) - Math.abs(new Date(b.date) - now))[0];
+  
+  // Активные спонсоры
   const activeSponsors = (sponsors || []).filter(s => s.is_active !== false);
-  const activePrizes = (prizes || []).filter(p => p.is_active !== false);
+  
+  // Активные призы (за текущий тур или за весь сезон)
+  const activePrizes = (prizes || []).filter(p => {
+    if (p.is_active === false) return false;
+    // Показываем если: нет привязки к туру (сезонный) ИЛИ привязан к текущему туру
+    return !p.tour_id || p.tour_id === currentTour?.id;
+  });
   
   return (
     <div style={{ paddingBottom: "100px" }}>
