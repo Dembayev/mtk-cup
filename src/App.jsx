@@ -1187,7 +1187,6 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
 
 // Экран прогнозов
 const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, predictions, user, onMakePrediction, users }) => {
-  console.log("🎯 PredictionsScreen props:", { matches: matches?.length, teams: teams?.length, sponsors: sponsors?.length, prizes: prizes?.length, predictions: predictions?.length, user: user?.id });
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [prediction, setPrediction] = useState({ team1: 3, team2: 0 });
   
@@ -1208,14 +1207,10 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
     });
     return Object.entries(scores)
       .map(([id, pts]) => ({ user: (users || []).find(u => u.id === id), points: pts }))
-      .filter(x => x.user && x.points > 0)
+      .filter(x => x.user)
       .sort((a, b) => b.points - a.points)
       .slice(0, 10);
   })();
-  
-  // Активный приз
-  const activePrize = (prizes || []).find(p => p.is_active);
-  const prizeSponsor = activePrize ? (sponsors || []).find(s => s.id === activePrize.sponsor_id) : null;
   
   const handleSubmitPrediction = async () => {
     if (!selectedMatch || !user) return;
@@ -1224,37 +1219,70 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
     setPrediction({ team1: 3, team2: 0 });
   };
   
-  const hasPrediction = (matchId) => myPredictions.some(p => p.match_id === matchId);
   const getPrediction = (matchId) => myPredictions.find(p => p.match_id === matchId);
+  
+  // Активные спонсоры и призы
+  const activeSponsors = (sponsors || []).filter(s => s.is_active !== false);
+  const activePrizes = (prizes || []).filter(p => p.is_active !== false);
   
   return (
     <div style={{ paddingBottom: "100px" }}>
       <Header title="Прогнозы" />
       <Container>
-        {/* Активный розыгрыш */}
-        {activePrize && prizeSponsor && (
-          <Card style={{ marginBottom: "20px", background: `linear-gradient(135deg, ${colors.gold} 0%, ${colors.goldDark} 100%)`, color: "white" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              {prizeSponsor.logo_url && (
-                <img src={prizeSponsor.logo_url} alt={prizeSponsor.name} style={{ width: 50, height: 50, borderRadius: "10px", objectFit: "cover", background: "white" }} />
-              )}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "12px", opacity: 0.9 }}>🎁 Розыгрыш от {prizeSponsor.name}</div>
-                <div style={{ fontSize: "16px", fontWeight: 700, marginTop: "4px" }}>{activePrize.title}</div>
-                {activePrize.description && <div style={{ fontSize: "12px", opacity: 0.9, marginTop: "2px" }}>{activePrize.description}</div>}
+        {/* Розыгрыш призов */}
+        <Card style={{ marginBottom: "20px", background: `linear-gradient(135deg, ${colors.gold} 0%, ${colors.goldDark} 100%)`, color: "white" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px", display: "flex", alignItems: "center", gap: "8px" }}>
+            🎁 РОЗЫГРЫШ ПРИЗОВ
+          </h3>
+          
+          {/* Спонсоры */}
+          {activeSponsors.length > 0 && (
+            <div style={{ marginBottom: "12px" }}>
+              <div style={{ fontSize: "11px", opacity: 0.8, marginBottom: "8px" }}>При поддержке:</div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {activeSponsors.map(s => (
+                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.2)", padding: "4px 8px", borderRadius: "6px" }}>
+                    {s.logo_url && <img src={s.logo_url} alt="" style={{ width: 24, height: 24, borderRadius: "4px", objectFit: "cover" }} />}
+                    <span style={{ fontSize: "12px", fontWeight: 600 }}>{s.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </Card>
-        )}
+          )}
+          
+          {/* Призы */}
+          {activePrizes.length > 0 && (
+            <div style={{ marginBottom: "12px" }}>
+              <div style={{ fontSize: "11px", opacity: 0.8, marginBottom: "8px" }}>Призы:</div>
+              {activePrizes.map(p => {
+                const sponsor = activeSponsors.find(s => s.id === p.sponsor_id);
+                return (
+                  <div key={p.id} style={{ background: "rgba(255,255,255,0.15)", padding: "8px 12px", borderRadius: "8px", marginBottom: "6px" }}>
+                    <div style={{ fontWeight: 600, fontSize: "14px" }}>🏆 {p.title}</div>
+                    {p.description && <div style={{ fontSize: "12px", opacity: 0.9, marginTop: "2px" }}>{p.description}</div>}
+                    {sponsor && <div style={{ fontSize: "11px", opacity: 0.7, marginTop: "4px" }}>от {sponsor.name}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          {/* Условия */}
+          <div style={{ background: "rgba(0,0,0,0.2)", padding: "10px 12px", borderRadius: "8px", fontSize: "12px", lineHeight: 1.5 }}>
+            <div style={{ fontWeight: 600, marginBottom: "6px" }}>Условия:</div>
+            <div>• Получить приз могут только зрители в зале</div>
+            <div>• Победители — первые 3 с максимумом очков</div>
+            <div>• Прогноз можно сделать до начала матча</div>
+          </div>
+        </Card>
         
         {/* Как это работает */}
         <Card style={{ marginBottom: "20px" }}>
-          <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 12px" }}>🎯 Как это работает</h3>
+          <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 12px" }}>🎯 Как набрать очки</h3>
           <div style={{ fontSize: "13px", color: colors.goldDark, lineHeight: 1.6 }}>
             <div style={{ marginBottom: "8px" }}>• Угадай счёт матча до его начала</div>
             <div style={{ marginBottom: "8px" }}>• <span style={{ color: colors.gold, fontWeight: 600 }}>+3 очка</span> за точный счёт</div>
             <div style={{ marginBottom: "8px" }}>• <span style={{ color: colors.gold, fontWeight: 600 }}>+1 очко</span> за угаданного победителя</div>
-            <div>• Лучшие прогнозисты получают призы!</div>
           </div>
         </Card>
         
