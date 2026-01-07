@@ -4152,7 +4152,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           {s.website_url && <a href={s.website_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold }}>🔗 {s.website_url}</a>}
                         </div>
                         <button onClick={async () => { await supabase.from("sponsors").update({ is_active: !s.is_active }).eq("id", s.id); loadData(); }} style={{ background: s.is_active !== false ? "#dcfce7" : "#f3f4f6", border: "none", color: s.is_active !== false ? "#16a34a" : "#666", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>{s.is_active !== false ? "ВКЛ" : "ВЫКЛ"}</button>
-                        <button onClick={() => { if(confirm("Удалить спонсора?")) handleDeleteSponsor(s.id); }} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>УДЛ</button>
+                        <button onClick={() => handleDeleteSponsor(s.id)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>УДЛ</button>
                       </div>
                     ))}
                   </div>
@@ -4205,7 +4205,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             {p.link_url && <a href={p.link_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold }}>🔗 Подробнее</a>}
                           </div>
                           <button onClick={async () => { await supabase.from("prizes").update({ is_active: !p.is_active }).eq("id", p.id); loadData(); }} style={{ background: p.is_active !== false ? "#dcfce7" : "#f3f4f6", border: "none", color: p.is_active !== false ? "#16a34a" : "#666", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>{p.is_active !== false ? "ВКЛ" : "ВЫКЛ"}</button>
-                          <button onClick={() => { if(confirm("Удалить приз?")) handleDeletePrize(p.id); }} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>УДЛ</button>
+                          <button onClick={() => handleDeletePrize(p.id)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>УДЛ</button>
                         </div>
                       );
                     })}
