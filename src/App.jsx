@@ -1198,17 +1198,39 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
   // Мои прогнозы
   const myPredictions = (predictions || []).filter(p => p.user_id === user?.id);
   
-  // Таблица лидеров
-  const leaderboard = (() => {
+  // Матчи текущего тура
+  const currentTourMatches = currentTour 
+    ? (matches || []).filter(m => m.tour_id === currentTour.id).map(m => m.id)
+    : [];
+  
+  // Таблица лидеров за СЕЗОН (все прогнозы)
+  const seasonLeaderboard = (() => {
     const scores = {};
     (predictions || []).forEach(p => {
-      if (!scores[p.user_id]) scores[p.user_id] = 0;
-      scores[p.user_id] += p.points_earned || 0;
+      if (!scores[p.user_id]) scores[p.user_id] = { points: 0, count: 0 };
+      scores[p.user_id].points += p.points_earned || 0;
+      scores[p.user_id].count += 1;
     });
     return Object.entries(scores)
-      .map(([id, pts]) => ({ user: (users || []).find(u => u.id === id), points: pts }))
+      .map(([id, data]) => ({ user: (users || []).find(u => u.id === id), points: data.points, count: data.count }))
       .filter(x => x.user)
-      .sort((a, b) => b.points - a.points)
+      .sort((a, b) => b.points - a.points || b.count - a.count)
+      .slice(0, 10);
+  })();
+  
+  // Таблица лидеров за ТУР (только прогнозы на матчи текущего тура)
+  const tourLeaderboard = (() => {
+    if (!currentTour || currentTourMatches.length === 0) return [];
+    const scores = {};
+    (predictions || []).filter(p => currentTourMatches.includes(p.match_id)).forEach(p => {
+      if (!scores[p.user_id]) scores[p.user_id] = { points: 0, count: 0 };
+      scores[p.user_id].points += p.points_earned || 0;
+      scores[p.user_id].count += 1;
+    });
+    return Object.entries(scores)
+      .map(([id, data]) => ({ user: (users || []).find(u => u.id === id), points: data.points, count: data.count }))
+      .filter(x => x.user)
+      .sort((a, b) => b.points - a.points || b.count - a.count)
       .slice(0, 10);
   })();
   
@@ -1385,19 +1407,66 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
           })
         )}
         
-        {/* Таблица лидеров */}
-        <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "24px 0 12px" }}>🏆 Таблица лидеров</h3>
+        {/* Таблица лидеров за ТУР */}
+        {currentTour && (
+          <>
+            <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "24px 0 12px" }}>🏆 Лидеры тура {currentTour.number}</h3>
+            <Card style={{ marginBottom: "16px" }}>
+              {tourLeaderboard.length === 0 ? (
+                <p style={{ color: colors.goldDark, textAlign: "center" }}>Пока нет прогнозов на этот тур</p>
+              ) : (
+                tourLeaderboard.map((item, i) => (
+                  <div key={item.user.id} style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "12px", 
+                    padding: "10px 0",
+                    borderBottom: i < tourLeaderboard.length - 1 ? `1px solid ${colors.grayBorder}` : "none",
+                    background: i < 3 ? "rgba(201, 162, 39, 0.1)" : "transparent",
+                    margin: i < 3 ? "-0px -12px" : 0,
+                    padding: i < 3 ? "10px 12px" : "10px 0",
+                    borderRadius: i < 3 ? "8px" : 0
+                  }}>
+                    <div style={{ 
+                      width: "28px", 
+                      height: "28px", 
+                      borderRadius: "50%", 
+                      background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray,
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center",
+                      fontWeight: 700,
+                      fontSize: "12px",
+                      color: i < 3 ? "white" : colors.text
+                    }}>
+                      {i + 1}
+                    </div>
+                    <Avatar name={item.user.first_name || item.user.username} size={36} url={item.user.avatar_url} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: "14px" }}>{item.user.first_name || item.user.username} {item.user.last_name || ""}</div>
+                      <div style={{ fontSize: "11px", color: colors.goldDark }}>{item.count} прогноз(ов)</div>
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: "18px", color: colors.gold }}>{item.points}</div>
+                  </div>
+                ))
+              )}
+            </Card>
+          </>
+        )}
+        
+        {/* Таблица лидеров за СЕЗОН */}
+        <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "24px 0 12px" }}>📊 Рейтинг сезона</h3>
         <Card>
-          {leaderboard.length === 0 ? (
+          {seasonLeaderboard.length === 0 ? (
             <p style={{ color: colors.goldDark, textAlign: "center" }}>Пока нет результатов</p>
           ) : (
-            leaderboard.map((item, i) => (
+            seasonLeaderboard.map((item, i) => (
               <div key={item.user.id} style={{ 
                 display: "flex", 
                 alignItems: "center", 
                 gap: "12px", 
                 padding: "10px 0",
-                borderBottom: i < leaderboard.length - 1 ? `1px solid ${colors.grayBorder}` : "none"
+                borderBottom: i < seasonLeaderboard.length - 1 ? `1px solid ${colors.grayBorder}` : "none"
               }}>
                 <div style={{ 
                   width: "28px", 
@@ -1416,6 +1485,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
                 <Avatar name={item.user.first_name || item.user.username} size={36} url={item.user.avatar_url} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: "14px" }}>{item.user.first_name || item.user.username} {item.user.last_name || ""}</div>
+                  <div style={{ fontSize: "11px", color: colors.goldDark }}>{item.count} прогноз(ов)</div>
                 </div>
                 <div style={{ fontWeight: 700, fontSize: "18px", color: colors.gold }}>{item.points}</div>
               </div>
