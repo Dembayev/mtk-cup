@@ -2630,6 +2630,24 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
       alert("Ошибка удаления");
     }
   };
+
+  const handleUpdateSponsor = async () => {
+    if (!editingSponsor) return;
+    try {
+      await supabase.from("sponsors").update({
+        name: editingSponsor.name,
+        description: editingSponsor.description || null,
+        website_url: editingSponsor.website_url || null,
+        logo_url: editingSponsor.logo_url || null
+      }).eq("id", editingSponsor.id);
+      setEditingSponsor(null);
+      await loadData();
+      alert("Спонсор обновлён!");
+    } catch (error) {
+      console.error("Error updating sponsor:", error);
+      alert("Ошибка обновления");
+    }
+  };
   
   const handleCreatePrize = async () => {
     try {
@@ -2660,6 +2678,26 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     } catch (error) {
       console.error("Error deleting prize:", error);
       alert("Ошибка удаления");
+    }
+  };
+
+  const handleUpdatePrize = async () => {
+    if (!editingPrize) return;
+    try {
+      await supabase.from("prizes").update({
+        sponsor_id: editingPrize.sponsor_id,
+        title: editingPrize.title,
+        description: editingPrize.description || null,
+        place: parseInt(editingPrize.place),
+        tour_id: editingPrize.tour_id || null,
+        link_url: editingPrize.link_url || null
+      }).eq("id", editingPrize.id);
+      setEditingPrize(null);
+      await loadData();
+      alert("Приз обновлён!");
+    } catch (error) {
+      console.error("Error updating prize:", error);
+      alert("Ошибка обновления");
     }
   };
   
@@ -4138,6 +4176,30 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     </div>
                   </div>
                 )}
+
+                {/* Форма редактирования спонсора */}
+                {editingSponsor && (
+                  <div style={{ background: "#e0f2fe", padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
+                    <h5 style={{ margin: "0 0 12px", fontSize: "14px" }}>✎ Редактирование: {editingSponsor.name}</h5>
+                    <Input label="Название" value={editingSponsor.name} onChange={v => setEditingSponsor(p => ({ ...p, name: v }))} />
+                    <Input label="Описание" value={editingSponsor.description || ""} onChange={v => setEditingSponsor(p => ({ ...p, description: v }))} style={{ marginTop: "8px" }} />
+                    <Input label="Сайт" value={editingSponsor.website_url || ""} onChange={v => setEditingSponsor(p => ({ ...p, website_url: v }))} style={{ marginTop: "8px" }} />
+                    <div style={{ marginTop: "8px" }}>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, marginBottom: "4px" }}>Новый логотип</label>
+                      <input type="file" accept="image/*" onChange={async (e) => {
+                        const file = e.target.files && e.target.files[0];
+                        if (file) {
+                          const url = await handleUploadSponsorLogo(file);
+                          if (url) setEditingSponsor(p => ({ ...p, logo_url: url }));
+                        }
+                      }} style={{ fontSize: "13px" }} />
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button onClick={handleUpdateSponsor}>Сохранить</Button>
+                      <Button variant="outline" onClick={() => setEditingSponsor(null)}>Отмена</Button>
+                    </div>
+                  </div>
+                )}
                 
                 {(sponsors || []).length === 0 ? (
                   <p style={{ color: colors.goldDark, fontSize: "13px" }}>Спонсоры не добавлены</p>
@@ -4151,16 +4213,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>{s.description || ""}</div>
                           {s.website_url && <a href={s.website_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold }}>🔗 {s.website_url}</a>}
                         </div>
+                        <button onClick={() => setEditingSponsor({...s})} style={{ background: "#e0f2fe", border: "none", color: "#0369a1", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>✎</button>
                         <button onClick={async () => { 
                           try {
                             const newValue = s.is_active === false ? true : false;
-                            console.log("Toggling sponsor", s.id, "from", s.is_active, "to", newValue);
-                            const { data, error } = await supabase.from("sponsors").update({ is_active: newValue }).eq("id", s.id).select(); 
-                            console.log("Update result:", data, error);
-                            if (error) { console.error("Error:", error); alert("Ошибка: " + error.message); return; }
+                            const { error } = await supabase.from("sponsors").update({ is_active: newValue }).eq("id", s.id).select(); 
+                            if (error) { alert("Ошибка: " + error.message); return; }
                             await loadData();
-                            console.log("Data reloaded");
-                          } catch(e) { console.error(e); alert("Ошибка: " + e.message); }
+                          } catch(e) { alert("Ошибка: " + e.message); }
                         }} style={{ background: s.is_active !== false ? "#dcfce7" : "#f3f4f6", border: "none", color: s.is_active !== false ? "#16a34a" : "#666", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>{s.is_active !== false ? "ВКЛ" : "ВЫКЛ"}</button>
                         <button onClick={() => handleDeleteSponsor(s.id)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>УДЛ</button>
                       </div>
@@ -4214,21 +4274,39 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             </div>
                             {p.link_url && <a href={p.link_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold }}>🔗 Подробнее</a>}
                           </div>
+                          <button onClick={() => setEditingPrize({...p})} style={{ background: "#e0f2fe", border: "none", color: "#0369a1", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>✎</button>
                           <button onClick={async () => { 
                             try {
                               const newValue = p.is_active === false ? true : false;
-                              console.log("Toggling prize", p.id, "from", p.is_active, "to", newValue);
-                              const { data, error } = await supabase.from("prizes").update({ is_active: newValue }).eq("id", p.id).select(); 
-                              console.log("Update result:", data, error);
-                              if (error) { console.error("Error:", error); alert("Ошибка: " + error.message); return; }
+                              const { error } = await supabase.from("prizes").update({ is_active: newValue }).eq("id", p.id).select(); 
+                              if (error) { alert("Ошибка: " + error.message); return; }
                               await loadData();
-                              console.log("Data reloaded");
-                            } catch(e) { console.error(e); alert("Ошибка: " + e.message); }
+                            } catch(e) { alert("Ошибка: " + e.message); }
                           }} style={{ background: p.is_active !== false ? "#dcfce7" : "#f3f4f6", border: "none", color: p.is_active !== false ? "#16a34a" : "#666", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>{p.is_active !== false ? "ВКЛ" : "ВЫКЛ"}</button>
                           <button onClick={() => handleDeletePrize(p.id)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px 8px", fontSize: "11px", borderRadius: "4px", fontWeight: 600 }}>УДЛ</button>
                         </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* Форма редактирования приза */}
+                {editingPrize && (
+                  <div style={{ background: "#e0f2fe", padding: "12px", borderRadius: "8px", marginTop: "12px" }}>
+                    <h5 style={{ margin: "0 0 12px", fontSize: "14px" }}>✎ Редактирование: {editingPrize.title}</h5>
+                    <Select label="Спонсор" value={editingPrize.sponsor_id} onChange={v => setEditingPrize(p => ({ ...p, sponsor_id: v }))}
+                      options={(sponsors || []).map(s => ({ value: s.id, label: s.name }))} />
+                    <Input label="Название" value={editingPrize.title} onChange={v => setEditingPrize(p => ({ ...p, title: v }))} style={{ marginTop: "8px" }} />
+                    <Input label="Описание" value={editingPrize.description || ""} onChange={v => setEditingPrize(p => ({ ...p, description: v }))} style={{ marginTop: "8px" }} />
+                    <Input label="Ссылка" value={editingPrize.link_url || ""} onChange={v => setEditingPrize(p => ({ ...p, link_url: v }))} style={{ marginTop: "8px" }} />
+                    <Select label="За какое место" value={String(editingPrize.place)} onChange={v => setEditingPrize(p => ({ ...p, place: v }))} style={{ marginTop: "8px" }}
+                      options={[{ value: "1", label: "1 место" }, { value: "2", label: "2 место" }, { value: "3", label: "3 место" }, { value: "10", label: "Топ-10" }]} />
+                    <Select label="За какой период" value={editingPrize.tour_id || ""} onChange={v => setEditingPrize(p => ({ ...p, tour_id: v }))} style={{ marginTop: "8px" }}
+                      options={[{ value: "", label: "За весь сезон" }].concat((tours || []).map(t => ({ value: t.id, label: "Тур " + t.number })))} />
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button onClick={handleUpdatePrize}>Сохранить</Button>
+                      <Button variant="outline" onClick={() => setEditingPrize(null)}>Отмена</Button>
+                    </div>
                   </div>
                 )}
               </Card>
