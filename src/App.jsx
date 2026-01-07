@@ -2512,14 +2512,22 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   // Прогнозы и спонсоры
   const [showAddSponsor, setShowAddSponsor] = useState(false);
   const [showAddPrize, setShowAddPrize] = useState(false);
-  const [newSponsor, setNewSponsor] = useState({ name: "", logo_url: "", description: "" });
+  const [newSponsor, setNewSponsor] = useState({ name: "", logo_url: "", description: "", website_url: "", is_active: true });
+  const [editingSponsor, setEditingSponsor] = useState(null);
   const [uploadingSponsorLogo, setUploadingSponsorLogo] = useState(false);
-  const [newPrize, setNewPrize] = useState({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" });
+  const [newPrize, setNewPrize] = useState({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "", link_url: "", is_active: true });
+  const [editingPrize, setEditingPrize] = useState(null);
   
   const handleCreateSponsor = async () => {
     try {
-      await supabase.from("sponsors").insert({ name: newSponsor.name, logo_url: newSponsor.logo_url || null, description: newSponsor.description || null });
-      setNewSponsor({ name: "", logo_url: "", description: "" });
+      await supabase.from("sponsors").insert({ 
+        name: newSponsor.name, 
+        logo_url: newSponsor.logo_url || null, 
+        description: newSponsor.description || null,
+        website_url: newSponsor.website_url || null,
+        is_active: newSponsor.is_active 
+      });
+      setNewSponsor({ name: "", logo_url: "", description: "", website_url: "", is_active: true });
       setShowAddSponsor(false);
       await loadData();
       alert("Спонсор добавлен!");
@@ -2547,7 +2555,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
         title: newPrize.title,
         description: newPrize.description || null,
         place: parseInt(newPrize.place),
-        tour_id: newPrize.tour_id || null
+        tour_id: newPrize.tour_id || null,
+        link_url: newPrize.link_url || null,
+        is_active: newPrize.is_active
       });
       setNewPrize({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" });
       setShowAddPrize(false);
@@ -4034,9 +4044,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                       {newSponsor.logo_url && <span style={{ fontSize: "12px", color: "green", marginLeft: "8px" }}>✓</span>}
                     </div>
                     <Input label="Описание" value={newSponsor.description} onChange={v => setNewSponsor(p => ({ ...p, description: v }))} placeholder="Описание" style={{ marginTop: "8px" }} />
+                    <Input label="Сайт (ссылка)" value={newSponsor.website_url} onChange={v => setNewSponsor(p => ({ ...p, website_url: v }))} placeholder="https://..." style={{ marginTop: "8px" }} />
+                    <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <input type="checkbox" checked={newSponsor.is_active} onChange={e => setNewSponsor(p => ({ ...p, is_active: e.target.checked }))} id="sponsor-active" />
+                      <label htmlFor="sponsor-active" style={{ fontSize: "13px" }}>Активный</label>
+                    </div>
                     <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                       <Button onClick={handleCreateSponsor} disabled={!newSponsor.name || uploadingSponsorLogo}>Сохранить</Button>
-                      <Button variant="outline" onClick={() => { setShowAddSponsor(false); setNewSponsor({ name: "", logo_url: "", description: "" }); }}>Отмена</Button>
+                      <Button variant="outline" onClick={() => { setShowAddSponsor(false); setNewSponsor({ name: "", logo_url: "", description: "", website_url: "", is_active: true }); }}>Отмена</Button>
                     </div>
                   </div>
                 )}
@@ -4046,12 +4061,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {(sponsors || []).map(s => (
-                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: s.is_active === false ? "#f5f5f5" : colors.gray, borderRadius: "8px", opacity: s.is_active === false ? 0.6 : 1 }}>
                         {s.logo_url ? <img src={s.logo_url} alt="" style={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} /> : null}
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: "14px" }}>{s.name || "Без названия"}</div>
+                          <div style={{ fontWeight: 600, fontSize: "14px" }}>{s.name || "Без названия"} {s.is_active === false && <span style={{ color: "#999", fontWeight: 400 }}>(неактивен)</span>}</div>
                           <div style={{ fontSize: "12px", color: colors.goldDark }}>{s.description || ""}</div>
+                          {s.website_url && <a href={s.website_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold }}>🔗 {s.website_url}</a>}
                         </div>
+                        <button onClick={async () => { await supabase.from("sponsors").update({ is_active: !s.is_active }).eq("id", s.id); loadData(); }} style={{ background: "none", border: "none", color: s.is_active ? "#16a34a" : "#999", cursor: "pointer", padding: "4px", fontSize: "16px" }} title={s.is_active ? "Деактивировать" : "Активировать"}>{s.is_active !== false ? "✓" : "○"}</button>
                         <button onClick={() => handleDeleteSponsor(s.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}>✕</button>
                       </div>
                     ))}
@@ -4072,13 +4089,20 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   <div style={{ background: colors.goldLight, padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
                     <Select label="Спонсор" value={newPrize.sponsor_id} onChange={v => setNewPrize(p => ({ ...p, sponsor_id: v }))}
                       options={[{ value: "", label: "Выберите спонсора" }].concat((sponsors || []).map(s => ({ value: s.id, label: s.name })))} />
-                    <Input label="Название приза" value={newPrize.title} onChange={v => setNewPrize(p => ({ ...p, title: v }))} placeholder="Сертификат на 1000₽" style={{ marginTop: "8px" }} />
-                    <Input label="Описание" value={newPrize.description} onChange={v => setNewPrize(p => ({ ...p, description: v }))} placeholder="Описание" style={{ marginTop: "8px" }} />
+                    <Input label="Название приза" value={newPrize.title} onChange={v => setNewPrize(p => ({ ...p, title: v }))} placeholder="1000₽ на топливо" style={{ marginTop: "8px" }} />
+                    <Input label="Описание" value={newPrize.description} onChange={v => setNewPrize(p => ({ ...p, description: v }))} placeholder="3 победителя по 1000₽ каждому" style={{ marginTop: "8px" }} />
+                    <Input label="Ссылка (инструкция)" value={newPrize.link_url} onChange={v => setNewPrize(p => ({ ...p, link_url: v }))} placeholder="https://..." style={{ marginTop: "8px" }} />
                     <Select label="За какое место" value={newPrize.place} onChange={v => setNewPrize(p => ({ ...p, place: v }))} style={{ marginTop: "8px" }}
-                      options={[{ value: "1", label: "1 место" }, { value: "2", label: "2 место" }, { value: "3", label: "3 место" }]} />
+                      options={[{ value: "1", label: "1 место" }, { value: "2", label: "2 место" }, { value: "3", label: "3 место" }, { value: "10", label: "Топ-10" }]} />
+                    <Select label="За какой период" value={newPrize.tour_id} onChange={v => setNewPrize(p => ({ ...p, tour_id: v }))} style={{ marginTop: "8px" }}
+                      options={[{ value: "", label: "За весь сезон" }].concat((tours || []).map(t => ({ value: t.id, label: "Тур " + t.number })))} />
+                    <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <input type="checkbox" checked={newPrize.is_active} onChange={e => setNewPrize(p => ({ ...p, is_active: e.target.checked }))} id="prize-active" />
+                      <label htmlFor="prize-active" style={{ fontSize: "13px" }}>Активный</label>
+                    </div>
                     <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                       <Button onClick={handleCreatePrize} disabled={!newPrize.sponsor_id || !newPrize.title}>Сохранить</Button>
-                      <Button variant="outline" onClick={() => { setShowAddPrize(false); setNewPrize({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "" }); }}>Отмена</Button>
+                      <Button variant="outline" onClick={() => { setShowAddPrize(false); setNewPrize({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "", link_url: "", is_active: true }); }}>Отмена</Button>
                     </div>
                   </div>
                 )}
@@ -4087,12 +4111,17 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {(prizes || []).map(p => {
                       const sponsor = (sponsors || []).find(s => s.id === p.sponsor_id);
+                      const tour = (tours || []).find(t => t.id === p.tour_id);
                       return (
-                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: colors.gray, borderRadius: "8px" }}>
+                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", background: p.is_active === false ? "#f5f5f5" : colors.gray, borderRadius: "8px", opacity: p.is_active === false ? 0.6 : 1 }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: "14px" }}>{p.title}</div>
-                            <div style={{ fontSize: "12px", color: colors.goldDark }}>{sponsor ? sponsor.name : "?"} • {p.place} место</div>
+                            <div style={{ fontWeight: 600, fontSize: "14px" }}>{p.title} {p.is_active === false && <span style={{ color: "#999", fontWeight: 400 }}>(неактивен)</span>}</div>
+                            <div style={{ fontSize: "12px", color: colors.goldDark }}>
+                              {sponsor ? sponsor.name : "?"} • {p.place === 10 ? "Топ-10" : p.place + " место"} • {tour ? "Тур " + tour.number : "Сезон"}
+                            </div>
+                            {p.link_url && <a href={p.link_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold }}>🔗 Подробнее</a>}
                           </div>
+                          <button onClick={async () => { await supabase.from("prizes").update({ is_active: !p.is_active }).eq("id", p.id); loadData(); }} style={{ background: "none", border: "none", color: p.is_active !== false ? "#16a34a" : "#999", cursor: "pointer", padding: "4px", fontSize: "16px" }} title={p.is_active !== false ? "Деактивировать" : "Активировать"}>{p.is_active !== false ? "✓" : "○"}</button>
                           <button onClick={() => handleDeletePrize(p.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}>✕</button>
                         </div>
                       );
