@@ -1830,15 +1830,24 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
   const stats = (playerStats || []).filter(s => s.player_id === player?.id);
   const totalStats = stats.reduce((acc, s) => ({
     games: acc.games + 1,
+    // Подача
+    serves_total: acc.serves_total + (s.serves_total || 0),
     aces: acc.aces + (s.aces || 0),
     serve_errors: acc.serve_errors + (s.serve_errors || 0),
-    receive_points: acc.receive_points + (s.receive_points || 0),
+    // Приём (4 уровня)
+    receive_excellent: acc.receive_excellent + (s.receive_excellent || 0),
+    receive_good: acc.receive_good + (s.receive_good || 0),
+    receive_poor: acc.receive_poor + (s.receive_poor || 0),
     receive_errors: acc.receive_errors + (s.receive_errors || 0),
+    // Атака
+    attacks_total: acc.attacks_total + (s.attacks_total || 0),
     attack_points: acc.attack_points + (s.attack_points || 0),
     attack_errors: acc.attack_errors + (s.attack_errors || 0),
+    // Блок
     block_points: acc.block_points + (s.block_points || 0),
+    block_touches: acc.block_touches + (s.block_touches || 0),
     block_errors: acc.block_errors + (s.block_errors || 0),
-  }), { games: 0, aces: 0, serve_errors: 0, receive_points: 0, receive_errors: 0, attack_points: 0, attack_errors: 0, block_points: 0, block_errors: 0 });
+  }), { games: 0, serves_total: 0, aces: 0, serve_errors: 0, receive_excellent: 0, receive_good: 0, receive_poor: 0, receive_errors: 0, attacks_total: 0, attack_points: 0, attack_errors: 0, block_points: 0, block_touches: 0, block_errors: 0 });
   
   // Считаем победы/поражения
   const playerMatches = stats.map(s => matches?.find(m => m.id === s.match_id)).filter(Boolean);
@@ -1957,46 +1966,76 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                     <div style={{ fontSize: "11px", color: colors.goldDark }}>Поражений</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "14px" }}>
                   {(() => {
-                    // Расчёт процентов эффективности
-                    const serveTotal = totalStats.aces + totalStats.serve_errors;
-                    const serveEff = serveTotal > 0 ? Math.round((totalStats.aces / serveTotal) * 100) : 0;
-                    const receiveTotal = totalStats.receive_points + totalStats.receive_errors;
-                    const receiveEff = receiveTotal > 0 ? Math.round((totalStats.receive_points / receiveTotal) * 100) : 0;
-                    const attackTotal = totalStats.attack_points + totalStats.attack_errors;
-                    const attackEff = attackTotal > 0 ? Math.round((totalStats.attack_points / attackTotal) * 100) : 0;
-                    const blockTotal = totalStats.block_points + totalStats.block_errors;
-                    const blockEff = blockTotal > 0 ? Math.round((totalStats.block_points / blockTotal) * 100) : 0;
+                    // Подача: эффективность = (Эйсы - Ошибки) / Всего × 100
+                    const serveTotal = totalStats.serves_total || (totalStats.aces + totalStats.serve_errors);
+                    const serveEff = serveTotal > 0 ? Math.round(((totalStats.aces - totalStats.serve_errors) / serveTotal) * 100) : 0;
+                    const acePercent = serveTotal > 0 ? Math.round((totalStats.aces / serveTotal) * 100) : 0;
+                    
+                    // Приём: эффективность = (Отл×1 + Норм×0.5 - Ошибка×1) / Всего × 100
+                    const receiveTotal = totalStats.receive_excellent + totalStats.receive_good + totalStats.receive_poor + totalStats.receive_errors;
+                    const receiveEff = receiveTotal > 0 ? Math.round(((totalStats.receive_excellent * 1 + totalStats.receive_good * 0.5 - totalStats.receive_errors * 1) / receiveTotal) * 100) : 0;
+                    
+                    // Атака: эффективность = (Очки - Ошибки) / Всего × 100
+                    const attackTotal = totalStats.attacks_total || (totalStats.attack_points + totalStats.attack_errors);
+                    const attackEff = attackTotal > 0 ? Math.round(((totalStats.attack_points - totalStats.attack_errors) / attackTotal) * 100) : 0;
+                    const attackPercent = attackTotal > 0 ? Math.round((totalStats.attack_points / attackTotal) * 100) : 0;
                     
                     return (
                       <>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
-                          <span style={{ color: colors.goldDark }}>Подача</span>
-                          <div style={{ textAlign: "right" }}>
-                            <span><span style={{ color: "#16a34a", fontWeight: 600 }}>{totalStats.aces} эйсов</span> / <span style={{ color: "#dc2626" }}>{totalStats.serve_errors} ош.</span></span>
-                            {serveTotal > 0 && <div style={{ fontSize: "12px", color: colors.gold, fontWeight: 600 }}>{serveEff}% эфф.</div>}
+                        {/* Подача */}
+                        <div style={{ padding: "10px 0", borderBottom: "1px solid " + colors.grayBorder }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                            <span style={{ fontWeight: 600 }}>Подача</span>
+                            {serveTotal > 0 && <span style={{ fontSize: "13px", color: serveEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{serveEff > 0 ? "+" : ""}{serveEff}% эфф.</span>}
+                          </div>
+                          <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
+                            <span>Всего: {serveTotal}</span>
+                            <span style={{ color: "#16a34a" }}>Эйсы: {totalStats.aces}</span>
+                            <span style={{ color: "#dc2626" }}>Ош: {totalStats.serve_errors}</span>
+                          </div>
+                          {serveTotal > 0 && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{acePercent}% эйсов</div>}
+                        </div>
+                        
+                        {/* Приём */}
+                        <div style={{ padding: "10px 0", borderBottom: "1px solid " + colors.grayBorder }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                            <span style={{ fontWeight: 600 }}>Приём</span>
+                            {receiveTotal > 0 && <span style={{ fontSize: "13px", color: receiveEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{receiveEff > 0 ? "+" : ""}{receiveEff}% эфф.</span>}
+                          </div>
+                          <div style={{ display: "flex", gap: "8px", fontSize: "13px", flexWrap: "wrap" }}>
+                            <span style={{ color: "#16a34a" }}>Отл: {totalStats.receive_excellent}</span>
+                            <span style={{ color: "#ca8a04" }}>Норм: {totalStats.receive_good}</span>
+                            <span style={{ color: "#f97316" }}>Плохо: {totalStats.receive_poor}</span>
+                            <span style={{ color: "#dc2626" }}>Ош: {totalStats.receive_errors}</span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
-                          <span style={{ color: colors.goldDark }}>Приём</span>
-                          <div style={{ textAlign: "right" }}>
-                            <span><span style={{ color: "#16a34a", fontWeight: 600 }}>{totalStats.receive_points} очков</span> / <span style={{ color: "#dc2626" }}>{totalStats.receive_errors} ош.</span></span>
-                            {receiveTotal > 0 && <div style={{ fontSize: "12px", color: colors.gold, fontWeight: 600 }}>{receiveEff}% эфф.</div>}
+                        
+                        {/* Атака */}
+                        <div style={{ padding: "10px 0", borderBottom: "1px solid " + colors.grayBorder }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                            <span style={{ fontWeight: 600 }}>Атака</span>
+                            {attackTotal > 0 && <span style={{ fontSize: "13px", color: attackEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{attackEff > 0 ? "+" : ""}{attackEff}% эфф.</span>}
                           </div>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
-                          <span style={{ color: colors.goldDark }}>Атака</span>
-                          <div style={{ textAlign: "right" }}>
-                            <span><span style={{ color: "#16a34a", fontWeight: 600 }}>{totalStats.attack_points} очков</span> / <span style={{ color: "#dc2626" }}>{totalStats.attack_errors} ош.</span></span>
-                            {attackTotal > 0 && <div style={{ fontSize: "12px", color: colors.gold, fontWeight: 600 }}>{attackEff}% эфф.</div>}
+                          <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
+                            <span>Всего: {attackTotal}</span>
+                            <span style={{ color: "#16a34a" }}>Очки: {totalStats.attack_points}</span>
+                            <span style={{ color: "#dc2626" }}>Ош: {totalStats.attack_errors}</span>
                           </div>
+                          {attackTotal > 0 && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{attackPercent}% реализация</div>}
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
-                          <span style={{ color: colors.goldDark }}>Блок</span>
-                          <div style={{ textAlign: "right" }}>
-                            <span><span style={{ color: "#16a34a", fontWeight: 600 }}>{totalStats.block_points} очков</span> / <span style={{ color: "#dc2626" }}>{totalStats.block_errors} ош.</span></span>
-                            {blockTotal > 0 && <div style={{ fontSize: "12px", color: colors.gold, fontWeight: 600 }}>{blockEff}% эфф.</div>}
+                        
+                        {/* Блок */}
+                        <div style={{ padding: "10px 0" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                            <span style={{ fontWeight: 600 }}>Блок</span>
+                            <span style={{ fontSize: "13px", color: colors.gold, fontWeight: 600 }}>{totalStats.block_points} очков</span>
+                          </div>
+                          <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
+                            <span style={{ color: "#16a34a" }}>Очки: {totalStats.block_points}</span>
+                            <span style={{ color: "#ca8a04" }}>Касания: {totalStats.block_touches}</span>
+                            <span style={{ color: "#dc2626" }}>Ош: {totalStats.block_errors}</span>
                           </div>
                         </div>
                       </>
@@ -2442,36 +2481,47 @@ const StatField = ({ label, value, onChange }) => (
 const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
   const [isEditing, setIsEditing] = useState(false);
   
-  // Отдельные state для каждого поля (как в Input компоненте)
+  // Подача
+  const [servesTotal, setServesTotal] = useState(existingStat?.serves_total || "");
   const [aces, setAces] = useState(existingStat?.aces || "");
   const [serveErrors, setServeErrors] = useState(existingStat?.serve_errors || "");
-  const [receivePoints, setReceivePoints] = useState(existingStat?.receive_points || "");
+  // Приём (4 уровня)
+  const [receiveExcellent, setReceiveExcellent] = useState(existingStat?.receive_excellent || "");
+  const [receiveGood, setReceiveGood] = useState(existingStat?.receive_good || "");
+  const [receivePoor, setReceivePoor] = useState(existingStat?.receive_poor || "");
   const [receiveErrors, setReceiveErrors] = useState(existingStat?.receive_errors || "");
+  // Атака
+  const [attacksTotal, setAttacksTotal] = useState(existingStat?.attacks_total || "");
   const [attackPoints, setAttackPoints] = useState(existingStat?.attack_points || "");
   const [attackErrors, setAttackErrors] = useState(existingStat?.attack_errors || "");
+  // Блок
   const [blockPoints, setBlockPoints] = useState(existingStat?.block_points || "");
+  const [blockTouches, setBlockTouches] = useState(existingStat?.block_touches || "");
   const [blockErrors, setBlockErrors] = useState(existingStat?.block_errors || "");
   
   const handleSave = async () => {
     const stat = {
+      serves_total: parseInt(servesTotal) || 0,
       aces: parseInt(aces) || 0, 
       serve_errors: parseInt(serveErrors) || 0,
-      receive_points: parseInt(receivePoints) || 0,
+      receive_excellent: parseInt(receiveExcellent) || 0,
+      receive_good: parseInt(receiveGood) || 0,
+      receive_poor: parseInt(receivePoor) || 0,
       receive_errors: parseInt(receiveErrors) || 0,
+      attacks_total: parseInt(attacksTotal) || 0,
       attack_points: parseInt(attackPoints) || 0, 
       attack_errors: parseInt(attackErrors) || 0,
-      block_points: parseInt(blockPoints) || 0, 
+      block_points: parseInt(blockPoints) || 0,
+      block_touches: parseInt(blockTouches) || 0,
       block_errors: parseInt(blockErrors) || 0
     };
-    console.log("Saving stat:", { playerId: player.id, matchId, stat, existingId: existingStat?.id });
     await onSave(player.id, matchId, stat, existingStat?.id);
     setIsEditing(false);
   };
   
-  
   if (!isEditing) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 0", borderBottom: "1px solid " + colors.grayBorder }}>
         <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
         <span style={{ fontSize: "13px", flex: 1 }}>
           {player.jersey_number && <span style={{ color: colors.gold, marginRight: "4px" }}>#{player.jersey_number}</span>}
@@ -2479,7 +2529,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
         </span>
         {existingStat ? (
           <span style={{ fontSize: "11px", color: colors.goldDark }}>
-            А:{existingStat.aces}/{existingStat.serve_errors} | Ат:{existingStat.attack_points}/{existingStat.attack_errors} | Б:{existingStat.block_points}
+            П:{existingStat.aces || 0}/{existingStat.serve_errors || 0} | А:{existingStat.attack_points || 0}/{existingStat.attack_errors || 0} | Б:{existingStat.block_points || 0}
           </span>
         ) : (
           <span style={{ fontSize: "11px", color: colors.goldDark }}>—</span>
@@ -2500,34 +2550,41 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
           {player.users?.first_name || player.users?.username} {player.users?.last_name || ""}
         </span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-        <div>
-          <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Подача</div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Эйс" value={aces} onChange={setAces} />
-            <StatField label="Ош" value={serveErrors} onChange={setServeErrors} />
-          </div>
+      {/* Подача */}
+      <div style={{ marginBottom: "10px" }}>
+        <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Подача</div>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <StatField label="Всего" value={servesTotal} onChange={setServesTotal} />
+          <StatField label="Эйс" value={aces} onChange={setAces} />
+          <StatField label="Ош" value={serveErrors} onChange={setServeErrors} />
         </div>
-        <div>
-          <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Приём</div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Очк" value={receivePoints} onChange={setReceivePoints} />
-            <StatField label="Ош" value={receiveErrors} onChange={setReceiveErrors} />
-          </div>
+      </div>
+      {/* Приём */}
+      <div style={{ marginBottom: "10px" }}>
+        <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Приём</div>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <StatField label="Отл" value={receiveExcellent} onChange={setReceiveExcellent} />
+          <StatField label="Норм" value={receiveGood} onChange={setReceiveGood} />
+          <StatField label="Плохо" value={receivePoor} onChange={setReceivePoor} />
+          <StatField label="Ош" value={receiveErrors} onChange={setReceiveErrors} />
         </div>
-        <div>
-          <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Атака</div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Очк" value={attackPoints} onChange={setAttackPoints} />
-            <StatField label="Ош" value={attackErrors} onChange={setAttackErrors} />
-          </div>
+      </div>
+      {/* Атака */}
+      <div style={{ marginBottom: "10px" }}>
+        <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Атака</div>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <StatField label="Всего" value={attacksTotal} onChange={setAttacksTotal} />
+          <StatField label="Очки" value={attackPoints} onChange={setAttackPoints} />
+          <StatField label="Ош" value={attackErrors} onChange={setAttackErrors} />
         </div>
-        <div>
-          <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Блок</div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <StatField label="Очк" value={blockPoints} onChange={setBlockPoints} />
-            <StatField label="Ош" value={blockErrors} onChange={setBlockErrors} />
-          </div>
+      </div>
+      {/* Блок */}
+      <div style={{ marginBottom: "12px" }}>
+        <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Блок</div>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <StatField label="Очки" value={blockPoints} onChange={setBlockPoints} />
+          <StatField label="Кас" value={blockTouches} onChange={setBlockTouches} />
+          <StatField label="Ош" value={blockErrors} onChange={setBlockErrors} />
         </div>
       </div>
       <div style={{ display: "flex", gap: "8px" }}>
