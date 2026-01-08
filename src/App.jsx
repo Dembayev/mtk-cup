@@ -6744,10 +6744,10 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         throw result.error;
       }
       await loadData();
-      alert("Статистика сохранена!");
+      
     } catch (error) {
       console.error("Error saving player stat:", error);
-      alert("Ошибка сохранения статистики");
+      console.error("Ошибка сохранения статистики");
     } finally {
       setActionLoading(false);
     }
