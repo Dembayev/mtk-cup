@@ -5220,6 +5220,19 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
             </Card>
           )}
 
+          {userRoles.isServiceman && (
+            <Card onClick={() => setScreen("servicemanSelect")} style={{ marginBottom: "20px", cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "40px", height: "40px", background: "#dcfce7", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>📊</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600 }}>Режим сервисмена</div>
+                  <div style={{ fontSize: "13px", color: colors.goldDark }}>Ведение статистики матчей</div>
+                </div>
+                <Icons.ChevronRight />
+              </div>
+            </Card>
+          )}
+
           {userRoles.isAdmin && (
             <Card onClick={() => setScreen("admin")} style={{ marginBottom: "20px", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
