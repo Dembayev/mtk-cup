@@ -4639,7 +4639,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const currentPlayers = selectedTeamId === match?.team1_id ? team1Players : selectedTeamId === match?.team2_id ? team2Players : [];
   
   // Инициализация локальной статистики
-  React.useEffect(() => {
+  useEffect(() => {
     if (!match?.id) return;
     const stats = {};
     [...team1Players, ...team2Players].forEach(p => {
