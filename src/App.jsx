@@ -4631,6 +4631,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [localStats, setLocalStats] = useState({});
   const [statusText, setStatusText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showEndSetModal, setShowEndSetModal] = useState(false);
+  const [showEndMatchModal, setShowEndMatchModal] = useState(false);
   
   const team1 = teams?.find(t => t.id === match?.team1_id);
   const team2 = teams?.find(t => t.id === match?.team2_id);
@@ -4749,17 +4751,22 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   };
   
   const handleEndSet = async () => {
-    if (!window.confirm("Завершить партию " + currentSet + "?\nСчёт: " + teamScores.team1 + ":" + teamScores.team2)) return;
-    
+    setShowEndSetModal(false);
+    setSaving(true);
     await saveAllStats();
     setSetScores(prev => [...prev, { ...teamScores }]);
     setTeamScores({ team1: 0, team2: 0 });
     setCurrentSet(prev => prev + 1);
     setActionHistory([]);
-    alert("Партия " + currentSet + " завершена!");
+    setSaving(false);
+    setStatusText("Партия завершена!");
+    setTimeout(() => setStatusText(""), 2000);
   };
   
   const handleEndMatch = async () => {
+    setShowEndMatchModal(false);
+    setSaving(true);
+    
     const finalSets = [...setScores];
     if (teamScores.team1 > 0 || teamScores.team2 > 0) {
       finalSets.push({ ...teamScores });
@@ -4768,11 +4775,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     const setsTeam1 = finalSets.filter(s => s.team1 > s.team2).length;
     const setsTeam2 = finalSets.filter(s => s.team2 > s.team1).length;
     
-    if (!window.confirm("Завершить матч?\nСчёт по партиям: " + setsTeam1 + ":" + setsTeam2)) return;
-    
     await saveAllStats();
     
-    // Формируем данные для обновления матча
     const matchData = {
       status: "finished",
       sets_team1: setsTeam1,
@@ -4784,8 +4788,20 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     });
     
     await onUpdateMatch(match.id, matchData);
-    alert("Матч завершён!");
+    setSaving(false);
     setScreen("admin");
+  };
+  
+  // Расчёт для модалки завершения матча
+  const getFinalScore = () => {
+    const finalSets = [...setScores];
+    if (teamScores.team1 > 0 || teamScores.team2 > 0) {
+      finalSets.push({ ...teamScores });
+    }
+    return {
+      team1: finalSets.filter(s => s.team1 > s.team2).length,
+      team2: finalSets.filter(s => s.team2 > s.team1).length
+    };
   };
   
   if (!match) {
@@ -4802,10 +4818,10 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       {/* Верхняя панель */}
       <div style={{ background: "white", padding: "12px 16px", borderBottom: "1px solid " + colors.grayBorder, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-          <button onClick={handleEndMatch} style={{ flex: 1, padding: "10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#991b1b" }}>
+          <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#991b1b" }}>
             Конец Матча
           </button>
-          <button onClick={handleEndSet} style={{ flex: 1, padding: "10px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#92400e" }}>
+          <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "10px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#92400e" }}>
             Конец Партии
           </button>
         </div>
@@ -4912,6 +4928,35 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       ) : (
         <div style={{ padding: "40px 20px", textAlign: "center", color: colors.goldDark }}>
           👆 Выберите команду для ведения статистики
+        </div>
+      )}
+      
+      {/* Модалка завершения партии */}
+      {showEndSetModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ background: "white", borderRadius: "16px", padding: "24px", maxWidth: "320px", width: "100%", textAlign: "center" }}>
+            <h3 style={{ margin: "0 0 12px", fontSize: "18px" }}>Завершить партию {currentSet}?</h3>
+            <div style={{ fontSize: "32px", fontWeight: 700, color: colors.gold, margin: "16px 0" }}>{teamScores.team1} : {teamScores.team2}</div>
+            <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+              <button onClick={() => setShowEndSetModal(false)} style={{ flex: 1, padding: "12px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}>Отмена</button>
+              <button onClick={handleEndSet} style={{ flex: 1, padding: "12px", background: colors.gold, border: "none", borderRadius: "8px", fontWeight: 600, color: "white", cursor: "pointer" }}>Завершить</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Модалка завершения матча */}
+      {showEndMatchModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ background: "white", borderRadius: "16px", padding: "24px", maxWidth: "320px", width: "100%", textAlign: "center" }}>
+            <h3 style={{ margin: "0 0 12px", fontSize: "18px" }}>Завершить матч?</h3>
+            <div style={{ fontSize: "14px", color: colors.goldDark, marginBottom: "8px" }}>Счёт по партиям:</div>
+            <div style={{ fontSize: "32px", fontWeight: 700, color: colors.gold, margin: "8px 0" }}>{getFinalScore().team1} : {getFinalScore().team2}</div>
+            <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+              <button onClick={() => setShowEndMatchModal(false)} style={{ flex: 1, padding: "12px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}>Отмена</button>
+              <button onClick={handleEndMatch} style={{ flex: 1, padding: "12px", background: "#dc2626", border: "none", borderRadius: "8px", fontWeight: 600, color: "white", cursor: "pointer" }}>Завершить</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
