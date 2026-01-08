@@ -4720,12 +4720,17 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [saving, setSaving] = useState(false);
   const [showEndSetModal, setShowEndSetModal] = useState(false);
   const [showEndMatchModal, setShowEndMatchModal] = useState(false);
+  const [showSubstitutionModal, setShowSubstitutionModal] = useState(false);
+  const [onCourtPlayers, setOnCourtPlayers] = useState({ team1: [], team2: [] }); // Игроки на площадке
   
   const team1 = teams?.find(t => t.id === match?.team1_id);
   const team2 = teams?.find(t => t.id === match?.team2_id);
   const team1Players = (players || []).filter(p => p.team_id === match?.team1_id);
   const team2Players = (players || []).filter(p => p.team_id === match?.team2_id);
-  const currentPlayers = selectedTeamId === match?.team1_id ? team1Players : selectedTeamId === match?.team2_id ? team2Players : [];
+  const allCurrentPlayers = selectedTeamId === match?.team1_id ? team1Players : selectedTeamId === match?.team2_id ? team2Players : [];
+  const onCourtIds = selectedTeamId === match?.team1_id ? onCourtPlayers.team1 : onCourtPlayers.team2;
+  const currentPlayers = allCurrentPlayers.filter(p => onCourtIds.includes(p.id));
+  const benchPlayers = allCurrentPlayers.filter(p => !onCourtIds.includes(p.id));
   
   // Инициализация локальной статистики
   useEffect(() => {
@@ -4741,6 +4746,12 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       };
     });
     setLocalStats(stats);
+    
+    // Инициализация игроков на площадке (первые 6 или все если меньше)
+    setOnCourtPlayers({
+      team1: team1Players.slice(0, 6).map(p => p.id),
+      team2: team2Players.slice(0, 6).map(p => p.id)
+    });
   }, [match?.id, playerStats]);
   
   const actionButtons = {
@@ -5021,6 +5032,73 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       ) : (
         <div style={{ padding: "40px 20px", textAlign: "center", color: colors.goldDark }}>
           👆 Выберите команду для ведения статистики
+        </div>
+      )}
+      
+      {/* Модалка замены игрока */}
+      {showSubstitutionModal && selectedTeamId && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ background: "white", borderRadius: "16px", padding: "24px", maxWidth: "360px", width: "100%", maxHeight: "80vh", overflow: "auto" }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: "18px", textAlign: "center" }}>Замена игрока</h3>
+            
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>На площадке:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {currentPlayers.map(p => (
+                  <button key={p.id} onClick={() => {
+                    // Выбираем игрока для замены
+                    setSelectedPlayerId(p.id);
+                  }} style={{ 
+                    padding: "8px 12px", 
+                    background: selectedPlayerId === p.id ? colors.goldLight : "white",
+                    border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder,
+                    borderRadius: "8px", cursor: "pointer", fontSize: "13px"
+                  }}>
+                    <span style={{ fontWeight: 700, color: colors.gold }}>#{p.jersey_number || "?"}</span> {(p.users?.first_name || "").substring(0, 6)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {selectedPlayerId && benchPlayers.length > 0 && (
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>Заменить на:</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {benchPlayers.map(p => (
+                    <button key={p.id} onClick={() => {
+                      // Выполняем замену
+                      const teamKey = selectedTeamId === match?.team1_id ? "team1" : "team2";
+                      setOnCourtPlayers(prev => ({
+                        ...prev,
+                        [teamKey]: prev[teamKey].map(id => id === selectedPlayerId ? p.id : id)
+                      }));
+                      setStatusText("Замена: " + (currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.first_name || "?") + " → " + (p.users?.first_name || "?"));
+                      setTimeout(() => setStatusText(""), 3000);
+                      setSelectedPlayerId(null);
+                      setShowSubstitutionModal(false);
+                    }} style={{ 
+                      padding: "8px 12px", 
+                      background: "#dcfce7",
+                      border: "1px solid #16a34a",
+                      borderRadius: "8px", cursor: "pointer", fontSize: "13px"
+                    }}>
+                      <span style={{ fontWeight: 700, color: "#16a34a" }}>#{p.jersey_number || "?"}</span> {(p.users?.first_name || "").substring(0, 6)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {benchPlayers.length === 0 && (
+              <div style={{ padding: "12px", background: colors.gray, borderRadius: "8px", textAlign: "center", color: colors.goldDark, marginBottom: "16px" }}>
+                Нет запасных игроков
+              </div>
+            )}
+            
+            <button onClick={() => { setShowSubstitutionModal(false); setSelectedPlayerId(null); }} style={{ width: "100%", padding: "12px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}>
+              Отмена
+            </button>
+          </div>
         </div>
       )}
       
