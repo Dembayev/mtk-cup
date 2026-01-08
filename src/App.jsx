@@ -1189,36 +1189,49 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
 const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, predictions, user, onMakePrediction, users }) => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [prediction, setPrediction] = useState({ team1: 3, team2: 0 });
+  const [expandedTours, setExpandedTours] = useState({});
+  const [expandedSponsor, setExpandedSponsor] = useState(null);
   
-  // Ближайшие матчи для прогнозов (только upcoming)
-  const upcomingMatches = (matches || [])
-    .filter(m => m.status === "upcoming")
-    .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+  // Сортируем туры: ближайший первый
+  const now = new Date();
+  const sortedTours = [...(tours || [])].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return Math.abs(dateA - now) - Math.abs(dateB - now);
+  });
+  
+  const currentTour = sortedTours[0];
   
   // Мои прогнозы
   const myPredictions = (predictions || []).filter(p => p.user_id === user?.id);
   
-  // Определяем текущий/ближайший тур
-  const now = new Date();
-  const currentTour = (tours || [])
-    .filter(t => t.date)
-    .sort((a, b) => Math.abs(new Date(a.date) - now) - Math.abs(new Date(b.date) - now))[0];
-  
   // Активные спонсоры
   const activeSponsors = (sponsors || []).filter(s => s.is_active !== false);
   
-  // Активные призы (за текущий тур или за весь сезон)
-  const activePrizes = (prizes || []).filter(p => {
-    if (p.is_active === false) return false;
-    return !p.tour_id || p.tour_id === currentTour?.id;
-  });
+  // Функция получения лидеров по туру
+  const getTourLeaderboard = (tourId) => {
+    const tourMatches = (matches || []).filter(m => m.tour_id === tourId).map(m => m.id);
+    if (tourMatches.length === 0) return [];
+    const scores = {};
+    (predictions || []).filter(p => tourMatches.includes(p.match_id)).forEach(p => {
+      if (!scores[p.user_id]) scores[p.user_id] = { points: 0, count: 0 };
+      scores[p.user_id].points += p.points_earned || 0;
+      scores[p.user_id].count += 1;
+    });
+    return Object.entries(scores)
+      .map(([id, data]) => ({ user: (users || []).find(u => u.id === id), points: data.points, count: data.count }))
+      .filter(x => x.user)
+      .sort((a, b) => b.points - a.points || b.count - a.count)
+      .slice(0, 10);
+  };
   
-  // Матчи текущего тура
-  const currentTourMatches = currentTour 
-    ? (matches || []).filter(m => m.tour_id === currentTour.id).map(m => m.id)
-    : [];
+  // Функция получения призов по туру
+  const getTourPrizes = (tourId) => (prizes || []).filter(p => p.is_active !== false && p.tour_id === tourId);
   
-  // Таблица лидеров за СЕЗОН (все прогнозы)
+  // Призы за сезон
+  const seasonPrizes = (prizes || []).filter(p => p.is_active !== false && !p.tour_id);
+  
+  // Таблица лидеров за СЕЗОН
   const seasonLeaderboard = (() => {
     const scores = {};
     (predictions || []).forEach(p => {
@@ -1233,21 +1246,10 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
       .slice(0, 10);
   })();
   
-  // Таблица лидеров за ТУР (только прогнозы на матчи текущего тура)
-  const tourLeaderboard = (() => {
-    if (!currentTour || currentTourMatches.length === 0) return [];
-    const scores = {};
-    (predictions || []).filter(p => currentTourMatches.includes(p.match_id)).forEach(p => {
-      if (!scores[p.user_id]) scores[p.user_id] = { points: 0, count: 0 };
-      scores[p.user_id].points += p.points_earned || 0;
-      scores[p.user_id].count += 1;
-    });
-    return Object.entries(scores)
-      .map(([id, data]) => ({ user: (users || []).find(u => u.id === id), points: data.points, count: data.count }))
-      .filter(x => x.user)
-      .sort((a, b) => b.points - a.points || b.count - a.count)
-      .slice(0, 10);
-  })();
+  // Ближайшие матчи для прогнозов
+  const upcomingMatches = (matches || [])
+    .filter(m => m.status === "upcoming")
+    .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
   
   const handleSubmitPrediction = async () => {
     if (!selectedMatch || !user) return;
@@ -1258,96 +1260,42 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
   
   const getPrediction = (matchId) => myPredictions.find(p => p.match_id === matchId);
   
+  const toggleTour = (tourId) => setExpandedTours(prev => ({ ...prev, [tourId]: !prev[tourId] }));
   
+  // Инициализируем текущий тур как развёрнутый
+  const isExpanded = (tourId) => expandedTours[tourId] !== undefined ? expandedTours[tourId] : (tourId === currentTour?.id);
   
   return (
     <div style={{ paddingBottom: "100px" }}>
       <Header title="Прогнозы" />
       <Container>
-        {/* Розыгрыш призов */}
-        <Card style={{ marginBottom: "20px", background: `linear-gradient(135deg, ${colors.gold} 0%, ${colors.goldDark} 100%)`, color: "white" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px", display: "flex", alignItems: "center", gap: "8px" }}>
-            🎁 РОЗЫГРЫШ ПРИЗОВ
-          </h3>
-          
-          {/* Спонсоры */}
-          {activeSponsors.length > 0 && (
-            <div style={{ marginBottom: "12px" }}>
-              <div style={{ fontSize: "11px", opacity: 0.8, marginBottom: "8px" }}>При поддержке:</div>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                {activeSponsors.map(s => (
-                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.2)", padding: "4px 8px", borderRadius: "6px" }}>
-                    {s.logo_url && <img src={s.logo_url} alt="" style={{ width: 24, height: 24, borderRadius: "4px", objectFit: "cover" }} />}
-                    <span style={{ fontSize: "12px", fontWeight: 600 }}>{s.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Призы */}
-          {activePrizes.length > 0 && (
-            <div style={{ marginBottom: "12px" }}>
-              <div style={{ fontSize: "11px", opacity: 0.8, marginBottom: "8px" }}>Призы:</div>
-              {activePrizes.map(p => {
-                const sponsor = activeSponsors.find(s => s.id === p.sponsor_id);
-                return (
-                  <div key={p.id} style={{ background: "rgba(255,255,255,0.15)", padding: "8px 12px", borderRadius: "8px", marginBottom: "6px" }}>
-                    <div style={{ fontWeight: 600, fontSize: "14px" }}>🏆 {p.title}</div>
-                    {p.description && <div style={{ fontSize: "12px", opacity: 0.9, marginTop: "2px" }}>{p.description}</div>}
-                    {sponsor && <div style={{ fontSize: "11px", opacity: 0.7, marginTop: "4px" }}>от {sponsor.name}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
-          {/* Условия */}
-          <div style={{ background: "rgba(0,0,0,0.2)", padding: "10px 12px", borderRadius: "8px", fontSize: "12px", lineHeight: 1.5 }}>
-            <div style={{ fontWeight: 600, marginBottom: "6px" }}>Условия:</div>
-            <div>• Получить приз могут только зрители в зале</div>
-            <div>• Победители — первые 3 с максимумом очков</div>
-            <div>• Прогноз можно сделать до начала матча</div>
-          </div>
-        </Card>
-        
-        {/* Как это работает */}
-        <Card style={{ marginBottom: "20px" }}>
-          <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 12px" }}>🎯 Как набрать очки</h3>
-          <div style={{ fontSize: "13px", color: colors.goldDark, lineHeight: 1.6 }}>
-            <div style={{ marginBottom: "8px" }}>• Угадай счёт матча до его начала</div>
-            <div style={{ marginBottom: "8px" }}>• <span style={{ color: colors.gold, fontWeight: 600 }}>+3 очка</span> за точный счёт</div>
-            <div style={{ marginBottom: "8px" }}>• <span style={{ color: colors.gold, fontWeight: 600 }}>+1 очко</span> за угаданного победителя</div>
+        {/* Условия */}
+        <Card style={{ marginBottom: "16px", background: "linear-gradient(135deg, " + colors.gold + " 0%, " + colors.goldDark + " 100%)", color: "white" }}>
+          <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 10px" }}>🎯 Как набрать очки</h3>
+          <div style={{ fontSize: "13px", lineHeight: 1.6 }}>
+            <div>• <b>+3 очка</b> за точный счёт</div>
+            <div>• <b>+1 очко</b> за угаданного победителя</div>
+            <div style={{ marginTop: "8px", opacity: 0.9, fontSize: "12px" }}>Приз получают только зрители в зале</div>
           </div>
         </Card>
         
         {/* Форма прогноза */}
         {selectedMatch && (
-          <Card style={{ marginBottom: "20px", border: `2px solid ${colors.gold}` }}>
+          <Card style={{ marginBottom: "16px", border: "2px solid " + colors.gold }}>
             <h4 style={{ fontSize: "14px", fontWeight: 600, margin: "0 0 16px", textAlign: "center" }}>Ваш прогноз</h4>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
               <div style={{ textAlign: "center", flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>
-                  {teams.find(t => t.id === selectedMatch.team1_id)?.name}
-                </div>
-                <select 
-                  value={prediction.team1} 
-                  onChange={e => setPrediction(p => ({ ...p, team1: parseInt(e.target.value) }))}
-                  style={{ width: "60px", padding: "12px", fontSize: "20px", fontWeight: 700, textAlign: "center", border: `2px solid ${colors.gold}`, borderRadius: "8px" }}
-                >
+                <div style={{ fontWeight: 600, fontSize: "13px", marginBottom: "8px" }}>{teams.find(t => t.id === selectedMatch.team1_id)?.name}</div>
+                <select value={prediction.team1} onChange={e => setPrediction(p => ({ ...p, team1: parseInt(e.target.value) }))}
+                  style={{ width: "60px", padding: "12px", fontSize: "20px", fontWeight: 700, textAlign: "center", border: "2px solid " + colors.gold, borderRadius: "8px" }}>
                   {[0,1,2,3].map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div style={{ fontSize: "24px", fontWeight: 700 }}>:</div>
               <div style={{ textAlign: "center", flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>
-                  {teams.find(t => t.id === selectedMatch.team2_id)?.name}
-                </div>
-                <select 
-                  value={prediction.team2} 
-                  onChange={e => setPrediction(p => ({ ...p, team2: parseInt(e.target.value) }))}
-                  style={{ width: "60px", padding: "12px", fontSize: "20px", fontWeight: 700, textAlign: "center", border: `2px solid ${colors.gold}`, borderRadius: "8px" }}
-                >
+                <div style={{ fontWeight: 600, fontSize: "13px", marginBottom: "8px" }}>{teams.find(t => t.id === selectedMatch.team2_id)?.name}</div>
+                <select value={prediction.team2} onChange={e => setPrediction(p => ({ ...p, team2: parseInt(e.target.value) }))}
+                  style={{ width: "60px", padding: "12px", fontSize: "20px", fontWeight: 700, textAlign: "center", border: "2px solid " + colors.gold, borderRadius: "8px" }}>
                   {[0,1,2,3].map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
@@ -1356,139 +1304,167 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
               <p style={{ color: "#dc2626", fontSize: "12px", textAlign: "center", marginTop: "8px" }}>Одна из команд должна набрать 3 сета</p>
             )}
             <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-              <Button 
-                onClick={handleSubmitPrediction} 
-                disabled={prediction.team1 !== 3 && prediction.team2 !== 3}
-                style={{ flex: 1 }}
-              >
-                Отправить прогноз
-              </Button>
+              <Button onClick={handleSubmitPrediction} disabled={prediction.team1 !== 3 && prediction.team2 !== 3} style={{ flex: 1 }}>Отправить</Button>
               <Button variant="outline" onClick={() => setSelectedMatch(null)}>Отмена</Button>
             </div>
           </Card>
         )}
         
-        {/* Список матчей */}
-        <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Ближайшие матчи</h3>
-        {upcomingMatches.length === 0 ? (
-          <Card><p style={{ color: colors.goldDark, textAlign: "center" }}>Нет предстоящих матчей</p></Card>
-        ) : (
-          upcomingMatches.map(match => {
-            const team1 = teams.find(t => t.id === match.team1_id);
-            const team2 = teams.find(t => t.id === match.team2_id);
-            const myPred = getPrediction(match.id);
-            const matchTime = match.scheduled_time?.substring(11, 16) || "";
-            
-            return (
-              <Card key={match.id} style={{ marginBottom: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "14px", fontWeight: 600 }}>{team1?.name} vs {team2?.name}</div>
-                    <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "4px" }}>
-                      {matchTime && `⏰ ${matchTime}`}
+        {/* Ближайшие матчи */}
+        {upcomingMatches.length > 0 && (
+          <div>
+            <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 12px" }}>⏰ Сделать прогноз</h3>
+            {upcomingMatches.slice(0, 4).map(match => {
+              const team1 = teams.find(t => t.id === match.team1_id);
+              const team2 = teams.find(t => t.id === match.team2_id);
+              const myPred = getPrediction(match.id);
+              const matchTime = match.scheduled_time?.substring(11, 16) || "";
+              return (
+                <Card key={match.id} style={{ marginBottom: "8px", padding: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "13px", fontWeight: 600 }}>{team1?.name} vs {team2?.name}</div>
+                      <div style={{ fontSize: "11px", color: colors.goldDark }}>{matchTime && ("⏰ " + matchTime)}</div>
                     </div>
-                  </div>
-                  {myPred ? (
-                    <div style={{ textAlign: "center", padding: "8px 12px", background: colors.goldLight, borderRadius: "8px" }}>
-                      <div style={{ fontSize: "11px", color: colors.goldDark }}>Ваш прогноз</div>
-                      <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>
-                        {myPred.predicted_score_team1}:{myPred.predicted_score_team2}
+                    {myPred ? (
+                      <div style={{ textAlign: "center", padding: "6px 10px", background: colors.goldLight, borderRadius: "6px" }}>
+                        <div style={{ fontSize: "10px", color: colors.goldDark }}>Прогноз</div>
+                        <div style={{ fontSize: "16px", fontWeight: 700, color: colors.gold }}>{myPred.predicted_score_team1}:{myPred.predicted_score_team2}</div>
                       </div>
-                    </div>
-                  ) : user ? (
-                    <Button onClick={() => setSelectedMatch(match)} style={{ padding: "8px 16px" }}>
-                      Прогноз
-                    </Button>
-                  ) : (
-                    <Badge variant="default">Войдите</Badge>
-                  )}
-                </div>
-              </Card>
-            );
-          })
+                    ) : user ? (
+                      <Button onClick={() => setSelectedMatch(match)} style={{ padding: "6px 12px", fontSize: "12px" }}>Прогноз</Button>
+                    ) : (
+                      <Badge variant="default">Войдите</Badge>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         )}
         
-        {/* Таблица лидеров за ТУР */}
-        {currentTour && (
-          <>
-            <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "24px 0 12px" }}>🏆 Лидеры тура {currentTour.number}</h3>
-            <Card style={{ marginBottom: "16px" }}>
-              {tourLeaderboard.length === 0 ? (
-                <p style={{ color: colors.goldDark, textAlign: "center" }}>Пока нет прогнозов на этот тур</p>
-              ) : (
-                tourLeaderboard.map((item, i) => (
-                  <div key={item.user.id} style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "12px", 
-                    padding: "10px 0",
-                    borderBottom: i < tourLeaderboard.length - 1 ? `1px solid ${colors.grayBorder}` : "none",
-                    background: i < 3 ? "rgba(201, 162, 39, 0.1)" : "transparent",
-                    margin: i < 3 ? "-0px -12px" : 0,
-                    padding: i < 3 ? "10px 12px" : "10px 0",
-                    borderRadius: i < 3 ? "8px" : 0
-                  }}>
-                    <div style={{ 
-                      width: "28px", 
-                      height: "28px", 
-                      borderRadius: "50%", 
-                      background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray,
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      fontSize: "12px",
-                      color: i < 3 ? "white" : colors.text
-                    }}>
-                      {i + 1}
-                    </div>
-                    <Avatar name={item.user.first_name || item.user.username} size={36} url={item.user.avatar_url} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: "14px" }}>{item.user.first_name || item.user.username} {item.user.last_name || ""}</div>
-                      <div style={{ fontSize: "11px", color: colors.goldDark }}>{item.count} прогноз(ов)</div>
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: "18px", color: colors.gold }}>{item.points}</div>
+        {/* Туры - спойлеры */}
+        <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "20px 0 12px" }}>📊 Результаты по турам</h3>
+        {sortedTours.map((tour, index) => {
+          const expanded = isExpanded(tour.id);
+          const isCurrent = index === 0;
+          const tourPrizes = getTourPrizes(tour.id);
+          const tourLeaderboard = getTourLeaderboard(tour.id);
+          const tourSponsors = [...new Map(tourPrizes.map(p => activeSponsors.find(s => s.id === p.sponsor_id)).filter(Boolean).map(s => [s.id, s])).values()];
+          
+          return (
+            <Card key={tour.id} style={{ marginBottom: "12px", overflow: "hidden" }}>
+              <div onClick={() => toggleTour(tour.id)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "4px 0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "18px" }}>{isCurrent ? "🏆" : "📋"}</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: "15px" }}>Тур {tour.number} {isCurrent && <Badge>текущий</Badge>}</div>
+                    <div style={{ fontSize: "12px", color: colors.goldDark }}>{tour.date ? new Date(tour.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long" }) : ""}</div>
                   </div>
-                ))
+                </div>
+                <span style={{ fontSize: "20px", color: colors.goldDark, transition: "transform 0.2s", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+              </div>
+              
+              {expanded && (
+                <div style={{ marginTop: "16px", borderTop: "1px solid " + colors.grayBorder, paddingTop: "16px" }}>
+                  {/* Спонсоры тура */}
+                  {tourSponsors.length > 0 && (
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", fontWeight: 600 }}>Спонсоры:</div>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        {tourSponsors.map(s => (
+                          <div key={s.id} onClick={(e) => { e.stopPropagation(); setExpandedSponsor(expandedSponsor === s.id ? null : s.id); }}
+                            style={{ display: "flex", alignItems: "center", gap: "6px", background: colors.goldLight, padding: "6px 10px", borderRadius: "8px", cursor: "pointer", border: expandedSponsor === s.id ? "2px solid " + colors.gold : "2px solid transparent" }}>
+                            {s.logo_url && <img src={s.logo_url} alt="" style={{ width: 24, height: 24, borderRadius: "4px", objectFit: "cover" }} />}
+                            <span style={{ fontSize: "12px", fontWeight: 600 }}>{s.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {expandedSponsor && tourSponsors.find(s => s.id === expandedSponsor) && (() => {
+                        const s = tourSponsors.find(sp => sp.id === expandedSponsor);
+                        return (
+                          <div style={{ marginTop: "12px", padding: "12px", background: colors.gray, borderRadius: "8px" }}>
+                            <div style={{ fontWeight: 600, marginBottom: "4px" }}>{s.name}</div>
+                            {s.description && <div style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "8px" }}>{s.description}</div>}
+                            {s.website_url && <a href={s.website_url} target="_blank" rel="noreferrer" style={{ fontSize: "13px", color: colors.gold }}>🔗 {s.website_url}</a>}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  
+                  {/* Призы тура */}
+                  {tourPrizes.length > 0 && (
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", fontWeight: 600 }}>Призы:</div>
+                      {tourPrizes.map(p => {
+                        const sponsor = activeSponsors.find(s => s.id === p.sponsor_id);
+                        return (
+                          <div key={p.id} style={{ background: colors.goldLight, padding: "10px 12px", borderRadius: "8px", marginBottom: "8px" }}>
+                            <div style={{ fontWeight: 600, fontSize: "14px" }}>🏆 {p.title} <span style={{ fontWeight: 400, color: colors.goldDark }}>({p.place === 10 ? "топ-10" : p.place + " место"})</span></div>
+                            {p.description && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "4px" }}>{p.description}</div>}
+                            {sponsor && <div style={{ fontSize: "11px", color: colors.gold, marginTop: "4px" }}>от {sponsor.name}</div>}
+                            {p.link_url && <a href={p.link_url} target="_blank" rel="noreferrer" style={{ fontSize: "11px", color: colors.gold, display: "block", marginTop: "4px" }}>🔗 Подробнее</a>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Лидеры тура */}
+                  <div>
+                    <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", fontWeight: 600 }}>Лидеры:</div>
+                    {tourLeaderboard.length === 0 ? (
+                      <div style={{ fontSize: "13px", color: colors.goldDark }}>Пока нет прогнозов</div>
+                    ) : (
+                      tourLeaderboard.slice(0, 5).map((item, i) => (
+                        <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px", background: i < 3 ? "rgba(201, 162, 39, 0.1)" : "transparent", borderRadius: "8px", marginBottom: "4px" }}>
+                          <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "11px", color: i < 3 ? "white" : colors.text }}>{i + 1}</div>
+                          <Avatar name={item.user.first_name || item.user.username} size={28} url={item.user.avatar_url} />
+                          <div style={{ flex: 1, fontSize: "13px", fontWeight: 500 }}>{item.user.first_name || item.user.username}</div>
+                          <div style={{ fontWeight: 700, fontSize: "15px", color: colors.gold }}>{item.points}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
             </Card>
-          </>
+          );
+        })}
+        
+        {/* Призы за сезон */}
+        {seasonPrizes.length > 0 && (
+          <Card style={{ marginBottom: "16px", background: colors.goldLight }}>
+            <h4 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 12px" }}>🎁 Призы за сезон</h4>
+            {seasonPrizes.map(p => {
+              const sponsor = activeSponsors.find(s => s.id === p.sponsor_id);
+              return (
+                <div key={p.id} style={{ background: "white", padding: "10px 12px", borderRadius: "8px", marginBottom: "8px" }}>
+                  <div style={{ fontWeight: 600, fontSize: "14px" }}>🏆 {p.title} <span style={{ fontWeight: 400, color: colors.goldDark }}>({p.place === 10 ? "топ-10" : p.place + " место"})</span></div>
+                  {p.description && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "4px" }}>{p.description}</div>}
+                  {sponsor && <div style={{ fontSize: "11px", color: colors.gold, marginTop: "4px" }}>от {sponsor.name}</div>}
+                </div>
+              );
+            })}
+          </Card>
         )}
         
-        {/* Таблица лидеров за СЕЗОН */}
-        <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "24px 0 12px" }}>📊 Рейтинг сезона</h3>
+        {/* Рейтинг сезона */}
         <Card>
+          <h4 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 12px" }}>📈 Рейтинг сезона</h4>
           {seasonLeaderboard.length === 0 ? (
-            <p style={{ color: colors.goldDark, textAlign: "center" }}>Пока нет результатов</p>
+            <div style={{ fontSize: "13px", color: colors.goldDark }}>Пока нет результатов</div>
           ) : (
             seasonLeaderboard.map((item, i) => (
-              <div key={item.user.id} style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "12px", 
-                padding: "10px 0",
-                borderBottom: i < seasonLeaderboard.length - 1 ? `1px solid ${colors.grayBorder}` : "none"
-              }}>
-                <div style={{ 
-                  width: "28px", 
-                  height: "28px", 
-                  borderRadius: "50%", 
-                  background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray,
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  fontWeight: 700,
-                  fontSize: "12px",
-                  color: i < 3 ? "white" : colors.text
-                }}>
-                  {i + 1}
-                </div>
-                <Avatar name={item.user.first_name || item.user.username} size={36} url={item.user.avatar_url} />
+              <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 0", borderBottom: i < seasonLeaderboard.length - 1 ? "1px solid " + colors.grayBorder : "none" }}>
+                <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "11px", color: i < 3 ? "white" : colors.text }}>{i + 1}</div>
+                <Avatar name={item.user.first_name || item.user.username} size={32} url={item.user.avatar_url} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: "14px" }}>{item.user.first_name || item.user.username} {item.user.last_name || ""}</div>
+                  <div style={{ fontSize: "13px", fontWeight: 600 }}>{item.user.first_name || item.user.username} {item.user.last_name || ""}</div>
                   <div style={{ fontSize: "11px", color: colors.goldDark }}>{item.count} прогноз(ов)</div>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: "18px", color: colors.gold }}>{item.points}</div>
+                <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{item.points}</div>
               </div>
             ))
           )}
@@ -1497,7 +1473,6 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
     </div>
   );
 };
-
 const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setScreen }) => {
   const today = new Date();
   const sortedTours = [...tours].sort((a, b) => {
