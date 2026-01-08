@@ -6154,6 +6154,25 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
   const handleUpdateMatchInfo = async (matchId, matchData) => {
     try {
       setActionLoading(true);
+      
+      // Проверяем изменились ли команды
+      const currentMatch = matches.find(m => m.id === matchId);
+      const teamsChanged = currentMatch && 
+        (currentMatch.team1_id !== matchData.team1_id || currentMatch.team2_id !== matchData.team2_id);
+      
+      // Если команды изменились — удаляем все прогнозы на этот матч
+      if (teamsChanged) {
+        const { data: deletedPredictions } = await supabase
+          .from("predictions")
+          .delete()
+          .eq("match_id", matchId)
+          .select();
+        
+        if (deletedPredictions && deletedPredictions.length > 0) {
+          console.log("🗑️ Deleted", deletedPredictions.length, "predictions due to team change");
+        }
+      }
+      
       // Сохраняем время БЕЗ конвертации, чтобы оно отображалось одинаково везде
       await supabase.from("matches").update({
         tour_id: matchData.tour_id,
@@ -6162,13 +6181,17 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         scheduled_time: matchData.scheduled_time,
       }).eq("id", matchId);
       await loadData();
-      alert("Информация о матче обновлена!");
+      
+      if (teamsChanged) {
+        alert("Матч обновлён! Прогнозы на этот матч удалены (команды изменились).");
+      } else {
+        alert("Информация о матче обновлена!");
+      }
     } catch (error) {
       console.error("Error updating match info:", error);
       alert("Ошибка обновления матча");
     } finally {
       setActionLoading(false);
-
     }
   };
 
