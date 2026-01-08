@@ -4681,7 +4681,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   };
   
   const handleSelectAction = (type, btn) => {
-    if (!selectedPlayerId) { alert("Сначала выберите игрока"); return; }
+    if (!selectedPlayerId) { setStatusText("⚠️ Сначала выберите игрока"); return; }
     setSelectedAction({ type, ...btn });
     const player = currentPlayers.find(p => p.id === selectedPlayerId);
     const typeLabels = { serve: "Подача", attack: "Атака", block: "Блок", receive: "Приём" };
@@ -4707,10 +4707,15 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     setLocalStats(prev => ({ ...prev, [selectedPlayerId]: stat }));
     
-    // Очко команде
+    // Очко команде или сопернику (при ошибке)
     const prevScores = { ...teamScores };
     if (selectedAction.isPoint) {
+      // Очко своей команде
       const key = selectedTeamId === match?.team1_id ? "team1" : "team2";
+      setTeamScores(prev => ({ ...prev, [key]: prev[key] + 1 }));
+    } else if (selectedAction.field.includes("error")) {
+      // Ошибка = очко сопернику
+      const key = selectedTeamId === match?.team1_id ? "team2" : "team1";
       setTeamScores(prev => ({ ...prev, [key]: prev[key] + 1 }));
     }
     
@@ -4818,6 +4823,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       {/* Верхняя панель */}
       <div style={{ background: "white", padding: "12px 16px", borderBottom: "1px solid " + colors.grayBorder, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+          <button onClick={() => setScreen("admin")} style={{ padding: "10px 16px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>← Назад</button>
           <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#991b1b" }}>
             Конец Матча
           </button>
@@ -6743,7 +6749,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         console.error("📊 Supabase error:", result.error);
         throw result.error;
       }
-      await loadData();
+      // Не вызываем loadData() при сохранении статистики из сервисмена
       
     } catch (error) {
       console.error("Error saving player stat:", error);
