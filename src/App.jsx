@@ -4881,7 +4881,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     await onUpdateMatch(match.id, matchData);
     setSaving(false);
-    setScreen("admin");
+    setScreen("servicemanSelect");
   };
   
   // Расчёт для модалки завершения матча
@@ -4899,7 +4899,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   if (!match) {
     return (
       <div style={{ paddingBottom: "100px" }}>
-        <Header title="Статистика" showBack onBack={() => setScreen("admin")} />
+        <Header title="Статистика" showBack onBack={() => setScreen("servicemanSelect")} />
         <Container><Card><p style={{ textAlign: "center", color: colors.goldDark }}>Матч не выбран</p></Card></Container>
       </div>
     );
@@ -4910,7 +4910,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       {/* Верхняя панель */}
       <div style={{ background: "white", padding: "12px 16px", borderBottom: "1px solid " + colors.grayBorder, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-          <button onClick={() => setScreen("admin")} style={{ padding: "10px 16px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>← Назад</button>
+          <button onClick={() => setScreen("servicemanSelect")} style={{ padding: "10px 16px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>← Назад</button>
           <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#991b1b" }}>
             Конец Матча
           </button>
@@ -7280,7 +7280,7 @@ const handleGuest = () => {
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} />;
+      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
     }
   };
