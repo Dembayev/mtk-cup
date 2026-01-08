@@ -203,13 +203,15 @@ const roleLabels = {
   captain: "Капитан",
   coach: "Тренер",
   admin: "Администратор",
+  serviceman: "Сервисмен",
 };
 
 // Функция для вычисления всех ролей пользователя
 const getUserRoles = (user, players, teams, roleRequests = []) => {
-  if (!user) return { isGuest: true, isFan: false, isPlayer: false, isCaptain: false, isCoach: false, isAdmin: false, roles: [] };
+  if (!user) return { isGuest: true, isFan: false, isPlayer: false, isCaptain: false, isCoach: false, isAdmin: false, isServiceman: false, roles: [] };
   
   const isAdmin = user.role === "admin";
+  const isServiceman = user.is_serviceman === true;
   const playerRecord = players?.find(p => p.user_id === user.id);
   const isPlayer = !!playerRecord;
   const isCaptain = playerRecord?.is_captain === true;
@@ -219,16 +221,17 @@ const getUserRoles = (user, players, teams, roleRequests = []) => {
   const isCoachByRequest = roleRequests?.some(r => r.user_id === user.id && r.requested_role === "coach" && r.status === "approved") || false;
   const isCoach = isCoachByTeam || isCoachByRequest;
   
-  const isFan = !isPlayer && !isCoach && !isAdmin;
+  const isFan = !isPlayer && !isCoach && !isAdmin && !isServiceman;
   
   const roles = [];
   if (isAdmin) roles.push("admin");
+  if (isServiceman) roles.push("serviceman");
   if (isCoach) roles.push("coach");
   if (isCaptain) roles.push("captain");
   if (isPlayer) roles.push("player");
   if (isFan) roles.push("fan");
   
-  return { isGuest: false, isFan, isPlayer, isCaptain, isCoach, isAdmin, roles, playerRecord };
+  return { isGuest: false, isFan, isPlayer, isCaptain, isCoach, isAdmin, isServiceman, roles, playerRecord };
 };
 
 const getDisplayName = (user) => {
@@ -2615,6 +2618,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [gameRole, setGameRole] = useState("fan");
   const [userFirstName, setUserFirstName] = useState("");
   const [userLastName, setUserLastName] = useState("");
+  const [isServiceman, setIsServiceman] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [teamCoach, setTeamCoach] = useState("");
   const [coachSearchQuery, setCoachSearchQuery] = useState("");
@@ -2911,7 +2915,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     });
     
     // Обновляем имя, фамилию и права администратора
-    await onUpdateUser(editingUser.id, userRole, userFirstName, userLastName);
+    await onUpdateUser(editingUser.id, userRole, userFirstName, userLastName, isServiceman);
     
     // Смена игровой роли (отдельно)
     const currentIsCoach = teams.some(t => t.coach_id === editingUser.id);
@@ -3612,6 +3616,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             style={{ flex: 1 }}
                           />
                         </div>
+                        <Checkbox checked={isServiceman} onChange={() => setIsServiceman(!isServiceman)} label="Сервисмен (ведение статистики)" />
                         <Select label="Права администратора" value={userRole} onChange={setUserRole}
                           options={[
                             { value: "fan", label: "Обычный пользователь" },
@@ -4620,6 +4625,85 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
 // Экран помощи
 
 // Экран сервисмена для ввода статистики в реальном времени
+
+// Экран выбора матча для сервисмена
+const ServicemanMatchSelectScreen = ({ matches, teams, tours, onSelectMatch, setScreen }) => {
+  // Только предстоящие и текущие матчи
+  const availableMatches = (matches || []).filter(m => m.status !== "finished");
+  
+  // Группируем по турам
+  const matchesByTour = {};
+  availableMatches.forEach(m => {
+    const tourId = m.tour_id || "other";
+    if (!matchesByTour[tourId]) matchesByTour[tourId] = [];
+    matchesByTour[tourId].push(m);
+  });
+  
+  return (
+    <div style={{ paddingBottom: "100px" }}>
+      <Header title="Выбор матча" showBack onBack={() => setScreen("home")} />
+      <Container>
+        <div style={{ padding: "20px 0" }}>
+          <Card style={{ marginBottom: "16px", background: colors.goldLight }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ fontSize: "32px" }}>📊</div>
+              <div>
+                <div style={{ fontWeight: 600 }}>Режим сервисмена</div>
+                <div style={{ fontSize: "13px", color: colors.goldDark }}>Выберите матч для ведения статистики</div>
+              </div>
+            </div>
+          </Card>
+          
+          {availableMatches.length === 0 ? (
+            <Card>
+              <p style={{ textAlign: "center", color: colors.goldDark }}>Нет доступных матчей</p>
+            </Card>
+          ) : (
+            Object.entries(matchesByTour).map(([tourId, tourMatches]) => {
+              const tour = tours?.find(t => t.id === tourId);
+              return (
+                <div key={tourId} style={{ marginBottom: "20px" }}>
+                  <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>
+                    {tour ? `Тур ${tour.number}` : "Другие матчи"}
+                  </h3>
+                  {tourMatches.map(match => {
+                    const team1 = teams?.find(t => t.id === match.team1_id);
+                    const team2 = teams?.find(t => t.id === match.team2_id);
+                    const matchDate = match.scheduled_time ? new Date(match.scheduled_time) : null;
+                    
+                    return (
+                      <Card key={match.id} onClick={() => onSelectMatch(match)} style={{ marginBottom: "8px", cursor: "pointer" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                              {team1?.name || "?"} vs {team2?.name || "?"}
+                            </div>
+                            {matchDate && (
+                              <div style={{ fontSize: "12px", color: colors.goldDark }}>
+                                {matchDate.toLocaleDateString("ru-RU")} в {matchDate.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            {match.status === "live" && (
+                              <span style={{ background: "#dc2626", color: "white", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }}>LIVE</span>
+                            )}
+                            <Icons.ChevronRight />
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </Container>
+    </div>
+  );
+};
+
 const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUpdateMatch, setScreen }) => {
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
@@ -6128,20 +6212,19 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
     }
   };
 
-  const handleUpdateUser = async (userId, role, firstName, lastName) => {
+  const handleUpdateUser = async (userId, role, firstName, lastName, isServiceman = false) => {
     try {
       setActionLoading(true);
       await supabase.from("users").update({ 
         role, 
         first_name: firstName,
         last_name: lastName,
+        is_serviceman: isServiceman,
         name_edited_by_admin: true
       }).eq("id", userId);
       await loadData();
-      alert("Пользователь обновлён!");
     } catch (error) {
       console.error("Error updating user:", error);
-      alert("Ошибка обновления");
     } finally {
       setActionLoading(false);
     }
@@ -7177,6 +7260,7 @@ const handleGuest = () => {
       case "predictions": return <PredictionsScreen matches={matches} teams={teams} tours={tours} sponsors={sponsors} prizes={prizes} predictions={predictions} user={user} onMakePrediction={handleMakePrediction} users={users} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
+      case "servicemanSelect": return <ServicemanMatchSelectScreen matches={matches} teams={teams} tours={tours} onSelectMatch={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} setScreen={setScreen} />;
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
