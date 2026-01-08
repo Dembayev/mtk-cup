@@ -3616,7 +3616,10 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             style={{ flex: 1 }}
                           />
                         </div>
-                        <Checkbox checked={isServiceman} onChange={() => setIsServiceman(!isServiceman)} label="Сервисмен (ведение статистики)" />
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 0", cursor: "pointer" }}>
+                          <input type="checkbox" checked={isServiceman} onChange={() => setIsServiceman(!isServiceman)} style={{ width: "18px", height: "18px", accentColor: colors.gold }} />
+                          <span>Сервисмен (ведение статистики)</span>
+                        </label>
                         <Select label="Права администратора" value={userRole} onChange={setUserRole}
                           options={[
                             { value: "fan", label: "Обычный пользователь" },
