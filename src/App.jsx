@@ -4558,6 +4558,116 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
   );
 };
 
+
+// Экран помощи
+const HelpScreen = ({ setScreen }) => {
+  const [expandedSection, setExpandedSection] = useState(null);
+  
+  const sections = [
+    {
+      id: "predictions",
+      title: "🎯 Прогнозы",
+      content: [
+        "Делайте прогнозы на матчи до их начала",
+        "+3 очка за точный счёт (например, 3:1)",
+        "+1 очко за угаданного победителя",
+        "Призы получают топ-3 зрителя в зале"
+      ]
+    },
+    {
+      id: "roles",
+      title: "👥 Роли в приложении",
+      content: [
+        "Болельщик — смотрите матчи, делайте прогнозы",
+        "Игрок — участвуйте в турнире, получайте приглашения",
+        "Тренер — управляйте командой, приглашайте игроков",
+        "Чтобы стать игроком/тренером — подайте заявку в профиле"
+      ]
+    },
+    {
+      id: "teams",
+      title: "🏐 Команды",
+      content: [
+        "Смотрите составы всех команд турнира",
+        "Тренеры могут приглашать свободных игроков",
+        "Игроки могут принимать или отклонять приглашения"
+      ]
+    },
+    {
+      id: "schedule",
+      title: "📅 Расписание",
+      content: [
+        "Все матчи по турам с временем начала",
+        "Смотрите онлайн-трансляции (LIVE)",
+        "Записи матчей доступны после окончания"
+      ]
+    },
+    {
+      id: "stats",
+      title: "📊 Статистика",
+      content: [
+        "Турнирная таблица команд",
+        "Личная статистика игроков",
+        "Подача, приём, атака, блок — с процентами эффективности"
+      ]
+    },
+    {
+      id: "notifications",
+      title: "🔔 Уведомления",
+      content: [
+        "Напоминание за час до матча",
+        "Уведомление о начале матча",
+        "Результаты после окончания",
+        "Настройте в профиле"
+      ]
+    }
+  ];
+  
+  return (
+    <div style={{ paddingBottom: "100px" }}>
+      <Header title="Помощь" showBack onBack={() => setScreen("profile")} />
+      <Container>
+        <Card style={{ marginBottom: "16px", background: "linear-gradient(135deg, " + colors.gold + " 0%, " + colors.goldDark + " 100%)", color: "white" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 8px" }}>Кубок МТК</h3>
+          <p style={{ fontSize: "14px", margin: 0, opacity: 0.9 }}>
+            Волейбольный турнир среди мужских команд г. Благовещенска
+          </p>
+        </Card>
+        
+        {sections.map(section => (
+          <Card 
+            key={section.id} 
+            style={{ marginBottom: "12px", cursor: "pointer" }}
+            onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>{section.title}</h4>
+              <span style={{ fontSize: "18px", color: colors.goldDark, transition: "transform 0.2s", transform: expandedSection === section.id ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+            </div>
+            {expandedSection === section.id && (
+              <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid " + colors.grayBorder }}>
+                {section.content.map((item, i) => (
+                  <div key={i} style={{ fontSize: "14px", color: colors.goldDark, padding: "6px 0", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                    <span style={{ color: colors.gold }}>•</span>
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        ))}
+        
+        <Card style={{ marginTop: "20px", background: colors.goldLight }}>
+          <h4 style={{ margin: "0 0 8px", fontSize: "15px", fontWeight: 600 }}>Есть вопросы?</h4>
+          <p style={{ fontSize: "14px", color: colors.goldDark, margin: 0 }}>
+            Напишите организаторам через кнопку в профиле или в Telegram: @volleyamur
+          </p>
+        </Card>
+      </Container>
+    </div>
+  );
+};
+
 const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone, currentPlayer, onUpdatePosition, setRoleRequestData, setShowRoleRequestForm }) => {
   const displayName = getDisplayName(user);
   const [showNotifySettings, setShowNotifySettings] = useState(false);
@@ -4758,6 +4868,18 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
               )}
             </Card>
           )}
+
+          {/* Кнопка Помощь */}
+          <Card onClick={() => setScreen("help")} style={{ marginBottom: "20px", cursor: "pointer" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ width: "40px", height: "40px", background: colors.goldLight, borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>❓</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600 }}>Помощь</div>
+                <div style={{ fontSize: "13px", color: colors.goldDark }}>Как пользоваться приложением</div>
+              </div>
+              <Icons.ChevronRight />
+            </div>
+          </Card>
 
           {!isGuest && (
             <>
@@ -6645,6 +6767,7 @@ const handleGuest = () => {
       case "predictions": return <PredictionsScreen matches={matches} teams={teams} tours={tours} sponsors={sponsors} prizes={prizes} predictions={predictions} user={user} onMakePrediction={handleMakePrediction} users={users} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
+      case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
       case "admin": return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} playerStats={playerStats} />;
