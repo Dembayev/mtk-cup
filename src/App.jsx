@@ -4894,6 +4894,12 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     setActionHistory(prev => prev.slice(0, -1));
     setStatusText("Отменено: " + last.playerName);
     setTimeout(() => setStatusText(""), 2000);
+    
+    // Синхронизируем отмену с БД
+    supabase.from("matches").update({
+      live_score_team1: last.prevScores.team1,
+      live_score_team2: last.prevScores.team2
+    }).eq("id", match.id).then(() => {});
   };
   
   const saveAllStats = async () => {
