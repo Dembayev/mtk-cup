@@ -5066,6 +5066,9 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
         <div style={{ display: "flex", padding: "12px", gap: "12px" }}>
           {/* Игроки */}
           <div style={{ width: "80px", flexShrink: 0 }}>
+            <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "10px 4px", marginBottom: "10px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "10px", cursor: "pointer", fontWeight: 600, fontSize: "12px", color: "#1d4ed8" }}>
+              🔄 Замена
+            </button>
             {currentPlayers.map(p => (
               <button key={p.id} onClick={() => { setSelectedPlayerId(p.id); setSelectedAction(null); }}
                 style={{ 
