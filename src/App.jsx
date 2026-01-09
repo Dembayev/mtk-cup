@@ -4722,6 +4722,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [showEndMatchModal, setShowEndMatchModal] = useState(false);
   const [showSubstitutionModal, setShowSubstitutionModal] = useState(false);
   const [onCourtPlayers, setOnCourtPlayers] = useState({ team1: [], team2: [] }); // Игроки на площадке
+  const [teamLocked, setTeamLocked] = useState(false); // Команда зафиксирована
+  const [liveScore, setLiveScore] = useState({ team1: 0, team2: 0 }); // Синхронизированный счёт
   
   const team1 = teams?.find(t => t.id === match?.team1_id);
   const team2 = teams?.find(t => t.id === match?.team2_id);
@@ -4732,6 +4734,35 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const currentPlayers = allCurrentPlayers.filter(p => onCourtIds.includes(p.id));
   const benchPlayers = allCurrentPlayers.filter(p => !onCourtIds.includes(p.id));
   
+  // Realtime подписка на счёт матча (синхронизация между сервисменами)
+  useEffect(() => {
+    if (!match?.id) return;
+    
+    // Загружаем начальный счёт из матча
+    const loadScore = async () => {
+      const { data } = await supabase.from("matches").select("live_score_team1, live_score_team2, current_set").eq("id", match.id).single();
+      if (data) {
+        setLiveScore({ team1: data.live_score_team1 || 0, team2: data.live_score_team2 || 0 });
+        if (data.current_set) setCurrentSet(data.current_set);
+      }
+    };
+    loadScore();
+    
+    // Подписка на изменения
+    const channel = supabase.channel("match-" + match.id)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "matches", filter: "id=eq." + match.id }, (payload) => {
+        const newData = payload.new;
+        setLiveScore({ team1: newData.live_score_team1 || 0, team2: newData.live_score_team2 || 0 });
+        if (newData.current_set) setCurrentSet(newData.current_set);
+        if (newData.set_scores) {
+          try { setSetScores(JSON.parse(newData.set_scores)); } catch(e) {}
+        }
+      })
+      .subscribe();
+    
+    return () => { supabase.removeChannel(channel); };
+  }, [match?.id]);
+
   // Инициализация локальной статистики
   useEffect(() => {
     if (!match?.id) return;
@@ -4806,16 +4837,28 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     setLocalStats(prev => ({ ...prev, [selectedPlayerId]: stat }));
     
     // Очко команде или сопернику (при ошибке)
-    const prevScores = { ...teamScores };
+    const prevScores = { ...liveScore };
+    let newScore = { ...liveScore };
+    
     if (selectedAction.isPoint) {
       // Очко своей команде
       const key = selectedTeamId === match?.team1_id ? "team1" : "team2";
-      setTeamScores(prev => ({ ...prev, [key]: prev[key] + 1 }));
+      newScore[key] = newScore[key] + 1;
     } else if (selectedAction.field.includes("error")) {
       // Ошибка = очко сопернику
       const key = selectedTeamId === match?.team1_id ? "team2" : "team1";
-      setTeamScores(prev => ({ ...prev, [key]: prev[key] + 1 }));
+      newScore[key] = newScore[key] + 1;
     }
+    
+    // Обновляем локально
+    setLiveScore(newScore);
+    
+    // Синхронизируем с БД (другой сервисмен увидит)
+    supabase.from("matches").update({
+      live_score_team1: newScore.team1,
+      live_score_team2: newScore.team2,
+      status: "live"
+    }).eq("id", match.id).then(() => {});
     
     // История для отмены
     const player = currentPlayers.find(p => p.id === selectedPlayerId);
@@ -4837,7 +4880,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     if (actionHistory.length === 0) return;
     const last = actionHistory[actionHistory.length - 1];
     setLocalStats(prev => ({ ...prev, [last.playerId]: last.prevStat }));
-    setTeamScores(last.prevScores);
+    setLiveScore(last.prevScores);
     setActionHistory(prev => prev.slice(0, -1));
     setStatusText("Отменено: " + last.playerName);
     setTimeout(() => setStatusText(""), 2000);
@@ -4857,12 +4900,25 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     setShowEndSetModal(false);
     setSaving(true);
     await saveAllStats();
-    setSetScores(prev => [...prev, { ...teamScores }]);
-    setTeamScores({ team1: 0, team2: 0 });
-    setCurrentSet(prev => prev + 1);
+    
+    const newSetScores = [...setScores, { ...liveScore }];
+    const newSet = currentSet + 1;
+    
+    setSetScores(newSetScores);
+    setLiveScore({ team1: 0, team2: 0 });
+    setCurrentSet(newSet);
     setActionHistory([]);
+    
+    // Синхронизируем с БД
+    await supabase.from("matches").update({
+      live_score_team1: 0,
+      live_score_team2: 0,
+      current_set: newSet,
+      set_scores: JSON.stringify(newSetScores)
+    }).eq("id", match.id);
+    
     setSaving(false);
-    setStatusText("Партия завершена!");
+    setStatusText("Партия " + currentSet + " завершена!");
     setTimeout(() => setStatusText(""), 2000);
   };
   
@@ -4871,8 +4927,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     setSaving(true);
     
     const finalSets = [...setScores];
-    if (teamScores.team1 > 0 || teamScores.team2 > 0) {
-      finalSets.push({ ...teamScores });
+    if (liveScore.team1 > 0 || liveScore.team2 > 0) {
+      finalSets.push({ ...liveScore });
     }
     
     const setsTeam1 = finalSets.filter(s => s.team1 > s.team2).length;
@@ -4898,8 +4954,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   // Расчёт для модалки завершения матча
   const getFinalScore = () => {
     const finalSets = [...setScores];
-    if (teamScores.team1 > 0 || teamScores.team2 > 0) {
-      finalSets.push({ ...teamScores });
+    if (liveScore.team1 > 0 || liveScore.team2 > 0) {
+      finalSets.push({ ...liveScore });
     }
     return {
       team1: finalSets.filter(s => s.team1 > s.team2).length,
@@ -4934,7 +4990,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={{ background: colors.goldLight, padding: "8px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "28px", color: colors.goldDark }}>
-              {teamScores.team1}:{teamScores.team2}
+              {liveScore.team1}:{liveScore.team2}
             </div>
             <div>
               <div style={{ fontSize: "14px", fontWeight: 600 }}>Партия {currentSet}</div>
@@ -4949,16 +5005,31 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
         </div>
         
         {/* Выбор команды */}
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={() => { setSelectedTeamId(match.team1_id); setSelectedPlayerId(null); setSelectedAction(null); }}
-            style={{ flex: 1, padding: "10px", background: selectedTeamId === match.team1_id ? colors.gold : "white", border: "2px solid " + (selectedTeamId === match.team1_id ? colors.gold : colors.grayBorder), borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: selectedTeamId === match.team1_id ? "white" : colors.text }}>
-            {team1?.name || "Команда 1"}
-          </button>
-          <button onClick={() => { setSelectedTeamId(match.team2_id); setSelectedPlayerId(null); setSelectedAction(null); }}
-            style={{ flex: 1, padding: "10px", background: selectedTeamId === match.team2_id ? colors.gold : "white", border: "2px solid " + (selectedTeamId === match.team2_id ? colors.gold : colors.grayBorder), borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: selectedTeamId === match.team2_id ? "white" : colors.text }}>
-            {team2?.name || "Команда 2"}
-          </button>
-        </div>
+        {!teamLocked ? (
+          <div>
+            <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", textAlign: "center" }}>Выберите команду для ведения статистики:</div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button onClick={() => { setSelectedTeamId(match.team1_id); setTeamLocked(true); setSelectedPlayerId(null); }}
+                style={{ flex: 1, padding: "12px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: colors.goldDark }}>
+                {team1?.name || "Команда 1"}
+              </button>
+              <button onClick={() => { setSelectedTeamId(match.team2_id); setTeamLocked(true); setSelectedPlayerId(null); }}
+                style={{ flex: 1, padding: "12px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: colors.goldDark }}>
+                {team2?.name || "Команда 2"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ flex: 1, padding: "10px", background: colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", color: "white", textAlign: "center" }}>
+              {selectedTeamId === match.team1_id ? team1?.name : team2?.name}
+            </div>
+            <button onClick={() => { setTeamLocked(false); setSelectedTeamId(null); setSelectedPlayerId(null); }}
+              style={{ padding: "10px 14px", background: colors.gray, border: "none", borderRadius: "8px", fontSize: "12px", cursor: "pointer" }}>
+              Сменить
+            </button>
+          </div>
+        )}
       </div>
       
       {/* Статус */}
@@ -5107,7 +5178,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
           <div style={{ background: "white", borderRadius: "16px", padding: "24px", maxWidth: "320px", width: "100%", textAlign: "center" }}>
             <h3 style={{ margin: "0 0 12px", fontSize: "18px" }}>Завершить партию {currentSet}?</h3>
-            <div style={{ fontSize: "32px", fontWeight: 700, color: colors.gold, margin: "16px 0" }}>{teamScores.team1} : {teamScores.team2}</div>
+            <div style={{ fontSize: "32px", fontWeight: 700, color: colors.gold, margin: "16px 0" }}>{liveScore.team1} : {liveScore.team2}</div>
             <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
               <button onClick={() => setShowEndSetModal(false)} style={{ flex: 1, padding: "12px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}>Отмена</button>
               <button onClick={handleEndSet} style={{ flex: 1, padding: "12px", background: colors.gold, border: "none", borderRadius: "8px", fontWeight: 600, color: "white", cursor: "pointer" }}>Завершить</button>
