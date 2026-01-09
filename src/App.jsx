@@ -4711,7 +4711,10 @@ const ServicemanMatchSelectScreen = ({ matches, teams, tours, onSelectMatch, set
                   {tourMatches.map(match => {
                     const team1 = teams?.find(t => t.id === match.team1_id);
                     const team2 = teams?.find(t => t.id === match.team2_id);
-                    const matchDate = match.scheduled_time ? new Date(match.scheduled_time) : null;
+                    // Извлекаем время напрямую из строки без конвертации часовых поясов
+                    const timeString = match.scheduled_time ? match.scheduled_time.substring(11, 16) : null;
+                    const dateString = match.scheduled_time ? match.scheduled_time.substring(0, 10) : null;
+                    const formattedDate = dateString ? new Date(dateString + "T12:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "short" }) : null;
                     
                     return (
                       <Card key={match.id} onClick={() => onSelectMatch(match)} style={{ marginBottom: "8px", cursor: "pointer" }}>
@@ -4720,9 +4723,9 @@ const ServicemanMatchSelectScreen = ({ matches, teams, tours, onSelectMatch, set
                             <div style={{ fontWeight: 600, marginBottom: "4px" }}>
                               {team1?.name || "?"} vs {team2?.name || "?"}
                             </div>
-                            {matchDate && (
+                            {timeString && (
                               <div style={{ fontSize: "12px", color: colors.goldDark }}>
-                                {matchDate.toLocaleDateString("ru-RU")} в {matchDate.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                                {formattedDate} в {timeString}
                               </div>
                             )}
                           </div>
