@@ -4983,22 +4983,20 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   }
   
   return (
-    <div style={{ paddingBottom: "100px", minHeight: "100vh", background: "#f5f5f5" }}>
-      {/* Верхняя панель */}
-      <div style={{ background: "white", padding: "12px 16px", borderBottom: "1px solid " + colors.grayBorder, position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
-          <button onClick={() => setScreen("servicemanSelect")} style={{ padding: "10px 16px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>← Назад</button>
-          {selectedTeamId === match?.team1_id && (
-            <>
-              <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#991b1b" }}>
-                Конец Матча
-              </button>
-              <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "10px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#92400e" }}>
-                Конец Партии
-              </button>
-            </>
-          )}
-        </div>
+    <div style={{ paddingBottom: "100px" }}>
+      <Header title="Статистика матча" showBack onBack={() => setScreen("servicemanSelect")} />
+      {/* Панель управления */}
+      <Container>
+        {selectedTeamId === match?.team1_id && (
+          <div style={{ display: "flex", gap: "8px", marginBottom: "12px", paddingTop: "12px" }}>
+            <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "12px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: "#991b1b" }}>
+              Конец Матча
+            </button>
+            <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "12px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: "#92400e" }}>
+              Конец Партии
+            </button>
+          </div>
+        )}
         
         {/* Счёт и партия */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
@@ -5044,7 +5042,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
             </button>
           </div>
         )}
-      </div>
+      </Container>
       
       {/* Статус */}
       {statusText && (
