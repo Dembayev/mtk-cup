@@ -530,7 +530,7 @@ const RoleBadges = ({ roles }) => {
   };
   
   return (
-    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
       {roles.map(role => (
         <Badge key={role} variant={roleVariants[role]}>
           {roleLabels[role]}
@@ -1306,7 +1306,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
             {(prediction.team1 !== 3 && prediction.team2 !== 3) && (
               <p style={{ color: "#dc2626", fontSize: "12px", textAlign: "center", marginTop: "8px" }}>Одна из команд должна набрать 3 сета</p>
             )}
-            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+            <div style={{ display: "flex", gap: "6px", marginTop: "16px" }}>
               <Button onClick={handleSubmitPrediction} disabled={prediction.team1 !== 3 && prediction.team2 !== 3} style={{ flex: 1 }}>Отправить</Button>
               <Button variant="outline" onClick={() => setSelectedMatch(null)}>Отмена</Button>
             </div>
@@ -1374,7 +1374,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
                   {tourSponsors.length > 0 && (
                     <div style={{ marginBottom: "16px" }}>
                       <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", fontWeight: 600 }}>Спонсоры:</div>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                         {tourSponsors.map(s => (
                           <div key={s.id} onClick={(e) => { e.stopPropagation(); setExpandedSponsor(expandedSponsor === s.id ? null : s.id); }}
                             style={{ display: "flex", alignItems: "center", gap: "6px", background: colors.goldLight, padding: "6px 10px", borderRadius: "8px", cursor: "pointer", border: expandedSponsor === s.id ? "2px solid " + colors.gold : "2px solid transparent" }}>
@@ -1425,7 +1425,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
                           <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "11px", color: i < 3 ? "white" : colors.text }}>{i + 1}</div>
                           <Avatar name={item.user.first_name || item.user.username} size={28} url={item.user.avatar_url} />
                           <div style={{ flex: 1, fontSize: "13px", fontWeight: 500 }}>{item.user.first_name || item.user.username}</div>
-                          <div style={{ fontWeight: 700, fontSize: "15px", color: colors.gold }}>{item.points}</div>
+                          <div style={{ fontWeight: 600, fontSize: "13px", color: colors.gold }}>{item.points}</div>
                         </div>
                       ))
                     )}
@@ -1730,7 +1730,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
       <Container>
         <div style={{ padding: "20px 0" }}>
           {/* Фильтры */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "12px", overflowX: "auto" }}>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "12px", overflowX: "auto" }}>
             {[{ id: "all", label: "Все" }, { id: "free", label: "Свободные" }, { id: "team", label: "В команде" }, { id: "coach", label: "Тренеры" }].map(tab => (
               <button key={tab.id} onClick={() => setFilter(tab.id)} style={{
                 padding: "8px 16px", borderRadius: "20px", border: "none",
@@ -1742,7 +1742,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
           </div>
           
           {/* Фильтр по амплуа */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "12px", overflowX: "auto" }}>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "12px", overflowX: "auto" }}>
             <button onClick={() => setPositionFilter("all")} style={{
               padding: "6px 12px", borderRadius: "16px", border: `1px solid ${colors.grayBorder}`,
               background: positionFilter === "all" ? colors.goldLight : colors.bg,
@@ -2007,7 +2007,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                             <span style={{ fontWeight: 600 }}>Приём</span>
                             {receiveTotal > 0 && <span style={{ fontSize: "13px", color: receiveEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{receiveEff > 0 ? "+" : ""}{receiveEff}% эфф.</span>}
                           </div>
-                          <div style={{ display: "flex", gap: "8px", fontSize: "13px", flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", gap: "6px", fontSize: "13px", flexWrap: "wrap" }}>
                             <span style={{ color: "#16a34a" }}>Отл: {totalStats.receive_excellent}</span>
                             <span style={{ color: "#ca8a04" }}>Норм: {totalStats.receive_good}</span>
                             <span style={{ color: "#f97316" }}>Плохо: {totalStats.receive_poor}</span>
@@ -2106,7 +2106,7 @@ const OffersScreen = ({ setScreen, offers, teams, onAccept, onReject, loading, i
                         Вы уже в команде. Чтобы принять приглашение, сначала покиньте текущую команду.
                       </div>
                     ) : (
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div style={{ display: "flex", gap: "6px" }}>
                         <Button variant="success" onClick={() => onAccept(offer.id, offer.team_id)} disabled={loading} style={{ flex: 1, padding: "10px" }}><Icons.Check /> Принять</Button>
                         <Button variant="danger" onClick={() => onReject(offer.id)} disabled={loading} style={{ flex: 1, padding: "10px" }}><Icons.X /> Отклонить</Button>
                       </div>
@@ -2338,7 +2338,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
                         <div style={{ fontSize: "12px", color: colors.goldDark }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</div>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: "8px" }}>
+                    <div style={{ display: "flex", gap: "6px" }}>
                       <Button variant="success" onClick={() => handleAcceptRequest(request.id, request.player_id)} disabled={actionLoading} style={{ flex: 1, padding: "8px" }}>Принять</Button>
                       <Button variant="danger" onClick={() => handleRejectRequest(request.id)} disabled={actionLoading} style={{ flex: 1, padding: "8px" }}>Отклонить</Button>
                     </div>
@@ -2556,7 +2556,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       {/* Подача */}
       <div style={{ marginBottom: "10px" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Подача</div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
           <StatField label="Всего" value={servesTotal} onChange={setServesTotal} />
           <StatField label="Эйс" value={aces} onChange={setAces} />
           <StatField label="Ош" value={serveErrors} onChange={setServeErrors} />
@@ -2565,7 +2565,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       {/* Приём */}
       <div style={{ marginBottom: "10px" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Приём</div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
           <StatField label="Отл" value={receiveExcellent} onChange={setReceiveExcellent} />
           <StatField label="Норм" value={receiveGood} onChange={setReceiveGood} />
           <StatField label="Плохо" value={receivePoor} onChange={setReceivePoor} />
@@ -2575,7 +2575,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       {/* Атака */}
       <div style={{ marginBottom: "10px" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Атака</div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
           <StatField label="Всего" value={attacksTotal} onChange={setAttacksTotal} />
           <StatField label="Очки" value={attackPoints} onChange={setAttackPoints} />
           <StatField label="Ош" value={attackErrors} onChange={setAttackErrors} />
@@ -2584,13 +2584,13 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       {/* Блок */}
       <div style={{ marginBottom: "12px" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Блок</div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
           <StatField label="Очки" value={blockPoints} onChange={setBlockPoints} />
           <StatField label="Кас" value={blockTouches} onChange={setBlockTouches} />
           <StatField label="Ош" value={blockErrors} onChange={setBlockErrors} />
         </div>
       </div>
-      <div style={{ display: "flex", gap: "8px" }}>
+      <div style={{ display: "flex", gap: "6px" }}>
         <Button onClick={handleSave} style={{ flex: 1, padding: "8px", fontSize: "12px" }}>
           <Icons.Save /> Сохранить
         </Button>
@@ -2979,7 +2979,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
       <Container>
         <div style={{ padding: "20px 0" }}>
           {/* Tabs */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "20px", overflowX: "auto" }}>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "20px", overflowX: "auto" }}>
             {[
               { id: "tours", label: "Туры" },
               { id: "matches", label: "Матчи" },
@@ -3015,7 +3015,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   <Input label="Дата" type="date" value={newTour.date} onChange={v => setNewTour(p => ({ ...p, date: v }))} />
                   <Input label="Место проведения" value={newTour.location} onChange={v => setNewTour(p => ({ ...p, location: v }))} placeholder="СК Олимп" />
                   <Input label="Адрес" value={newTour.address} onChange={v => setNewTour(p => ({ ...p, address: v }))} placeholder="ул. Спортивная, 1" />
-                  <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                  <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                     <Button onClick={localCreateTour} disabled={actionLoading || !newTour.number || !newTour.date} style={{ flex: 1, padding: "10px" }}>
                       <Icons.Save /> Создать
                     </Button>
@@ -3035,7 +3035,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                       <Input label="Дата" type="date" value={tourData.date} onChange={v => setTourData(p => ({ ...p, date: v }))} />
                       <Input label="Место" value={tourData.location} onChange={v => setTourData(p => ({ ...p, location: v }))} />
                       <Input label="Адрес" value={tourData.address} onChange={v => setTourData(p => ({ ...p, address: v }))} />
-                      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                         <Button onClick={async () => {
                           await onUpdateTour(tour.id, tourData);
                           setEditingTour(null);
@@ -3101,7 +3101,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     options={[{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => t.id !== newMatch.team1_id).map(t => ({ value: t.id, label: t.name }))]}
                   />
                   <Input label="Время начала" type="datetime-local" value={newMatch.scheduled_time} onChange={v => setNewMatch(p => ({ ...p, scheduled_time: v }))} />
-                  <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                  <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                     <Button onClick={localCreateMatch} disabled={actionLoading || !newMatch.tour_id || !newMatch.team1_id || !newMatch.team2_id || !newMatch.scheduled_time} style={{ flex: 1, padding: "10px" }}>
                       <Icons.Save /> Создать
                     </Button>
@@ -3181,7 +3181,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                   { value: "finished", label: "Завершён" },
                                 ]}
                               />
-                              <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                              <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                                 <Button onClick={saveMatch} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                                   <Icons.Save /> Сохранить
                                 </Button>
@@ -3228,7 +3228,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                 value={matchInfo.scheduled_time} 
                                 onChange={v => setMatchInfo(p => ({ ...p, scheduled_time: v }))} 
                               />
-                              <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                              <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                                 <Button 
                                   onClick={async () => {
                                     await onUpdateMatchInfo(editingMatchInfo.id, matchInfo);
@@ -3434,7 +3434,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                 onChange={v => setVideoData(p => ({ ...p, video_url: v }))} 
                                 placeholder="https://youtube.com/watch?v=..."
                               />
-                              <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                              <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                                 <Button onClick={saveVideo} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                                   <Icons.Save /> Сохранить
                                 </Button>
@@ -3453,7 +3453,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                   {match.status === "finished" ? "Завершён" : match.status === "live" ? "LIVE" : "Предстоит"}
                                 </Badge>
                               </div>
-                              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
                                 {match.stream_url ? (
                                   <Badge variant="live">📺 Трансляция</Badge>
                                 ) : (
@@ -3600,7 +3600,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             <Badge key={i} variant={role.variant}>{role.label}</Badge>
                           ))}
                         </div>
-                        <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                        <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
                           <Input 
                             label="Имя" 
                             value={userFirstName} 
@@ -3643,7 +3643,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           </Button>
                         )}
 
-                        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                           <Button onClick={saveUser} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                             <Icons.Save /> Сохранить
                           </Button>
@@ -3729,7 +3729,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                       </div>
                     )}
                     
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                       <input 
                         type="file" 
                         accept="image/*"
@@ -3772,7 +3772,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     </div>
                   </div>
                   
-                  <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+                  <div style={{ display: "flex", gap: "6px", marginTop: "16px" }}>
                     <Button 
                       onClick={async () => {
                         if (!newTeam.name.trim()) {
@@ -3841,7 +3841,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             </div>
                           )}
                           
-                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                             <input 
                               type="file" 
                               accept="image/*"
@@ -3884,7 +3884,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           </div>
                         </div>
                         
-                        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                           <Button 
                             onClick={async () => {
                               if (!teamInfo.name.trim()) {
@@ -4038,7 +4038,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             </div>
                           )}
                         </div>
-                        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                           <Button onClick={saveTeam} disabled={actionLoading} style={{ flex: 1, padding: "10px" }}>
                             <Icons.Save /> Сохранить
                           </Button>
@@ -4110,7 +4110,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                         ))}
                                       </div>
                                     </div>
-                                    <div style={{ display: "flex", gap: "8px" }}>
+                                    <div style={{ display: "flex", gap: "6px" }}>
                                       <button onClick={savePlayer} style={{ flex: 1, padding: "6px", background: colors.gold, color: "white", border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Сохранить</button>
                                       <button onClick={() => setEditingPlayer(null)} style={{ flex: 1, padding: "6px", background: colors.grayBorder, border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Отмена</button>
                                     </div>
@@ -4211,7 +4211,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                       <input type="checkbox" checked={newSponsor.is_active} onChange={e => setNewSponsor(p => ({ ...p, is_active: e.target.checked }))} id="sponsor-active" />
                       <label htmlFor="sponsor-active" style={{ fontSize: "13px" }}>Активный</label>
                     </div>
-                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                       <Button onClick={handleCreateSponsor} disabled={!newSponsor.name || uploadingSponsorLogo}>Сохранить</Button>
                       <Button variant="outline" onClick={() => { setShowAddSponsor(false); setNewSponsor({ name: "", logo_url: "", description: "", website_url: "", is_active: true }); }}>Отмена</Button>
                     </div>
@@ -4235,7 +4235,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         }
                       }} style={{ fontSize: "13px" }} />
                     </div>
-                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                       <Button onClick={handleUpdateSponsor}>Сохранить</Button>
                       <Button variant="outline" onClick={() => setEditingSponsor(null)}>Отмена</Button>
                     </div>
@@ -4294,7 +4294,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                       <input type="checkbox" checked={newPrize.is_active} onChange={e => setNewPrize(p => ({ ...p, is_active: e.target.checked }))} id="prize-active" />
                       <label htmlFor="prize-active" style={{ fontSize: "13px" }}>Активный</label>
                     </div>
-                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                       <Button onClick={handleCreatePrize} disabled={!newPrize.sponsor_id || !newPrize.title}>Сохранить</Button>
                       <Button variant="outline" onClick={() => { setShowAddPrize(false); setNewPrize({ sponsor_id: "", title: "", description: "", place: "1", tour_id: "", link_url: "", is_active: true }); }}>Отмена</Button>
                     </div>
@@ -4344,7 +4344,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                       options={[{ value: "1", label: "1 место" }, { value: "2", label: "2 место" }, { value: "3", label: "3 место" }, { value: "10", label: "Топ-10" }]} />
                     <Select label="За какой период" value={editingPrize.tour_id || ""} onChange={v => setEditingPrize(p => ({ ...p, tour_id: v }))} style={{ marginTop: "8px" }}
                       options={[{ value: "", label: "За весь сезон" }].concat((tours || []).map(t => ({ value: t.id, label: "Тур " + t.number })))} />
-                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                       <Button onClick={handleUpdatePrize}>Сохранить</Button>
                       <Button variant="outline" onClick={() => setEditingPrize(null)}>Отмена</Button>
                     </div>
@@ -4611,7 +4611,7 @@ const RoleRequestModal = ({ show, roleRequestData, setRoleRequestData, onSubmit,
           </div>
         )}
         
-        <div style={{ display: "flex", gap: "8px", marginTop: "24px" }}>
+        <div style={{ display: "flex", gap: "6px", marginTop: "24px" }}>
           <Button variant="outline" onClick={onClose} style={{ flex: 1 }}>
             Отмена
           </Button>
@@ -4983,10 +4983,10 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   }
   
   return (
-    <div style={{ paddingBottom: "20px", paddingTop: "60px", minHeight: "100vh", background: "#f5f5f5" }}>
+    <div style={{ paddingBottom: "100px", minHeight: "100vh", background: "#f5f5f5" }}>
       {/* Верхняя панель */}
       <div style={{ background: "white", padding: "12px 16px", borderBottom: "1px solid " + colors.grayBorder, position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+        <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
           <button onClick={() => setScreen("servicemanSelect")} style={{ padding: "10px 16px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>← Назад</button>
           {selectedTeamId === match?.team1_id && (
             <>
@@ -5022,7 +5022,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
         {!teamLocked ? (
           <div>
             <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", textAlign: "center" }}>Выберите команду для ведения статистики:</div>
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div style={{ display: "flex", gap: "6px" }}>
               <button onClick={() => { setSelectedTeamId(match.team1_id); setTeamLocked(true); setSelectedPlayerId(null); }}
                 style={{ flex: 1, padding: "12px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: colors.goldDark }}>
                 {team1?.name || "Команда 1"}
@@ -5057,17 +5057,17 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       {selectedTeamId ? (
         <div style={{ display: "flex", padding: "12px", gap: "12px" }}>
           {/* Игроки */}
-          <div style={{ width: "100px", flexShrink: 0 }}>
+          <div style={{ width: "80px", flexShrink: 0 }}>
             {currentPlayers.map(p => (
               <button key={p.id} onClick={() => { setSelectedPlayerId(p.id); setSelectedAction(null); }}
                 style={{ 
-                  width: "100%", padding: "12px 6px", marginBottom: "8px", 
+                  width: "100%", padding: "10px 4px", marginBottom: "6px", 
                   background: selectedPlayerId === p.id ? colors.goldLight : "white", 
-                  border: selectedPlayerId === p.id ? "3px solid " + colors.gold : "2px solid " + colors.grayBorder, 
-                  borderRadius: "12px", cursor: "pointer", textAlign: "center"
+                  border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder, 
+                  borderRadius: "10px", cursor: "pointer", textAlign: "center"
                 }}>
-                <div style={{ fontWeight: 700, fontSize: "22px", color: colors.gold }}>{p.jersey_number || "?"}</div>
-                <div style={{ fontSize: "12px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div style={{ fontWeight: 700, fontSize: "18px", color: colors.gold }}>{p.jersey_number || "?"}</div>
+                <div style={{ fontSize: "11px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {(p.users?.first_name || p.users?.username || "").substring(0, 8)}
                 </div>
               </button>
@@ -5077,13 +5077,13 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
           {/* Действия */}
           <div style={{ flex: 1 }}>
             {/* Кнопки управления */}
-            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+            <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
               <button onClick={handleUndo} disabled={actionHistory.length === 0}
-                style={{ flex: 1, padding: "18px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "12px", fontWeight: 700, fontSize: "16px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "12px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
                 ← Возврат
               </button>
               <button onClick={handleSubmitAction} disabled={!selectedAction}
-                style={{ flex: 1, padding: "18px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "12px", fontWeight: 700, fontSize: "16px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "12px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
                 Ввод ✓
               </button>
             </div>
@@ -5094,14 +5094,14 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 <div style={{ fontSize: "11px", color: colors.goldDark, marginBottom: "4px", fontWeight: 600 }}>
                   {type === "serve" ? "Подача" : type === "attack" ? "Атака" : type === "block" ? "Блок" : "Приём"}
                 </div>
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "6px" }}>
                   {buttons.map(btn => (
                     <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={!selectedPlayerId}
                       style={{ 
-                        flex: 1, padding: "18px 10px", minHeight: "56px", 
+                        flex: 1, padding: "14px 6px", 
                         background: selectedAction?.field === btn.field ? btn.color : "white",
-                        border: "2px solid " + btn.color, borderRadius: "12px", 
-                        fontWeight: 700, fontSize: "15px", 
+                        border: "2px solid " + btn.color, borderRadius: "10px", 
+                        fontWeight: 600, fontSize: "13px", 
                         cursor: selectedPlayerId ? "pointer" : "not-allowed",
                         color: selectedAction?.field === btn.field ? "white" : btn.color,
                         opacity: selectedPlayerId ? 1 : 0.5
@@ -5508,7 +5508,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                   <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "6px" }}>
                   <Button 
                     onClick={() => {
                     setRoleRequestData({ role: "player", first_name: "", last_name: "", positions: [] });
@@ -5542,7 +5542,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                   <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "6px" }}>
                   <Button onClick={() => {
                     setRoleRequestData({ role: "coach", first_name: "", last_name: "", positions: [] });
                     setShowRoleRequestForm(true);
@@ -5562,7 +5562,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                   <div style={{ fontSize: "14px", color: "#92400e" }}>⏳ Ваша заявка на рассмотрении</div>
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "6px" }}>
                   <Button onClick={() => {
                   setRoleRequestData({ role: "player", first_name: "", last_name: "", positions: [] });
                   setShowRoleRequestForm(true);
@@ -5639,7 +5639,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
                     fontSize: "15px", fontFamily: "inherit", resize: "vertical"
                   }}
                 />
-                <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+                <div style={{ display: "flex", gap: "6px", marginTop: "16px" }}>
                   <Button
                     onClick={async () => {
                       if (!organizerMessage.trim()) {
