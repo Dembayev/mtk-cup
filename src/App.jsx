@@ -4934,11 +4934,21 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const handleUndo = () => {
     if (actionHistory.length === 0) return;
     const last = actionHistory[actionHistory.length - 1];
-    setLocalStats(prev => ({ ...prev, [last.playerId]: last.prevStat }));
-    setLiveScore(last.prevScores);
-    setActionHistory(prev => prev.slice(0, -1));
-    setStatusText("Отменено: " + last.playerName);
-    setTimeout(() => setStatusText(""), 2000);
+    
+    // Если это была ошибка соперника - просто откатываем счёт
+    if (last.type === "opponent_error") {
+      setLiveScore(last.prevScores);
+      setActionHistory(prev => prev.slice(0, -1));
+      setStatusText("Отменено: Ошибка соперника");
+      setTimeout(() => setStatusText(""), 2000);
+    } else {
+      // Обычное действие игрока
+      setLocalStats(prev => ({ ...prev, [last.playerId]: last.prevStat }));
+      setLiveScore(last.prevScores);
+      setActionHistory(prev => prev.slice(0, -1));
+      setStatusText("Отменено: " + last.playerName);
+      setTimeout(() => setStatusText(""), 2000);
+    }
     
     // Синхронизируем отмену с БД
     supabase.from("matches").update({
@@ -5072,6 +5082,40 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
           </div>
           {saving && <span style={{ fontSize: "12px", color: colors.gold }}>Сохранение...</span>}
         </div>
+        
+        {/* Кнопка ошибки соперника */}
+        {selectedTeamId && teamLocked && (
+          <button 
+            onClick={async () => {
+              // Добавляем очко нашей команде
+              const key = selectedTeamId === match?.team1_id ? "team1" : "team2";
+              const newScore = { ...liveScore, [key]: liveScore[key] + 1 };
+              setLiveScore(newScore);
+              
+              // Сохраняем в историю для отмены
+              setActionHistory(prev => [...prev, { 
+                type: "opponent_error",
+                prevScores: { ...liveScore }
+              }]);
+              
+              // Синхронизируем с БД
+              await supabase.from("matches").update({
+                live_score_team1: key === "team1" ? newScore.team1 : newScore.team1,
+                live_score_team2: key === "team2" ? newScore.team2 : newScore.team2
+              }).eq("id", match.id);
+              
+              setStatusText("⚠️ Ошибка соперника — +1 очко");
+              setTimeout(() => setStatusText(""), 1500);
+            }}
+            style={{ 
+              width: "100%", padding: "14px", marginBottom: "12px",
+              background: "#fef3c7", border: "2px solid #f59e0b", borderRadius: "10px", 
+              fontWeight: 700, fontSize: "14px", cursor: "pointer", color: "#92400e",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"
+            }}>
+            ⚠️ Ошибка соперника (+1 очко нам)
+          </button>
+        )}
         
         {/* Выбор команды */}
         {!teamLocked ? (
