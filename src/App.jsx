@@ -4850,10 +4850,19 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       { label: "Норм", color: "#ca8a04", field: "receive_good", isPoint: false },
       { label: "Плохо", color: "#f97316", field: "receive_poor", isPoint: false },
       { label: "Ошибка", color: "#dc2626", field: "receive_errors", isPoint: false }
+    ],
+    opponent: [
+      { label: "Ошибка соперника", color: "#f59e0b", field: "opponent_error", isOpponentError: true }
     ]
   };
   
   const handleSelectAction = (type, btn) => {
+    // Ошибка соперника не требует выбора игрока
+    if (type === "opponent") {
+      setSelectedAction({ type, ...btn });
+      setStatusText("⚠️ " + btn.label + " — нажмите Ввод");
+      return;
+    }
     if (!selectedPlayerId) { setStatusText("⚠️ Сначала выберите игрока"); return; }
     setSelectedAction({ type, ...btn });
     const player = currentPlayers.find(p => p.id === selectedPlayerId);
@@ -4862,7 +4871,42 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   };
   
   const handleSubmitAction = () => {
-    if (!selectedPlayerId || !selectedAction) return;
+    if (!selectedAction) return;
+    
+    // Ошибка соперника - просто добавляем очко
+    if (selectedAction.isOpponentError) {
+      const key = selectedTeamId === match?.team1_id ? "team1" : "team2";
+      const prevScores = { ...liveScore };
+      const newScore = { ...liveScore, [key]: liveScore[key] + 1 };
+      setLiveScore(newScore);
+      
+      // Синхронизируем с БД
+      supabase.from("matches").update({
+        live_score_team1: newScore.team1,
+        live_score_team2: newScore.team2,
+        status: "live"
+      }).eq("id", match.id).then(() => {});
+      
+      // История для отмены
+      setActionHistory(prev => [...prev, { 
+        type: "opponent_error",
+        prevScores
+      }]);
+      
+      setStatusText("✓ Ошибка соперника — +1 очко");
+      setSelectedAction(null);
+      setTimeout(() => setStatusText(""), 1500);
+      
+      // Проверка автозавершения
+      const winScore = currentSet >= 5 ? 15 : 25;
+      const diff = Math.abs(newScore.team1 - newScore.team2);
+      if ((newScore.team1 >= winScore || newScore.team2 >= winScore) && diff >= 2) {
+        setShowAutoEndSetModal(true);
+      }
+      return;
+    }
+    
+    if (!selectedPlayerId) return;
     
     const stat = { ...localStats[selectedPlayerId] };
     const prevStat = { ...stat };
@@ -5048,128 +5092,81 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       <Header title="Статистика матча" showBack onBack={() => setScreen("servicemanSelect")} />
       {/* Панель управления */}
       <Container>
-        <div style={{ display: "flex", gap: "8px", marginBottom: "12px", paddingTop: "12px", minHeight: "48px" }}>
+        <div style={{ display: "flex", gap: "6px", marginBottom: "8px", paddingTop: "8px" }}>
           {selectedTeamId === match?.team1_id ? (
             <>
-              <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "12px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: "#991b1b" }}>
+              <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "8px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "12px", cursor: "pointer", color: "#991b1b" }}>
                 Конец Матча
               </button>
-              <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "12px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: "#92400e" }}>
+              <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "8px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "8px", fontWeight: 600, fontSize: "12px", cursor: "pointer", color: "#92400e" }}>
                 Конец Партии
               </button>
             </>
           ) : (
-            <div style={{ flex: 1, textAlign: "center", color: colors.goldDark, fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              Ведение статистики
+            <div style={{ flex: 1, textAlign: "center", color: colors.goldDark, fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              Статистика
             </div>
           )}
         </div>
         
-        {/* Счёт и партия */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ background: colors.goldLight, padding: "8px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "28px", color: colors.goldDark }}>
-              {liveScore.team1}:{liveScore.team2}
-            </div>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: 600 }}>Партия {currentSet}</div>
-              {setScores.length > 0 && (
-                <div style={{ fontSize: "12px", color: colors.goldDark }}>
-                  Сеты: {setScores.map(s => s.team1 + "-" + s.team2).join(", ")}
-                </div>
-              )}
-            </div>
-          </div>
-          {saving && <span style={{ fontSize: "12px", color: colors.gold }}>Сохранение...</span>}
-        </div>
-        
-        {/* Кнопка ошибки соперника */}
-        {selectedTeamId && teamLocked && (
-          <button 
-            onClick={async () => {
-              // Добавляем очко нашей команде
-              const key = selectedTeamId === match?.team1_id ? "team1" : "team2";
-              const newScore = { ...liveScore, [key]: liveScore[key] + 1 };
-              setLiveScore(newScore);
-              
-              // Сохраняем в историю для отмены
-              setActionHistory(prev => [...prev, { 
-                type: "opponent_error",
-                prevScores: { ...liveScore }
-              }]);
-              
-              // Синхронизируем с БД
-              await supabase.from("matches").update({
-                live_score_team1: key === "team1" ? newScore.team1 : newScore.team1,
-                live_score_team2: key === "team2" ? newScore.team2 : newScore.team2
-              }).eq("id", match.id);
-              
-              setStatusText("⚠️ Ошибка соперника — +1 очко");
-              setTimeout(() => setStatusText(""), 1500);
-            }}
-            style={{ 
-              width: "100%", padding: "14px", marginBottom: "12px",
-              background: "#fef3c7", border: "2px solid #f59e0b", borderRadius: "10px", 
-              fontWeight: 700, fontSize: "14px", cursor: "pointer", color: "#92400e",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"
-            }}>
-            ⚠️ Ошибка соперника (+1 очко нам)
-          </button>
-        )}
-        
-        {/* Выбор команды */}
+        {/* Счёт + Партия + Команда в одну строку */}
         {!teamLocked ? (
           <div>
-            <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", textAlign: "center" }}>Выберите команду для ведения статистики:</div>
+            <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", textAlign: "center" }}>Выберите команду:</div>
             <div style={{ display: "flex", gap: "6px" }}>
-              <button onClick={() => { setSelectedTeamId(match.team1_id); setShowLineupSelect(true); setSelectedLineup(team1Players.slice(0, 8).map(p => p.id)); }}
-                style={{ flex: 1, padding: "12px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: colors.goldDark }}>
+              <button onClick={() => { setSelectedTeamId(match.team1_id); setShowLineupSelect(true); setSelectedLineup([]); }}
+                style={{ flex: 1, padding: "10px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: colors.goldDark }}>
                 {team1?.name || "Команда 1"}
               </button>
-              <button onClick={() => { setSelectedTeamId(match.team2_id); setShowLineupSelect(true); setSelectedLineup(team2Players.slice(0, 8).map(p => p.id)); }}
-                style={{ flex: 1, padding: "12px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: colors.goldDark }}>
+              <button onClick={() => { setSelectedTeamId(match.team2_id); setShowLineupSelect(true); setSelectedLineup([]); }}
+                style={{ flex: 1, padding: "10px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: colors.goldDark }}>
                 {team2?.name || "Команда 2"}
               </button>
             </div>
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ flex: 1, padding: "10px", background: colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", color: "white", textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+            <div style={{ background: colors.goldLight, padding: "6px 12px", borderRadius: "6px", fontWeight: 700, fontSize: "22px", color: colors.goldDark }}>
+              {liveScore.team1}:{liveScore.team2}
+            </div>
+            <div style={{ fontSize: "12px", color: colors.goldDark }}>П{currentSet}</div>
+            <div 
+              onClick={() => { if (confirm("Сменить команду?")) { setTeamLocked(false); setSelectedTeamId(null); setSelectedPlayerId(null); }}}
+              style={{ flex: 1, padding: "6px 10px", background: colors.gold, borderRadius: "6px", fontWeight: 600, fontSize: "12px", color: "white", textAlign: "center", cursor: "pointer" }}>
               {selectedTeamId === match.team1_id ? team1?.name : team2?.name}
             </div>
-            <button onClick={() => { setTeamLocked(false); setSelectedTeamId(null); setSelectedPlayerId(null); }}
-              style={{ padding: "10px 14px", background: colors.gray, border: "none", borderRadius: "8px", fontSize: "12px", cursor: "pointer" }}>
-              Сменить
-            </button>
+            {saving && <span style={{ fontSize: "10px", color: colors.gold }}>💾</span>}
           </div>
         )}
       </Container>
       
-      {/* Статус - фиксированная высота */}
-      <div style={{ background: statusText ? colors.goldLight : "transparent", padding: "8px 16px", textAlign: "center", fontWeight: 600, fontSize: "14px", color: colors.goldDark, minHeight: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {statusText || "\u00A0"}
-      </div>
+      {/* Статус */}
+      {statusText && (
+        <div style={{ background: colors.goldLight, padding: "4px 12px", textAlign: "center", fontWeight: 600, fontSize: "12px", color: colors.goldDark }}>
+          {statusText}
+        </div>
+      )}
       
       {/* Основная область */}
       {selectedTeamId ? (
-        <div style={{ display: "flex", padding: "12px", gap: "12px", alignItems: "stretch" }}>
+        <div style={{ display: "flex", padding: "8px", gap: "8px", alignItems: "stretch" }}>
           {/* Игроки */}
-          <div style={{ width: "100px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
-            <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "8px 4px", marginBottom: "8px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "11px", color: "#1d4ed8" }}>
+          <div style={{ width: "80px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
+            <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "4px 2px", marginBottom: "4px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "11px", color: "#1d4ed8" }}>
               🔄 Замена
             </button>
-            {currentPlayers.map(p => (
+            {currentPlayers.map((p, idx) => (
               <button key={p.id} onClick={() => { setSelectedPlayerId(p.id); setSelectedAction(null); }}
                 style={{ 
-                  width: "100%", padding: "8px 4px", marginBottom: "4px", flex: 1,
-                  background: selectedPlayerId === p.id ? colors.goldLight : "white", 
-                  border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder, 
-                  borderRadius: "8px", cursor: "pointer", textAlign: "center",
-                  display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "56px"
+                  width: "100%", padding: "4px 2px", marginBottom: "2px", flex: 1,
+                  background: selectedPlayerId === p.id ? colors.goldLight : (idx >= 6 ? "#e0f2fe" : "white"), 
+                  border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + (idx >= 6 ? "#7dd3fc" : colors.grayBorder), 
+                  borderRadius: "6px", cursor: "pointer", textAlign: "center",
+                  display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "44px"
                 }}>
-                <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{p.jersey_number || "?"}</div>
-                <div style={{ fontSize: "10px", color: colors.goldDark, overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.3", minHeight: "26px", wordWrap: "break-word" }}>
-                  {((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || p.users?.username || ""}
+                <div style={{ fontWeight: 700, fontSize: "14px", color: idx >= 6 ? "#0284c7" : colors.gold }}>{p.jersey_number || "?"}</div>
+                <div style={{ fontSize: "9px", color: colors.goldDark, overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2", wordWrap: "break-word" }}>
+                  {(p.users?.last_name || p.users?.first_name || p.users?.username || "").slice(0, 10)}
                 </div>
               </button>
             ))}
@@ -5178,13 +5175,13 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
           {/* Действия */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             {/* Кнопки управления */}
-            <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+            <div style={{ display: "flex", gap: "4px", marginBottom: "6px" }}>
               <button onClick={handleUndo} disabled={actionHistory.length === 0}
-                style={{ flex: 1, padding: "12px 8px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "10px 6px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
                 ← Возврат
               </button>
               <button onClick={handleSubmitAction} disabled={!selectedAction}
-                style={{ flex: 1, padding: "12px 8px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "10px 6px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
                 Ввод ✓
               </button>
             </div>
@@ -5192,26 +5189,32 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
             {/* Блоки действий - равномерно распределены */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               {Object.entries(actionButtons).map(([type, buttons]) => (
-                <div key={type} style={{ flex: 1, display: "flex", flexDirection: "column", marginBottom: "6px" }}>
-                  <div style={{ fontSize: "10px", color: colors.goldDark, marginBottom: "4px", fontWeight: 600 }}>
-                    {type === "serve" ? "Подача" : type === "attack" ? "Атака" : type === "block" ? "Блок" : "Приём"}
-                  </div>
-                  <div style={{ display: "flex", gap: "6px", flex: 1 }}>
-                    {buttons.map(btn => (
-                      <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={!selectedPlayerId}
-                        style={{ 
-                          flex: 1, padding: "8px 4px", 
-                          background: selectedAction?.field === btn.field ? btn.color : "white",
-                          border: "2px solid " + btn.color, borderRadius: "8px", 
-                          fontWeight: 600, fontSize: "12px", 
-                          cursor: selectedPlayerId ? "pointer" : "not-allowed",
-                          color: selectedAction?.field === btn.field ? "white" : btn.color,
-                          opacity: selectedPlayerId ? 1 : 0.5,
-                          display: "flex", alignItems: "center", justifyContent: "center"
-                        }}>
-                        {btn.label}
-                      </button>
-                    ))}
+                <div key={type} style={{ flex: type === "opponent" ? "none" : 1, display: "flex", flexDirection: "column", marginBottom: "4px" }}>
+                  {type !== "opponent" && (
+                    <div style={{ fontSize: "9px", color: colors.goldDark, marginBottom: "2px", fontWeight: 600 }}>
+                      {type === "serve" ? "Подача" : type === "attack" ? "Атака" : type === "block" ? "Блок" : "Приём"}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: "4px", flex: 1 }}>
+                    {buttons.map(btn => {
+                      const isOpponent = type === "opponent";
+                      const isDisabled = !isOpponent && !selectedPlayerId;
+                      return (
+                        <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={isDisabled}
+                          style={{ 
+                            flex: 1, padding: isOpponent ? "10px 4px" : "6px 4px", 
+                            background: selectedAction?.field === btn.field ? btn.color : "white",
+                            border: "2px solid " + btn.color, borderRadius: "6px", 
+                            fontWeight: 600, fontSize: isOpponent ? "11px" : "11px", 
+                            cursor: isDisabled ? "not-allowed" : "pointer",
+                            color: selectedAction?.field === btn.field ? "white" : btn.color,
+                            opacity: isDisabled ? 0.5 : 1,
+                            display: "flex", alignItems: "center", justifyContent: "center"
+                          }}>
+                          {isOpponent ? "⚠️ " + btn.label : btn.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -5272,9 +5275,9 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 setOnCourtPlayers(prev => ({ ...prev, [teamKey]: selectedLineup }));
                 setShowLineupSelect(false);
                 setTeamLocked(true);
-              }} disabled={selectedLineup.length !== 8}
+              }} disabled={selectedLineup.length < 6 || selectedLineup.length > 8}
                 style={{ flex: 1, padding: "14px", background: selectedLineup.length === 7 ? colors.gold : colors.grayBorder, border: "none", borderRadius: "10px", fontWeight: 600, color: "white", cursor: selectedLineup.length === 7 ? "pointer" : "not-allowed" }}>
-                Готово ({selectedLineup.length}/8)
+                Готово ({selectedLineup.length}/6-8)
               </button>
             </div>
           </div>
