@@ -5211,7 +5211,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: "14px" }}>{((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || p.users?.username}</div>
-                      <div style={{ fontSize: "11px", color: colors.goldDark }}>{(p.positions || []).join(", ") || "Амплуа не указано"}</div>
+                      <div style={{ fontSize: "11px", color: colors.goldDark }}>{(p.positions || []).map(pos => positionLabels[pos] || pos).join(", ") || "Амплуа не указано"}</div>
                     </div>
                   </div>
                 );
