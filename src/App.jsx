@@ -4824,8 +4824,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     // Инициализация игроков на площадке (первые 6 или все если меньше)
     setOnCourtPlayers({
-      team1: team1Players.slice(0, 7).map(p => p.id),
-      team2: team2Players.slice(0, 7).map(p => p.id)
+      team1: team1Players.slice(0, 8).map(p => p.id),
+      team2: team2Players.slice(0, 8).map(p => p.id)
     });
   }, [match?.id, playerStats]);
   
@@ -5122,11 +5122,11 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
           <div>
             <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", textAlign: "center" }}>Выберите команду для ведения статистики:</div>
             <div style={{ display: "flex", gap: "6px" }}>
-              <button onClick={() => { setSelectedTeamId(match.team1_id); setShowLineupSelect(true); setSelectedLineup(team1Players.slice(0, 7).map(p => p.id)); }}
+              <button onClick={() => { setSelectedTeamId(match.team1_id); setShowLineupSelect(true); setSelectedLineup(team1Players.slice(0, 8).map(p => p.id)); }}
                 style={{ flex: 1, padding: "12px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: colors.goldDark }}>
                 {team1?.name || "Команда 1"}
               </button>
-              <button onClick={() => { setSelectedTeamId(match.team2_id); setShowLineupSelect(true); setSelectedLineup(team2Players.slice(0, 7).map(p => p.id)); }}
+              <button onClick={() => { setSelectedTeamId(match.team2_id); setShowLineupSelect(true); setSelectedLineup(team2Players.slice(0, 8).map(p => p.id)); }}
                 style={{ flex: 1, padding: "12px", background: "white", border: "2px solid " + colors.gold, borderRadius: "8px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: colors.goldDark }}>
                 {team2?.name || "Команда 2"}
               </button>
@@ -5229,7 +5229,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
           <div style={{ background: "white", borderRadius: "16px", padding: "20px", maxWidth: "360px", width: "100%", maxHeight: "85vh", overflow: "auto" }}>
             <h3 style={{ margin: "0 0 8px", fontSize: "18px", textAlign: "center" }}>Стартовый состав</h3>
-            <p style={{ fontSize: "13px", color: colors.goldDark, textAlign: "center", marginBottom: "16px" }}>Выберите 7 игроков (6 + либеро)</p>
+            <p style={{ fontSize: "13px", color: colors.goldDark, textAlign: "center", marginBottom: "16px" }}>Выберите 7 игроков (6 + 2 либеро)</p>
             
             <div style={{ marginBottom: "16px" }}>
               {allCurrentPlayers.map(p => {
@@ -5238,7 +5238,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                   <div key={p.id} onClick={() => {
                     if (isSelected) {
                       setSelectedLineup(prev => prev.filter(id => id !== p.id));
-                    } else if (selectedLineup.length < 7) {
+                    } else if (selectedLineup.length < 8) {
                       setSelectedLineup(prev => [...prev, p.id]);
                     }
                   }} style={{ 
@@ -5272,9 +5272,9 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 setOnCourtPlayers(prev => ({ ...prev, [teamKey]: selectedLineup }));
                 setShowLineupSelect(false);
                 setTeamLocked(true);
-              }} disabled={selectedLineup.length !== 7}
+              }} disabled={selectedLineup.length !== 8}
                 style={{ flex: 1, padding: "14px", background: selectedLineup.length === 7 ? colors.gold : colors.grayBorder, border: "none", borderRadius: "10px", fontWeight: 600, color: "white", cursor: selectedLineup.length === 7 ? "pointer" : "not-allowed" }}>
-                Готово ({selectedLineup.length}/7)
+                Готово ({selectedLineup.length}/8)
               </button>
             </div>
           </div>
