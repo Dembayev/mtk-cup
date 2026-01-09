@@ -926,7 +926,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
               {topPlayers.map(player => (
                 <Card key={player.id} onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }} style={{ marginBottom: "8px", padding: "12px 16px", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <Avatar name={getPlayerFullName(player)} size={40} url={player.users?.avatar_url} />
+                    <Avatar name={player.users?.first_name || player.users?.username} size={40} url={player.users?.avatar_url} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: "14px" }}>{player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}</div>
                       <div style={{ fontSize: "12px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ")} • {player.teams?.name || "Без команды"}</div>
@@ -1139,7 +1139,7 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <Avatar name={getUserDisplayName(coach)} size={40} url={coach.avatar_url} />
+                  <Avatar name={coach.first_name || coach.username} size={40} url={coach.avatar_url} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: "14px" }}>
                       {coach.first_name || `@${coach.username}`} {coach.last_name || ""}
@@ -1166,7 +1166,7 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
               onClick={() => { setSelectedPlayer && setSelectedPlayer(player); setScreen && setScreen("playerDetail"); }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <Avatar name={getPlayerFullName(player)} size={40} url={player.users?.avatar_url} />
+                <Avatar name={player.users?.first_name || player.users?.username} size={40} url={player.users?.avatar_url} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: "14px" }}>
                     {player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}
@@ -1423,8 +1423,8 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
                       tourLeaderboard.slice(0, 5).map((item, i) => (
                         <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px", background: i < 3 ? "rgba(201, 162, 39, 0.1)" : "transparent", borderRadius: "8px", marginBottom: "4px" }}>
                           <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "11px", color: i < 3 ? "white" : colors.text }}>{i + 1}</div>
-                          <Avatar name={getUserDisplayName(item.user)} size={28} url={item.user.avatar_url} />
-                          <div style={{ flex: 1, fontSize: "13px", fontWeight: 500 }}>{getUserDisplayName(item.user)}</div>
+                          <Avatar name={item.user.first_name || item.user.username} size={28} url={item.user.avatar_url} />
+                          <div style={{ flex: 1, fontSize: "13px", fontWeight: 500 }}>{item.user.first_name || item.user.username}</div>
                           <div style={{ fontWeight: 600, fontSize: "13px", color: colors.gold }}>{item.points}</div>
                         </div>
                       ))
@@ -1462,9 +1462,9 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
             seasonLeaderboard.map((item, i) => (
               <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 0", borderBottom: i < seasonLeaderboard.length - 1 ? "1px solid " + colors.grayBorder : "none" }}>
                 <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : colors.gray, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "11px", color: i < 3 ? "white" : colors.text }}>{i + 1}</div>
-                <Avatar name={getUserDisplayName(item.user)} size={32} url={item.user.avatar_url} />
+                <Avatar name={item.user.first_name || item.user.username} size={32} url={item.user.avatar_url} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "13px", fontWeight: 600 }}>{getUserDisplayName(item.user)} {item.user.last_name || ""}</div>
+                  <div style={{ fontSize: "13px", fontWeight: 600 }}>{item.user.first_name || item.user.username} {item.user.last_name || ""}</div>
                   <div style={{ fontSize: "11px", color: colors.goldDark }}>{item.count} прогноз(ов)</div>
                 </div>
                 <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{item.points}</div>
@@ -1652,7 +1652,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
       ...player, 
       totalPoints,
       type: 'player',
-      sortName: getPlayerFullName(player) || ''
+      sortName: player.users?.first_name || player.users?.username || ''
     });
   });
   
@@ -1681,7 +1681,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
             totalPoints: 0,
             type: 'coach',
             isCoach: true,
-            sortName: getUserDisplayName(coachUser) || ''
+            sortName: coachUser.first_name || coachUser.username || ''
           });
         }
       }
@@ -1775,7 +1775,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <Avatar name={getPlayerFullName(player)} size={48} url={player.users?.avatar_url} />
+                <Avatar name={player.users?.first_name || player.users?.username} size={48} url={player.users?.avatar_url} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "2px" }}>
                     {user?.favorite_players?.includes(player.id) && <span style={{ color: colors.gold, marginRight: "4px" }}>★</span>}
@@ -1868,7 +1868,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
         <div style={{ padding: "20px 0" }}>
           <Card style={{ textAlign: "center", marginBottom: "20px" }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
-              <Avatar name={getPlayerFullName(player)} size={80} url={player?.users?.avatar_url} />
+              <Avatar name={player?.users?.first_name || player?.users?.username} size={80} url={player?.users?.avatar_url} />
             </div>
             <h2 style={{ margin: "0 0 4px", fontSize: "22px", fontWeight: 700 }}>
               {player?.users?.first_name || `@${player?.users?.username}`} {player?.users?.last_name || ""}
@@ -2332,7 +2332,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
                 return (
                   <Card key={request.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                      <Avatar name={getPlayerFullName(player)} size={40} url={player?.users?.avatar_url} />
+                      <Avatar name={player?.users?.first_name || player?.users?.username} size={40} url={player?.users?.avatar_url} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: "14px" }}>{player?.users?.first_name || `@${player?.users?.username}`}</div>
                         <div style={{ fontSize: "12px", color: colors.goldDark }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</div>
@@ -2356,7 +2356,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
                 return (
                   <Card key={offer.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <Avatar name={getPlayerFullName(player)} size={40} url={player?.users?.avatar_url} />
+                      <Avatar name={player?.users?.first_name || player?.users?.username} size={40} url={player?.users?.avatar_url} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: "14px" }}>{player?.users?.first_name || `@${player?.users?.username}`}</div>
                         <div style={{ fontSize: "12px", color: colors.goldDark }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ")}</div>
@@ -2375,7 +2375,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
           {teamCoach && (
             <Card style={{ marginBottom: "8px", padding: "12px 16px", background: colors.goldLight }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <Avatar name={getUserDisplayName(teamCoach)} size={44} url={teamCoach.avatar_url} />
+                <Avatar name={teamCoach.first_name || teamCoach.username} size={44} url={teamCoach.avatar_url} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: "14px" }}>
                     {teamCoach.first_name || `@${teamCoach.username}`} {teamCoach.last_name || ""}
@@ -2390,7 +2390,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
             <Card key={player.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
-                  <Avatar name={getPlayerFullName(player)} size={44} url={player.users?.avatar_url} />
+                  <Avatar name={player.users?.first_name || player.users?.username} size={44} url={player.users?.avatar_url} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: "14px" }}>
                       {player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}
@@ -2525,10 +2525,10 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
   if (!isEditing) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 0", borderBottom: "1px solid " + colors.grayBorder }}>
-        <Avatar name={getPlayerFullName(player)} size={28} url={player.users?.avatar_url} />
+        <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
         <span style={{ fontSize: "13px", flex: 1 }}>
           {player.jersey_number && <span style={{ color: colors.gold, marginRight: "4px" }}>#{player.jersey_number}</span>}
-          {getPlayerFullName(player)} {player.users?.last_name || ""}
+          {player.users?.first_name || player.users?.username} {player.users?.last_name || ""}
         </span>
         {existingStat ? (
           <span style={{ fontSize: "11px", color: colors.goldDark }}>
@@ -2547,10 +2547,10 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
   return (
     <div style={{ padding: "12px", background: colors.gray, borderRadius: "8px", marginBottom: "8px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-        <Avatar name={getPlayerFullName(player)} size={28} url={player.users?.avatar_url} />
+        <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
         <span style={{ fontSize: "13px", fontWeight: 600 }}>
           {player.jersey_number && <span style={{ color: colors.gold, marginRight: "4px" }}>#{player.jersey_number}</span>}
-          {getPlayerFullName(player)} {player.users?.last_name || ""}
+          {player.users?.first_name || player.users?.username} {player.users?.last_name || ""}
         </span>
       </div>
       {/* Подача */}
@@ -4099,7 +4099,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 600, fontSize: "14px" }}>{team.name}</div>
                             <div style={{ fontSize: "12px", color: colors.goldDark }}>
-                              Тренер: {coach ? `${getUserDisplayName(coach)} ${coach.last_name || ""}`.trim() : "Не назначен"} • {teamPlayers.length} игроков
+                              Тренер: {coach ? `${coach.first_name || coach.username} ${coach.last_name || ""}`.trim() : "Не назначен"} • {teamPlayers.length} игроков
                             </div>
                           </div>
                           <button 
@@ -4134,8 +4134,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                 {editingPlayer?.id === player.id ? (
                                   <div style={{ background: colors.gray, padding: "12px", borderRadius: "8px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                                      <Avatar name={getPlayerFullName(player)} size={28} url={player.users?.avatar_url} />
-                                      <span style={{ fontSize: "13px", fontWeight: 600 }}>{getPlayerFullName(player)}</span>
+                                      <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
+                                      <span style={{ fontSize: "13px", fontWeight: 600 }}>{player.users?.first_name || player.users?.username}</span>
                                     </div>
                                     <div style={{ marginBottom: "8px" }}>
                                       <label style={{ fontSize: "12px", color: colors.goldDark }}>Номер:</label>
@@ -4156,8 +4156,8 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                   </div>
                                 ) : (
                                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <Avatar name={getPlayerFullName(player)} size={28} url={player.users?.avatar_url} />
-                                    <span style={{ fontSize: "13px", flex: 1 }}>{getPlayerFullName(player)}{player.is_captain && <span style={{ marginLeft: "4px", color: colors.gold }}>©</span>}</span>
+                                    <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
+                                    <span style={{ fontSize: "13px", flex: 1 }}>{player.users?.first_name || player.users?.username}{player.is_captain && <span style={{ marginLeft: "4px", color: colors.gold }}>©</span>}</span>
                                     <span style={{ fontSize: "11px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ") || "—"}</span>
                                     {player.jersey_number && <span style={{ fontSize: "12px", fontWeight: 600, color: colors.gold }}>#{player.jersey_number}</span>}
                                     <button onClick={() => startEditPlayer(player)} style={{ background: "#e0f2fe", border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: "#0284c7" }}>✏️</button>
@@ -4856,7 +4856,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     setSelectedAction({ type, ...btn });
     const player = currentPlayers.find(p => p.id === selectedPlayerId);
     const typeLabels = { serve: "Подача", attack: "Атака", block: "Блок", receive: "Приём" };
-    setStatusText((player?.jersey_number || "?") + " " + (getPlayerFullName(player) || "") + " — " + btn.label + " " + typeLabels[type]);
+    setStatusText((player?.jersey_number || "?") + " " + (player?.users?.first_name || player?.users?.username || "") + " — " + btn.label + " " + typeLabels[type]);
   };
   
   const handleSubmitAction = () => {
@@ -5123,7 +5123,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 }}>
                 <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{p.jersey_number || "?"}</div>
                 <div style={{ fontSize: "9px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {getPlayerFullName(p).substring(0, 8)}
+                  {(p.users?.first_name || p.users?.username || "").substring(0, 7)}
                 </div>
               </button>
             ))}
@@ -5261,7 +5261,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                         ...prev,
                         [teamKey]: prev[teamKey].map(id => id === selectedPlayerId ? p.id : id)
                       }));
-                      setStatusText("Замена: " + (getPlayerFullName(currentPlayers.find(cp => cp.id === selectedPlayerId))) + " → " + (getPlayerFullName(p)));
+                      setStatusText("Замена: " + (currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.first_name || "?") + " → " + (p.users?.first_name || "?"));
                       setTimeout(() => setStatusText(""), 3000);
                       setSelectedPlayerId(null);
                       setShowSubstitutionModal(false);
