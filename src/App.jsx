@@ -7121,9 +7121,17 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
     }
   };
 
-const handleTelegramLogin = async (tgUser) => {
+const handleTelegramLogin = async (tgUser, retryCount = 0) => {
+    const maxRetries = 3;
     try {
-      const { data: existingUser } = await supabase.from("users").select("*").eq("telegram_id", tgUser.id).single();
+      const { data: existingUser, error: fetchError } = await supabase.from("users").select("*").eq("telegram_id", tgUser.id).single();
+      
+      // Если ошибка сети и есть попытки - повторяем
+      if (fetchError && fetchError.code !== "PGRST116" && retryCount < maxRetries) {
+        console.log("🔄 Retry login attempt", retryCount + 1);
+        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+        return handleTelegramLogin(tgUser, retryCount + 1);
+      }
       console.log("👤 Loaded user from DB:", existingUser?.id, "favorite_players:", existingUser?.favorite_players);
       let currentUser;
       let isNewUser = false;
@@ -7151,7 +7159,12 @@ const handleTelegramLogin = async (tgUser) => {
         }).select().single();
         if (error) {
           console.error("Error creating user:", error);
-          alert("Ошибка создания пользователя. Попробуйте перезайти.");
+          if (retryCount < maxRetries) {
+            console.log("🔄 Retry create user attempt", retryCount + 1);
+            await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+            return handleTelegramLogin(tgUser, retryCount + 1);
+          }
+          alert("Ошибка создания пользователя. Проверьте интернет и попробуйте снова.");
           return;
         }
         currentUser = newUser;
@@ -7159,7 +7172,7 @@ const handleTelegramLogin = async (tgUser) => {
       
       if (!currentUser?.id) {
         console.error("User ID is missing after login");
-        alert("Ошибка авторизации. Попробуйте перезайти.");
+        alert("Ошибка авторизации. Проверьте интернет и попробуйте снова.");
         return;
       }
       
