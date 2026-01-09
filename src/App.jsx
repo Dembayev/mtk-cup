@@ -5102,66 +5102,70 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       
       {/* Основная область */}
       {selectedTeamId ? (
-        <div style={{ display: "flex", padding: "12px", gap: "12px" }}>
+        <div style={{ display: "flex", padding: "12px", gap: "12px", alignItems: "stretch" }}>
           {/* Игроки */}
-          <div style={{ width: "80px", flexShrink: 0 }}>
-            <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "10px 4px", marginBottom: "10px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "10px", cursor: "pointer", fontWeight: 600, fontSize: "12px", color: "#1d4ed8" }}>
+          <div style={{ width: "75px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
+            <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "8px 4px", marginBottom: "8px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "11px", color: "#1d4ed8" }}>
               🔄 Замена
             </button>
             {currentPlayers.map(p => (
               <button key={p.id} onClick={() => { setSelectedPlayerId(p.id); setSelectedAction(null); }}
                 style={{ 
-                  width: "100%", padding: "10px 4px", marginBottom: "6px", 
+                  width: "100%", padding: "6px 2px", marginBottom: "4px", flex: 1,
                   background: selectedPlayerId === p.id ? colors.goldLight : "white", 
                   border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder, 
-                  borderRadius: "10px", cursor: "pointer", textAlign: "center"
+                  borderRadius: "8px", cursor: "pointer", textAlign: "center",
+                  display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "48px"
                 }}>
-                <div style={{ fontWeight: 700, fontSize: "18px", color: colors.gold }}>{p.jersey_number || "?"}</div>
-                <div style={{ fontSize: "11px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {(p.users?.first_name || p.users?.username || "").substring(0, 8)}
+                <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{p.jersey_number || "?"}</div>
+                <div style={{ fontSize: "9px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {(p.users?.first_name || p.users?.username || "").substring(0, 7)}
                 </div>
               </button>
             ))}
           </div>
           
           {/* Действия */}
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             {/* Кнопки управления */}
-            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
               <button onClick={handleUndo} disabled={actionHistory.length === 0}
-                style={{ flex: 1, padding: "16px", minHeight: "56px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "15px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "12px 8px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
                 ← Возврат
               </button>
               <button onClick={handleSubmitAction} disabled={!selectedAction}
-                style={{ flex: 1, padding: "16px", minHeight: "56px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "15px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "12px 8px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
                 Ввод ✓
               </button>
             </div>
             
-            {/* Блоки действий */}
-            {Object.entries(actionButtons).map(([type, buttons]) => (
-              <div key={type} style={{ marginBottom: "12px" }}>
-                <div style={{ fontSize: "11px", color: colors.goldDark, marginBottom: "6px", fontWeight: 600 }}>
-                  {type === "serve" ? "Подача" : type === "attack" ? "Атака" : type === "block" ? "Блок" : "Приём"}
+            {/* Блоки действий - равномерно распределены */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              {Object.entries(actionButtons).map(([type, buttons]) => (
+                <div key={type} style={{ flex: 1, display: "flex", flexDirection: "column", marginBottom: "6px" }}>
+                  <div style={{ fontSize: "10px", color: colors.goldDark, marginBottom: "4px", fontWeight: 600 }}>
+                    {type === "serve" ? "Подача" : type === "attack" ? "Атака" : type === "block" ? "Блок" : "Приём"}
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", flex: 1 }}>
+                    {buttons.map(btn => (
+                      <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={!selectedPlayerId}
+                        style={{ 
+                          flex: 1, padding: "8px 4px", 
+                          background: selectedAction?.field === btn.field ? btn.color : "white",
+                          border: "2px solid " + btn.color, borderRadius: "8px", 
+                          fontWeight: 600, fontSize: "12px", 
+                          cursor: selectedPlayerId ? "pointer" : "not-allowed",
+                          color: selectedAction?.field === btn.field ? "white" : btn.color,
+                          opacity: selectedPlayerId ? 1 : 0.5,
+                          display: "flex", alignItems: "center", justifyContent: "center"
+                        }}>
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  {buttons.map(btn => (
-                    <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={!selectedPlayerId}
-                      style={{ 
-                        flex: 1, padding: "20px 8px", minHeight: "60px", 
-                        background: selectedAction?.field === btn.field ? btn.color : "white",
-                        border: "2px solid " + btn.color, borderRadius: "10px", 
-                        fontWeight: 600, fontSize: "13px", 
-                        cursor: selectedPlayerId ? "pointer" : "not-allowed",
-                        color: selectedAction?.field === btn.field ? "white" : btn.color,
-                        opacity: selectedPlayerId ? 1 : 0.5
-                      }}>
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       ) : (
