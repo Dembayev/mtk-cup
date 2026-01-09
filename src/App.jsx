@@ -4771,7 +4771,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const team2Players = (players || []).filter(p => p.team_id === match?.team2_id);
   const allCurrentPlayers = selectedTeamId === match?.team1_id ? team1Players : selectedTeamId === match?.team2_id ? team2Players : [];
   const onCourtIds = selectedTeamId === match?.team1_id ? onCourtPlayers.team1 : onCourtPlayers.team2;
-  const currentPlayers = allCurrentPlayers.filter(p => onCourtIds.includes(p.id));
+  // Сохраняем порядок игроков как в onCourtIds
+  const currentPlayers = onCourtIds.map(id => allCurrentPlayers.find(p => p.id === id)).filter(Boolean);
   const benchPlayers = allCurrentPlayers.filter(p => !onCourtIds.includes(p.id));
   
   // Синхронизация счёта между сервисменами (polling каждые 2 сек)
