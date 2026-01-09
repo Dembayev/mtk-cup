@@ -4976,12 +4976,16 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       <div style={{ background: "white", padding: "12px 16px", borderBottom: "1px solid " + colors.grayBorder, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
           <button onClick={() => setScreen("servicemanSelect")} style={{ padding: "10px 16px", background: colors.gray, border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>← Назад</button>
-          <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#991b1b" }}>
-            Конец Матча
-          </button>
-          <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "10px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#92400e" }}>
-            Конец Партии
-          </button>
+          {selectedTeamId === match?.team1_id && (
+            <>
+              <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#991b1b" }}>
+                Конец Матча
+              </button>
+              <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "10px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer", color: "#92400e" }}>
+                Конец Партии
+              </button>
+            </>
+          )}
         </div>
         
         {/* Счёт и партия */}
