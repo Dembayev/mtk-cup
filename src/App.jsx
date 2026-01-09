@@ -3026,7 +3026,19 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 </Card>
               )}
 
-              {(tours || []).sort((a, b) => a.number - b.number).map(tour => (
+              {(tours || []).sort((a, b) => {
+                const now = new Date();
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                const isPastA = dateA < now;
+                const isPastB = dateB < now;
+                // Будущие туры сверху, отсортированные по дате (ближайший первый)
+                if (!isPastA && !isPastB) return dateA - dateB;
+                // Прошедшие туры внизу, отсортированные по дате (недавний первый)
+                if (isPastA && isPastB) return dateB - dateA;
+                // Будущие выше прошедших
+                return isPastA ? 1 : -1;
+              }).map(tour => (
                 <Card key={tour.id} style={{ marginBottom: "8px", padding: "12px" }}>
                   {editingTour?.id === tour.id ? (
                     <div>
@@ -3112,7 +3124,16 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 </Card>
               )}
 
-              {(tours || []).map(tour => {
+              {(tours || []).sort((a, b) => {
+                const now = new Date();
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                const isPastA = dateA < now;
+                const isPastB = dateB < now;
+                if (!isPastA && !isPastB) return dateA - dateB;
+                if (isPastA && isPastB) return dateB - dateA;
+                return isPastA ? 1 : -1;
+              }).map(tour => {
                 const tourMatches = (matches || [])
                   .filter(m => m.tour_id === tour.id)
                   .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
@@ -3316,7 +3337,16 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 Выберите матч и введите статистику для каждого игрока
               </p>
               
-              {(tours || []).map(tour => {
+              {(tours || []).sort((a, b) => {
+                const now = new Date();
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                const isPastA = dateA < now;
+                const isPastB = dateB < now;
+                if (!isPastA && !isPastB) return dateA - dateB;
+                if (isPastA && isPastB) return dateB - dateA;
+                return isPastA ? 1 : -1;
+              }).map(tour => {
                 const tourMatches = (matches || [])
                   .filter(m => m.tour_id === tour.id && m.status === "finished")
                   .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
@@ -3400,7 +3430,16 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 Добавьте ссылки на трансляции (YouTube, VK, Rutube) и записи матчей
               </p>
               
-              {(tours || []).map(tour => {
+              {(tours || []).sort((a, b) => {
+                const now = new Date();
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                const isPastA = dateA < now;
+                const isPastB = dateB < now;
+                if (!isPastA && !isPastB) return dateA - dateB;
+                if (isPastA && isPastB) return dateB - dateA;
+                return isPastA ? 1 : -1;
+              }).map(tour => {
                 const tourMatches = (matches || [])
                   .filter(m => m.tour_id === tour.id)
                   .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
