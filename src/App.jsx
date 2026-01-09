@@ -5117,14 +5117,14 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
             {currentPlayers.map(p => (
               <button key={p.id} onClick={() => { setSelectedPlayerId(p.id); setSelectedAction(null); }}
                 style={{ 
-                  width: "100%", padding: "6px 2px", marginBottom: "4px", flex: 1,
+                  width: "100%", padding: "8px 4px", marginBottom: "4px", flex: 1,
                   background: selectedPlayerId === p.id ? colors.goldLight : "white", 
                   border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder, 
                   borderRadius: "8px", cursor: "pointer", textAlign: "center",
-                  display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "48px"
+                  display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "56px"
                 }}>
                 <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{p.jersey_number || "?"}</div>
-                <div style={{ fontSize: "10px", color: colors.goldDark, overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2", maxHeight: "24px" }}>
+                <div style={{ fontSize: "10px", color: colors.goldDark, overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.3", minHeight: "26px", wordWrap: "break-word" }}>
                   {((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || p.users?.username || ""}
                 </div>
               </button>
