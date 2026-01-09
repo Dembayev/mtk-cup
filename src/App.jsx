@@ -4734,33 +4734,31 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const currentPlayers = allCurrentPlayers.filter(p => onCourtIds.includes(p.id));
   const benchPlayers = allCurrentPlayers.filter(p => !onCourtIds.includes(p.id));
   
-  // Realtime подписка на счёт матча (синхронизация между сервисменами)
+  // Синхронизация счёта между сервисменами (polling каждые 2 сек)
   useEffect(() => {
     if (!match?.id) return;
     
-    // Загружаем начальный счёт из матча
     const loadScore = async () => {
-      const { data } = await supabase.from("matches").select("live_score_team1, live_score_team2, current_set").eq("id", match.id).single();
+      const { data } = await supabase.from("matches").select("live_score_team1, live_score_team2, current_set, set_scores").eq("id", match.id).single();
       if (data) {
-        setLiveScore({ team1: data.live_score_team1 || 0, team2: data.live_score_team2 || 0 });
+        setLiveScore(prev => {
+          // Обновляем только если изменилось (чтобы не сбрасывать локальные изменения)
+          if (prev.team1 !== (data.live_score_team1 || 0) || prev.team2 !== (data.live_score_team2 || 0)) {
+            return { team1: data.live_score_team1 || 0, team2: data.live_score_team2 || 0 };
+          }
+          return prev;
+        });
         if (data.current_set) setCurrentSet(data.current_set);
+        if (data.set_scores) {
+          try { setSetScores(JSON.parse(data.set_scores)); } catch(e) {}
+        }
       }
     };
-    loadScore();
     
-    // Подписка на изменения
-    const channel = supabase.channel("match-" + match.id)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "matches", filter: "id=eq." + match.id }, (payload) => {
-        const newData = payload.new;
-        setLiveScore({ team1: newData.live_score_team1 || 0, team2: newData.live_score_team2 || 0 });
-        if (newData.current_set) setCurrentSet(newData.current_set);
-        if (newData.set_scores) {
-          try { setSetScores(JSON.parse(newData.set_scores)); } catch(e) {}
-        }
-      })
-      .subscribe();
+    loadScore(); // Загружаем сразу
+    const interval = setInterval(loadScore, 2000); // Потом каждые 2 сек
     
-    return () => { supabase.removeChannel(channel); };
+    return () => clearInterval(interval);
   }, [match?.id]);
 
   // Инициализация локальной статистики
