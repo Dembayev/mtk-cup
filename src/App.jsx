@@ -4135,7 +4135,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                   <div style={{ background: colors.gray, padding: "12px", borderRadius: "8px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                                       <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
-                                      <span style={{ fontSize: "13px", fontWeight: 600 }}>{player.users?.first_name || player.users?.username}</span>
+                                      <span style={{ fontSize: "13px", fontWeight: 600 }}>{((player.users?.first_name || "") + " " + (player.users?.last_name || "")).trim() || player.users?.username}</span>
                                     </div>
                                     <div style={{ marginBottom: "8px" }}>
                                       <label style={{ fontSize: "12px", color: colors.goldDark }}>Номер:</label>
@@ -4157,7 +4157,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                 ) : (
                                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <Avatar name={player.users?.first_name || player.users?.username} size={28} url={player.users?.avatar_url} />
-                                    <span style={{ fontSize: "13px", flex: 1 }}>{player.users?.first_name || player.users?.username}{player.is_captain && <span style={{ marginLeft: "4px", color: colors.gold }}>©</span>}</span>
+                                    <span style={{ fontSize: "13px", flex: 1 }}>{((player.users?.first_name || "") + " " + (player.users?.last_name || "")).trim() || player.users?.username}{player.is_captain && <span style={{ marginLeft: "4px", color: colors.gold }}>©</span>}</span>
                                     <span style={{ fontSize: "11px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ") || "—"}</span>
                                     {player.jersey_number && <span style={{ fontSize: "12px", fontWeight: 600, color: colors.gold }}>#{player.jersey_number}</span>}
                                     <button onClick={() => startEditPlayer(player)} style={{ background: "#e0f2fe", border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", cursor: "pointer", color: "#0284c7" }}>✏️</button>
