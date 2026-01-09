@@ -4724,6 +4724,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [onCourtPlayers, setOnCourtPlayers] = useState({ team1: [], team2: [] }); // Игроки на площадке
   const [teamLocked, setTeamLocked] = useState(false); // Команда зафиксирована
   const [liveScore, setLiveScore] = useState({ team1: 0, team2: 0 }); // Синхронизированный счёт
+  const [showAutoEndSetModal, setShowAutoEndSetModal] = useState(false); // Модалка автозавершения партии
   
   const team1 = teams?.find(t => t.id === match?.team1_id);
   const team2 = teams?.find(t => t.id === match?.team2_id);
@@ -4857,6 +4858,17 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       live_score_team2: newScore.team2,
       status: "live"
     }).eq("id", match.id).then(() => {});
+    
+    // Проверка автозавершения партии по правилам волейбола
+    const winScore = currentSet >= 5 ? 15 : 25; // 5-я партия до 15
+    const score1 = newScore.team1;
+    const score2 = newScore.team2;
+    const diff = Math.abs(score1 - score2);
+    
+    if ((score1 >= winScore || score2 >= winScore) && diff >= 2) {
+      // Партия завершена!
+      setShowAutoEndSetModal(true);
+    }
     
     // История для отмены
     const player = currentPlayers.find(p => p.id === selectedPlayerId);
@@ -5105,6 +5117,52 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       ) : (
         <div style={{ padding: "40px 20px", textAlign: "center", color: colors.goldDark }}>
           👆 Выберите команду для ведения статистики
+        </div>
+      )}
+      
+      {/* Модалка автозавершения партии */}
+      {showAutoEndSetModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ background: "white", borderRadius: "16px", padding: "24px", maxWidth: "320px", width: "100%", textAlign: "center" }}>
+            <div style={{ fontSize: "48px", marginBottom: "12px" }}>🏐</div>
+            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>Партия завершена!</h3>
+            <div style={{ fontSize: "14px", color: colors.goldDark, marginBottom: "16px" }}>Партия {currentSet}</div>
+            <div style={{ fontSize: "40px", fontWeight: 700, color: colors.gold, margin: "16px 0" }}>{liveScore.team1} : {liveScore.team2}</div>
+            <div style={{ fontSize: "14px", color: liveScore.team1 > liveScore.team2 ? "#16a34a" : "#dc2626", marginBottom: "20px", fontWeight: 600 }}>
+              Победа: {liveScore.team1 > liveScore.team2 ? (team1?.name || "Команда 1") : (team2?.name || "Команда 2")}
+            </div>
+            <button onClick={async () => {
+              setShowAutoEndSetModal(false);
+              setSaving(true);
+              await saveAllStats();
+              
+              const newSetScores = [...setScores, { ...liveScore }];
+              const newSet = currentSet + 1;
+              
+              setSetScores(newSetScores);
+              setLiveScore({ team1: 0, team2: 0 });
+              setCurrentSet(newSet);
+              setActionHistory([]);
+              
+              await supabase.from("matches").update({
+                live_score_team1: 0,
+                live_score_team2: 0,
+                current_set: newSet,
+                set_scores: JSON.stringify(newSetScores)
+              }).eq("id", match.id);
+              
+              setSaving(false);
+              
+              // Проверка на завершение матча (3 выигранных партии)
+              const wins1 = newSetScores.filter(s => s.team1 > s.team2).length;
+              const wins2 = newSetScores.filter(s => s.team2 > s.team1).length;
+              if (wins1 >= 3 || wins2 >= 3) {
+                setShowEndMatchModal(true);
+              }
+            }} style={{ width: "100%", padding: "14px", background: colors.gold, border: "none", borderRadius: "8px", fontWeight: 600, color: "white", cursor: "pointer", fontSize: "16px" }}>
+              Следующая партия →
+            </button>
+          </div>
         </div>
       )}
       
