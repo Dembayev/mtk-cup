@@ -4993,16 +4993,22 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       <Header title="Статистика матча" showBack onBack={() => setScreen("servicemanSelect")} />
       {/* Панель управления */}
       <Container>
-        {selectedTeamId === match?.team1_id && (
-          <div style={{ display: "flex", gap: "8px", marginBottom: "12px", paddingTop: "12px" }}>
-            <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "12px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: "#991b1b" }}>
-              Конец Матча
-            </button>
-            <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "12px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: "#92400e" }}>
-              Конец Партии
-            </button>
-          </div>
-        )}
+        <div style={{ display: "flex", gap: "8px", marginBottom: "12px", paddingTop: "12px", minHeight: "48px" }}>
+          {selectedTeamId === match?.team1_id ? (
+            <>
+              <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "12px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: "#991b1b" }}>
+                Конец Матча
+              </button>
+              <button onClick={() => setShowEndSetModal(true)} style={{ flex: 1, padding: "12px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "10px", fontWeight: 600, fontSize: "14px", cursor: "pointer", color: "#92400e" }}>
+                Конец Партии
+              </button>
+            </>
+          ) : (
+            <div style={{ flex: 1, textAlign: "center", color: colors.goldDark, fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              Ведение статистики
+            </div>
+          )}
+        </div>
         
         {/* Счёт и партия */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
@@ -5050,12 +5056,10 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
         )}
       </Container>
       
-      {/* Статус */}
-      {statusText && (
-        <div style={{ background: colors.goldLight, padding: "10px 16px", textAlign: "center", fontWeight: 600, fontSize: "14px", color: colors.goldDark }}>
-          {statusText}
-        </div>
-      )}
+      {/* Статус - фиксированная высота */}
+      <div style={{ background: statusText ? colors.goldLight : "transparent", padding: "8px 16px", textAlign: "center", fontWeight: 600, fontSize: "14px", color: colors.goldDark, minHeight: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {statusText || "\u00A0"}
+      </div>
       
       {/* Основная область */}
       {selectedTeamId ? (
