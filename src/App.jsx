@@ -5125,7 +5125,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 }}>
                 <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{p.jersey_number || "?"}</div>
                 <div style={{ fontSize: "9px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {(p.users?.first_name || p.users?.username || "").substring(0, 7)}
+                  {((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim().substring(0, 10) || p.users?.username || ""}
                 </div>
               </button>
             ))}
