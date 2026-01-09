@@ -5276,7 +5276,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 setShowLineupSelect(false);
                 setTeamLocked(true);
               }} disabled={selectedLineup.length < 6 || selectedLineup.length > 8}
-                style={{ flex: 1, padding: "14px", background: selectedLineup.length === 7 ? colors.gold : colors.grayBorder, border: "none", borderRadius: "10px", fontWeight: 600, color: "white", cursor: selectedLineup.length === 7 ? "pointer" : "not-allowed" }}>
+                style={{ flex: 1, padding: "14px", background: (selectedLineup.length >= 6 && selectedLineup.length <= 8) ? colors.gold : colors.grayBorder, border: "none", borderRadius: "10px", fontWeight: 600, color: "white", cursor: (selectedLineup.length >= 6 && selectedLineup.length <= 8) ? "pointer" : "not-allowed" }}>
                 Готово ({selectedLineup.length}/6-8)
               </button>
             </div>
