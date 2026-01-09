@@ -5243,7 +5243,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                     border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder,
                     borderRadius: "8px", cursor: "pointer", fontSize: "13px"
                   }}>
-                    <span style={{ fontWeight: 700, color: colors.gold }}>#{p.jersey_number || "?"}</span> {(p.users?.first_name || "").substring(0, 6)}
+                    <span style={{ fontWeight: 700, color: colors.gold }}>#{p.jersey_number || "?"}</span> {((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim().substring(0, 8) || ""}
                   </button>
                 ))}
               </div>
@@ -5271,7 +5271,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                       border: "1px solid #16a34a",
                       borderRadius: "8px", cursor: "pointer", fontSize: "13px"
                     }}>
-                      <span style={{ fontWeight: 700, color: "#16a34a" }}>#{p.jersey_number || "?"}</span> {(p.users?.first_name || "").substring(0, 6)}
+                      <span style={{ fontWeight: 700, color: "#16a34a" }}>#{p.jersey_number || "?"}</span> {((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim().substring(0, 8) || ""}
                     </button>
                   ))}
                 </div>
