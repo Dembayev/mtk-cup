@@ -4779,8 +4779,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     // Инициализация игроков на площадке (первые 6 или все если меньше)
     setOnCourtPlayers({
-      team1: team1Players.slice(0, 6).map(p => p.id),
-      team2: team2Players.slice(0, 6).map(p => p.id)
+      team1: team1Players.slice(0, 7).map(p => p.id),
+      team2: team2Players.slice(0, 7).map(p => p.id)
     });
   }, [match?.id, playerStats]);
   
