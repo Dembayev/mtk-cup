@@ -5110,7 +5110,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       {selectedTeamId ? (
         <div style={{ display: "flex", padding: "12px", gap: "12px", alignItems: "stretch" }}>
           {/* Игроки */}
-          <div style={{ width: "75px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
+          <div style={{ width: "100px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
             <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "8px 4px", marginBottom: "8px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "11px", color: "#1d4ed8" }}>
               🔄 Замена
             </button>
@@ -5124,8 +5124,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                   display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "48px"
                 }}>
                 <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{p.jersey_number || "?"}</div>
-                <div style={{ fontSize: "9px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {(p.users?.last_name || p.users?.first_name || p.users?.username || "").substring(0, 8)}
+                <div style={{ fontSize: "10px", color: colors.goldDark, overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2", maxHeight: "24px" }}>
+                  {((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || p.users?.username || ""}
                 </div>
               </button>
             ))}
@@ -5297,12 +5297,12 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                     // Выбираем игрока для замены
                     setSelectedPlayerId(p.id);
                   }} style={{ 
-                    padding: "8px 12px", 
+                    padding: "10px 14px", 
                     background: selectedPlayerId === p.id ? colors.goldLight : "white",
                     border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder,
-                    borderRadius: "8px", cursor: "pointer", fontSize: "13px"
+                    borderRadius: "8px", cursor: "pointer", fontSize: "12px", minWidth: "120px"
                   }}>
-                    <span style={{ fontWeight: 700, color: colors.gold }}>#{p.jersey_number || "?"}</span> {p.users?.last_name || p.users?.first_name || ""}
+                    <span style={{ fontWeight: 700, color: colors.gold }}>#{p.jersey_number || "?"}</span> {((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim()}
                   </button>
                 ))}
               </div>
@@ -5320,7 +5320,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                         ...prev,
                         [teamKey]: prev[teamKey].map(id => id === selectedPlayerId ? p.id : id)
                       }));
-                      setStatusText("Замена: " + (currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.last_name || currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.first_name || "?") + " → " + (p.users?.last_name || p.users?.first_name || "?"));
+                      setStatusText("Замена: " + ((currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.first_name || "") + " " + (currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.last_name || "")).trim() + " → " + ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim());
                       setTimeout(() => setStatusText(""), 3000);
                       setSelectedPlayerId(null);
                       setShowSubstitutionModal(false);
@@ -5330,7 +5330,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                       border: "1px solid #16a34a",
                       borderRadius: "8px", cursor: "pointer", fontSize: "13px"
                     }}>
-                      <span style={{ fontWeight: 700, color: "#16a34a" }}>#{p.jersey_number || "?"}</span> {p.users?.last_name || p.users?.first_name || ""}
+                      <span style={{ fontWeight: 700, color: "#16a34a" }}>#{p.jersey_number || "?"}</span> {((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim()}
                     </button>
                   ))}
                 </div>
