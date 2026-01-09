@@ -530,7 +530,7 @@ const RoleBadges = ({ roles }) => {
   };
   
   return (
-    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
       {roles.map(role => (
         <Badge key={role} variant={roleVariants[role]}>
           {roleLabels[role]}
@@ -2556,7 +2556,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       {/* Подача */}
       <div style={{ marginBottom: "10px" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Подача</div>
-        <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ display: "flex", gap: "8px" }}>
           <StatField label="Всего" value={servesTotal} onChange={setServesTotal} />
           <StatField label="Эйс" value={aces} onChange={setAces} />
           <StatField label="Ош" value={serveErrors} onChange={setServeErrors} />
@@ -2565,7 +2565,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       {/* Приём */}
       <div style={{ marginBottom: "10px" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Приём</div>
-        <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ display: "flex", gap: "8px" }}>
           <StatField label="Отл" value={receiveExcellent} onChange={setReceiveExcellent} />
           <StatField label="Норм" value={receiveGood} onChange={setReceiveGood} />
           <StatField label="Плохо" value={receivePoor} onChange={setReceivePoor} />
@@ -2575,7 +2575,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       {/* Атака */}
       <div style={{ marginBottom: "10px" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Атака</div>
-        <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ display: "flex", gap: "8px" }}>
           <StatField label="Всего" value={attacksTotal} onChange={setAttacksTotal} />
           <StatField label="Очки" value={attackPoints} onChange={setAttackPoints} />
           <StatField label="Ош" value={attackErrors} onChange={setAttackErrors} />
@@ -2584,7 +2584,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
       {/* Блок */}
       <div style={{ marginBottom: "12px" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, color: colors.goldDark, marginBottom: "4px" }}>Блок</div>
-        <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ display: "flex", gap: "8px" }}>
           <StatField label="Очки" value={blockPoints} onChange={setBlockPoints} />
           <StatField label="Кас" value={blockTouches} onChange={setBlockTouches} />
           <StatField label="Ош" value={blockErrors} onChange={setBlockErrors} />
@@ -4983,7 +4983,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   }
   
   return (
-    <div style={{ paddingBottom: "20px", minHeight: "100vh", background: "#f5f5f5" }}>
+    <div style={{ paddingBottom: "20px", paddingTop: "60px", minHeight: "100vh", background: "#f5f5f5" }}>
       {/* Верхняя панель */}
       <div style={{ background: "white", padding: "12px 16px", borderBottom: "1px solid " + colors.grayBorder, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
@@ -5057,17 +5057,17 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       {selectedTeamId ? (
         <div style={{ display: "flex", padding: "12px", gap: "12px" }}>
           {/* Игроки */}
-          <div style={{ width: "90px", flexShrink: 0 }}>
+          <div style={{ width: "100px", flexShrink: 0 }}>
             {currentPlayers.map(p => (
               <button key={p.id} onClick={() => { setSelectedPlayerId(p.id); setSelectedAction(null); }}
                 style={{ 
-                  width: "100%", padding: "8px 4px", marginBottom: "6px", 
+                  width: "100%", padding: "12px 6px", marginBottom: "8px", 
                   background: selectedPlayerId === p.id ? colors.goldLight : "white", 
-                  border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + colors.grayBorder, 
-                  borderRadius: "8px", cursor: "pointer", textAlign: "center"
+                  border: selectedPlayerId === p.id ? "3px solid " + colors.gold : "2px solid " + colors.grayBorder, 
+                  borderRadius: "12px", cursor: "pointer", textAlign: "center"
                 }}>
-                <div style={{ fontWeight: 700, fontSize: "16px", color: colors.gold }}>{p.jersey_number || "?"}</div>
-                <div style={{ fontSize: "10px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div style={{ fontWeight: 700, fontSize: "22px", color: colors.gold }}>{p.jersey_number || "?"}</div>
+                <div style={{ fontSize: "12px", color: colors.goldDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {(p.users?.first_name || p.users?.username || "").substring(0, 8)}
                 </div>
               </button>
@@ -5079,11 +5079,11 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
             {/* Кнопки управления */}
             <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
               <button onClick={handleUndo} disabled={actionHistory.length === 0}
-                style={{ flex: 1, padding: "14px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "8px", fontWeight: 700, fontSize: "14px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "18px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "12px", fontWeight: 700, fontSize: "16px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
                 ← Возврат
               </button>
               <button onClick={handleSubmitAction} disabled={!selectedAction}
-                style={{ flex: 1, padding: "14px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "8px", fontWeight: 700, fontSize: "14px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "18px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "12px", fontWeight: 700, fontSize: "16px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
                 Ввод ✓
               </button>
             </div>
@@ -5094,14 +5094,14 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 <div style={{ fontSize: "11px", color: colors.goldDark, marginBottom: "4px", fontWeight: 600 }}>
                   {type === "serve" ? "Подача" : type === "attack" ? "Атака" : type === "block" ? "Блок" : "Приём"}
                 </div>
-                <div style={{ display: "flex", gap: "6px" }}>
+                <div style={{ display: "flex", gap: "8px" }}>
                   {buttons.map(btn => (
                     <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={!selectedPlayerId}
                       style={{ 
-                        flex: 1, padding: "12px 6px", 
+                        flex: 1, padding: "18px 10px", minHeight: "56px", 
                         background: selectedAction?.field === btn.field ? btn.color : "white",
-                        border: "2px solid " + btn.color, borderRadius: "8px", 
-                        fontWeight: 600, fontSize: "12px", 
+                        border: "2px solid " + btn.color, borderRadius: "12px", 
+                        fontWeight: 700, fontSize: "15px", 
                         cursor: selectedPlayerId ? "pointer" : "not-allowed",
                         color: selectedAction?.field === btn.field ? "white" : btn.color,
                         opacity: selectedPlayerId ? 1 : 0.5
