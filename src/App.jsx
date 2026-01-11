@@ -1010,7 +1010,7 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
   );
 };
 
-const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
+const TeamsScreen = ({ setScreen, teams, players, setSelectedTeam, user, myTeamId }) => {
   // Сортируем: моя команда / любимая команда вверху
   const sortedTeams = [...teams].sort((a, b) => {
     const aIsMy = a.id === myTeamId || a.id === user?.favorite_team_id;
@@ -1042,7 +1042,7 @@ const TeamsScreen = ({ setScreen, teams, setSelectedTeam, user, myTeamId }) => {
                     <h3 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600 }}>
                       {team.name} {isMy && <span style={{ fontSize: "12px", color: colors.gold }}>★</span>}
                     </h3>
-                    <p style={{ margin: 0, fontSize: "13px", color: colors.goldDark }}>{team.wins}В {team.losses}П • {team.points} очков</p>
+                    <p style={{ margin: 0, fontSize: "13px", color: colors.goldDark }}>{team.wins}В {team.losses}П • {team.points} очков • {(players || []).filter(p => p.team_id === team.id).length} игр.</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: "20px", fontWeight: 700, color: colors.gold }}>#{teams.sort((a,b) => (b.points||0)-(a.points||0)).indexOf(team) + 1}</div>
@@ -2461,7 +2461,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
               </div>
             </Card>
           )}
-          {teamPlayers.length > 0 ? teamPlayers.map(player => (
+          {teamPlayers.length > 0 ? [...teamPlayers].sort((a, b) => { const numA = a.jersey_number || 9999; const numB = b.jersey_number || 9999; return numA - numB; }).map(player => (
             <Card key={player.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
@@ -4205,7 +4205,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         {isExpanded && (
                           <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${colors.grayBorder}` }}>
                             <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>Состав команды:</div>
-                            {teamPlayers.length > 0 ? teamPlayers.map(player => (
+                            {teamPlayers.length > 0 ? [...teamPlayers].sort((a, b) => { const numA = a.jersey_number || 9999; const numB = b.jersey_number || 9999; return numA - numB; }).map(player => (
                               <div key={player.id} style={{ padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
                                 {editingPlayer?.id === player.id ? (
                                   <div style={{ background: colors.gray, padding: "12px", borderRadius: "8px" }}>
@@ -7736,7 +7736,7 @@ const handleGuest = () => {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} tours={tours} />;
-      case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
+      case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} players={players} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} users={users} />;
