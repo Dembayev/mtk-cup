@@ -524,6 +524,7 @@ const Badge = ({ children, variant = "default" }) => {
     free: { background: "#dcfce7", color: "#16a34a" },
     pending: { background: "#fef3c7", color: "#d97706" },
     admin: { background: "#dbeafe", color: "#1d4ed8" },
+    serviceman: { background: "#fef3c7", color: "#d97706" },
     captain: { background: "#f3e8ff", color: "#7c3aed" },
   };
   return (
@@ -3726,6 +3727,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 // Вычисляем все роли пользователя (как это делает getUserRoles)
                 const displayRoles = [];
                 if (u.role === "admin") displayRoles.push({ label: "Админ", variant: "admin" });
+                if (u.is_serviceman) displayRoles.push({ label: "Сервисмен", variant: "serviceman" });
                 // Тренер если: назначен на команду ИЛИ есть одобренная заявка
                 if (userCoachTeam) {
                   displayRoles.push({ label: `Тренер (${userCoachTeam.name})`, variant: "gold" });
@@ -3761,13 +3763,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             style={{ flex: 1 }}
                           />
                         </div>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 0", cursor: "pointer" }}>
-                          <input type="checkbox" checked={isServiceman} onChange={() => setIsServiceman(!isServiceman)} style={{ width: "18px", height: "18px", accentColor: colors.gold }} />
-                          <span>Сервисмен (ведение статистики)</span>
-                        </label>
-                        <Select label="Права администратора" value={userRole} onChange={setUserRole}
+                        <Select label="Права" value={userRole === "admin" ? "admin" : (isServiceman ? "serviceman" : "fan")} onChange={(val) => {
+                            if (val === "admin") { setUserRole("admin"); setIsServiceman(false); }
+                            else if (val === "serviceman") { setUserRole("fan"); setIsServiceman(true); }
+                            else { setUserRole("fan"); setIsServiceman(false); }
+                          }}
                           options={[
                             { value: "fan", label: "Обычный пользователь" },
+                            { value: "serviceman", label: "Сервисмен" },
                             { value: "admin", label: "Администратор" },
                           ]}
                         />
