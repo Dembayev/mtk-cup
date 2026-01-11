@@ -5153,7 +5153,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   }
   
   return (
-    <div style={{ paddingBottom: "100px" }}>
+    <div style={{ paddingBottom: "20px" }}>
       <Header title="Статистика матча" showBack onBack={() => setScreen("servicemanSelect")} />
       {/* Панель управления */}
       <Container>
@@ -5227,9 +5227,9 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                   background: selectedPlayerId === p.id ? colors.goldLight : (idx >= 6 ? "#e0f2fe" : "white"), 
                   border: selectedPlayerId === p.id ? "2px solid " + colors.gold : "1px solid " + (idx >= 6 ? "#7dd3fc" : colors.grayBorder), 
                   borderRadius: "6px", cursor: "pointer", textAlign: "center",
-                  display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "44px"
+                  display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "48px"
                 }}>
-                <div style={{ fontWeight: 700, fontSize: "14px", color: idx >= 6 ? "#0284c7" : colors.gold }}>{p.jersey_number || "?"}</div>
+                <div style={{ fontWeight: 700, fontSize: "16px", color: idx >= 6 ? "#0284c7" : colors.gold }}>{p.jersey_number || "?"}</div>
                 <div style={{ fontSize: "9px", color: colors.goldDark, overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2", wordWrap: "break-word" }}>
                   {(p.users?.last_name || p.users?.first_name || p.users?.username || "").slice(0, 10)}
                 </div>
@@ -5242,11 +5242,11 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
             {/* Кнопки управления */}
             <div style={{ display: "flex", gap: "4px", marginBottom: "6px" }}>
               <button onClick={handleUndo} disabled={actionHistory.length === 0}
-                style={{ flex: 1, padding: "10px 6px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "14px 6px", background: actionHistory.length > 0 ? "#fca5a5" : "#e5e7eb", border: "none", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: actionHistory.length > 0 ? "pointer" : "not-allowed", color: actionHistory.length > 0 ? "#7f1d1d" : "#9ca3af", fontSize: "14px" }}>
                 ← Возврат
               </button>
               <button onClick={handleSubmitAction} disabled={!selectedAction}
-                style={{ flex: 1, padding: "10px 6px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af" }}>
+                style={{ flex: 1, padding: "14px 6px", background: selectedAction ? "#16a34a" : "#e5e7eb", border: "none", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: selectedAction ? "pointer" : "not-allowed", color: selectedAction ? "white" : "#9ca3af", fontSize: "14px" }}>
                 Ввод ✓
               </button>
             </div>
@@ -5267,10 +5267,10 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                       return (
                         <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={isDisabled}
                           style={{ 
-                            flex: 1, padding: isOpponent ? "10px 4px" : "6px 4px", 
+                            flex: 1, padding: isOpponent ? "12px 4px" : "10px 4px", 
                             background: selectedAction?.field === btn.field ? btn.color : "white",
                             border: "2px solid " + btn.color, borderRadius: "6px", 
-                            fontWeight: 600, fontSize: isOpponent ? "11px" : "11px", 
+                            fontWeight: 600, fontSize: isOpponent ? "13px" : "13px", 
                             cursor: isDisabled ? "not-allowed" : "pointer",
                             color: selectedAction?.field === btn.field ? "white" : btn.color,
                             opacity: isDisabled ? 0.5 : 1,
