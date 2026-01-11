@@ -2960,6 +2960,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     setUserRole(u.role === "admin" ? "admin" : "fan");
     setUserFirstName(u.first_name || "");
     setUserLastName(u.last_name || "");
+    setIsServiceman(u.is_serviceman === true);
     // Определяем текущую игровую роль (с учетом role_requests)
     const isCoach = teams.some(t => t.coach_id === u.id);
     const hasCoachRequest = roleRequests.some(r => r.user_id === u.id && r.requested_role === "coach" && r.status === "approved");
