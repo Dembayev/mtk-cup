@@ -798,12 +798,21 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
   const liveMatch = matches.find(m => m.status === "live");
   const upcomingMatches = (matches || []).filter(m => m.status === "upcoming").slice(0, 2);
   
-  // Находим ближайший тур с матчами
+  // Находим ближайший будущий тур (даже без матчей)
   const nextTour = (() => {
-    if (upcomingMatches.length === 0) return null;
-    const tourId = upcomingMatches[0]?.tour_id;
-    return (tours || []).find(t => t.id === tourId);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Сортируем туры по дате и берём ближайший будущий
+    const futureTours = (tours || [])
+      .filter(t => new Date(t.date) >= today)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    return futureTours[0] || null;
   })();
+  
+  // Матчи для nextTour (если есть)
+  const nextTourMatches = nextTour 
+    ? (matches || []).filter(m => m.tour_id === nextTour.id && m.status === "upcoming").slice(0, 2)
+    : [];
   // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
   const playersWithStats = (players || []).map(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
@@ -901,7 +910,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
             </>
           )}
 
-          {upcomingMatches.length > 0 && (
+          {nextTour && (
             <>
               {nextTour && (
                 <div style={{ 
@@ -926,9 +935,13 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
                   )}
                 </div>
               )}
-              {upcomingMatches.map(match => (
+              {nextTourMatches.length > 0 ? nextTourMatches.map(match => (
                 <Card key={match.id} onClick={() => setScreen("schedule")} style={{ marginBottom: "12px", cursor: "pointer" }}><MatchCard match={match} teams={teams} /></Card>
-              ))}
+              )) : (
+                <Card style={{ marginBottom: "12px", textAlign: "center", color: colors.goldDark, padding: "20px" }}>
+                  Матчи скоро будут добавлены
+                </Card>
+              )}
               <Button variant="outline" onClick={() => setScreen("schedule")} style={{ width: "100%", marginTop: "8px" }}>Всё расписание</Button>
             </>
           )}
