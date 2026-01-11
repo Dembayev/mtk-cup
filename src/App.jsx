@@ -1200,10 +1200,24 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
   const sortedTours = [...(tours || [])].sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
-    return Math.abs(dateA - now) - Math.abs(dateB - now);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const isPastA = dateA < today;
+    const isPastB = dateB < today;
+    
+    // Будущие/сегодняшние туры сначала (по возрастанию даты)
+    // Потом прошедшие туры (по убыванию даты - недавние выше)
+    if (!isPastA && !isPastB) return dateA - dateB; // оба будущие - ближайший первый
+    if (isPastA && isPastB) return dateB - dateA; // оба прошедшие - недавний первый
+    if (!isPastA) return -1; // A будущий, B прошедший - A первый
+    return 1; // A прошедший, B будущий - B первый
   });
   
-  const currentTour = sortedTours[0];
+  // Текущий тур = сегодняшний или ближайший будущий
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const currentTour = sortedTours.find(t => new Date(t.date) >= today) || sortedTours[0];
   
   // Мои прогнозы
   const myPredictions = (predictions || []).filter(p => p.user_id === user?.id);
@@ -1350,7 +1364,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
         <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "20px 0 12px" }}>📊 Результаты по турам</h3>
         {sortedTours.map((tour, index) => {
           const expanded = isExpanded(tour.id);
-          const isCurrent = index === 0;
+          const isCurrent = tour.id === currentTour?.id;
           const tourPrizes = getTourPrizes(tour.id);
           const tourLeaderboard = getTourLeaderboard(tour.id);
           const tourSponsors = [...new Map(tourPrizes.map(p => activeSponsors.find(s => s.id === p.sponsor_id)).filter(Boolean).map(s => [s.id, s])).values()];
