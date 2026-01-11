@@ -4835,6 +4835,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [selectedLineup, setSelectedLineup] = useState([]); // Выбранные игроки для состава
   const [liveScore, setLiveScore] = useState({ team1: 0, team2: 0 }); // Синхронизированный счёт
   const [showAutoEndSetModal, setShowAutoEndSetModal] = useState(false); // Модалка автозавершения партии
+  const [autoEndShownForSet, setAutoEndShownForSet] = useState(0); // Для какой партии уже показывали модалку
   
   const team1 = teams?.find(t => t.id === match?.team1_id);
   const team2 = teams?.find(t => t.id === match?.team2_id);
@@ -4966,9 +4967,11 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       // Проверка автозавершения
       const winScore = currentSet >= 5 ? 15 : 25;
       const diff = Math.abs(newScore.team1 - newScore.team2);
-      if ((newScore.team1 >= winScore || newScore.team2 >= winScore) && diff >= 2) {
-        setShowAutoEndSetModal(true);
-      }
+      // Автозавершение отключено
+      // if ((newScore.team1 >= winScore || newScore.team2 >= winScore) && diff >= 2 && autoEndShownForSet !== currentSet) {
+      //   setAutoEndShownForSet(currentSet);
+      //   setShowAutoEndSetModal(true);
+      // }
       return;
     }
     
@@ -5020,10 +5023,11 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     const score2 = newScore.team2;
     const diff = Math.abs(score1 - score2);
     
-    if ((score1 >= winScore || score2 >= winScore) && diff >= 2) {
-      // Партия завершена!
-      setShowAutoEndSetModal(true);
-    }
+    // Автозавершение отключено - пользователь сам завершает партию кнопкой "Конец Партии"
+    // if ((score1 >= winScore || score2 >= winScore) && diff >= 2 && autoEndShownForSet !== currentSet) {
+    //   setAutoEndShownForSet(currentSet);
+    //   setShowAutoEndSetModal(true);
+    // }
     
     // История для отмены
     const player = currentPlayers.find(p => p.id === selectedPlayerId);
@@ -5373,6 +5377,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
               setLiveScore({ team1: 0, team2: 0 });
               setCurrentSet(newSet);
               setActionHistory([]);
+              setAutoEndShownForSet(0); // Сброс флага для новой партии
               
               await supabase.from("matches").update({
                 live_score_team1: 0,
