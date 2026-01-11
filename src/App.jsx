@@ -1428,6 +1428,57 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
                     </div>
                   )}
                   
+                  {/* Мои прогнозы по туру */}
+                  {user && (() => {
+                    const tourMatchesList = (matches || []).filter(m => m.tour_id === tour.id);
+                    const myTourPreds = tourMatchesList.map(m => {
+                      const pred = getPrediction(m.id);
+                      if (!pred) return null;
+                      const team1 = teams.find(t => t.id === m.team1_id);
+                      const team2 = teams.find(t => t.id === m.team2_id);
+                      const isFinished = m.status === "finished";
+                      let points = 0;
+                      if (isFinished && m.sets_team1 !== null && m.sets_team2 !== null) {
+                        const exactMatch = pred.predicted_score_team1 === m.sets_team1 && pred.predicted_score_team2 === m.sets_team2;
+                        const winnerMatch = (pred.predicted_score_team1 > pred.predicted_score_team2) === (m.sets_team1 > m.sets_team2);
+                        if (exactMatch) points = 3;
+                        else if (winnerMatch) points = 1;
+                      }
+                      return { match: m, pred, team1, team2, points, isFinished };
+                    }).filter(Boolean);
+                    
+                    if (myTourPreds.length === 0) return null;
+                    
+                    const totalPoints = myTourPreds.reduce((sum, p) => sum + p.points, 0);
+                    
+                    return (
+                      <div style={{ marginBottom: "16px" }}>
+                        <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", fontWeight: 600 }}>
+                          Мои прогнозы: <span style={{ color: colors.gold }}>{totalPoints} очков</span>
+                        </div>
+                        {myTourPreds.map(({ match: m, pred, team1, team2, points, isFinished }) => (
+                          <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px", background: points === 3 ? "#dcfce7" : points === 1 ? "#fef3c7" : isFinished ? "#fee2e2" : colors.gray, borderRadius: "6px", marginBottom: "4px", fontSize: "12px" }}>
+                            <div style={{ flex: 1 }}>
+                              <span style={{ fontWeight: 500 }}>{team1?.name}</span> vs <span style={{ fontWeight: 500 }}>{team2?.name}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <div style={{ fontWeight: 600 }}>{pred.predicted_score_team1}:{pred.predicted_score_team2}</div>
+                              {isFinished && (
+                                <>
+                                  <div style={{ color: colors.goldDark }}>→ {m.sets_team1}:{m.sets_team2}</div>
+                                  <div style={{ fontWeight: 700, color: points === 3 ? "#16a34a" : points === 1 ? "#ca8a04" : "#dc2626" }}>
+                                    {points === 3 ? "+3" : points === 1 ? "+1" : "0"}
+                                  </div>
+                                </>
+                              )}
+                              {!isFinished && <div style={{ color: colors.goldDark }}>⏳</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  
                   {/* Лидеры тура */}
                   <div>
                     <div style={{ fontSize: "12px", color: colors.goldDark, marginBottom: "8px", fontWeight: 600 }}>Лидеры:</div>
