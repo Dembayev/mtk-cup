@@ -2461,7 +2461,7 @@ const MyTeamScreen = ({ setScreen, user, teams, players, coachTeam, currentPlaye
               </div>
             </Card>
           )}
-          {teamPlayers.length > 0 ? [...teamPlayers].sort((a, b) => { const numA = a.jersey_number || 9999; const numB = b.jersey_number || 9999; return numA - numB; }).map(player => (
+          {teamPlayers.length > 0 ? [...teamPlayers].sort((a, b) => { const numA = parseInt(a.jersey_number) || 9999; const numB = parseInt(b.jersey_number) || 9999; return numA - numB; }).map(player => (
             <Card key={player.id} style={{ marginBottom: "8px", padding: "12px 16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div onClick={() => { setSelectedPlayer(player); setScreen("playerDetail"); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
@@ -4205,7 +4205,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         {isExpanded && (
                           <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${colors.grayBorder}` }}>
                             <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>Состав команды:</div>
-                            {teamPlayers.length > 0 ? [...teamPlayers].sort((a, b) => { const numA = a.jersey_number || 9999; const numB = b.jersey_number || 9999; return numA - numB; }).map(player => (
+                            {teamPlayers.length > 0 ? [...teamPlayers].sort((a, b) => { const numA = parseInt(a.jersey_number) || 9999; const numB = parseInt(b.jersey_number) || 9999; return numA - numB; }).map(player => (
                               <div key={player.id} style={{ padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
                                 {editingPlayer?.id === player.id ? (
                                   <div style={{ background: colors.gray, padding: "12px", borderRadius: "8px" }}>
