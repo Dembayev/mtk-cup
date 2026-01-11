@@ -2607,7 +2607,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
         </span>
         {existingStat ? (
           <span style={{ fontSize: "11px", color: colors.goldDark }}>
-            П:{existingStat.aces || 0}/{existingStat.serve_errors || 0} | А:{existingStat.attack_points || 0}/{existingStat.attack_errors || 0} | Б:{existingStat.block_points || 0}
+            П:{(existingStat.aces || 0) + (existingStat.serves_total || 0) + (existingStat.serve_errors || 0)} Пр:{(existingStat.receive_excellent || 0) + (existingStat.receive_good || 0) + (existingStat.receive_poor || 0) + (existingStat.receive_errors || 0)} Б:{(existingStat.block_points || 0) + (existingStat.block_touches || 0) + (existingStat.block_errors || 0)} А:{(existingStat.attack_points || 0) + (existingStat.attacks_total || 0) + (existingStat.attack_errors || 0)}
           </span>
         ) : (
           <span style={{ fontSize: "11px", color: colors.goldDark }}>—</span>
