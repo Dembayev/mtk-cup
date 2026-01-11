@@ -6,8 +6,11 @@ const SUPABASE_URL = "https://ecayfpszkleyxuhsekhu.supabase.co";
 
 // Telegram notifications via Edge Function
 
+// ТЕСТОВЫЙ РЕЖИМ: уведомления только админам
+const TEST_MODE_NOTIFICATIONS = true;
+
 const sendNotification = async (type, team1Name, team2Name, score = "") => {
-  console.log("🔔 sendNotification called:", { type, team1Name, team2Name, score });
+  console.log("🔔 sendNotification called:", { type, team1Name, team2Name, score, testMode: TEST_MODE_NOTIFICATIONS });
   try {
     // Определяем поле для фильтра
     let notifyField = "";
@@ -17,11 +20,17 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
     else return;
     
     // Получаем пользователей с включёнными уведомлениями
-    const { data: users } = await supabase
-      .from("users")
-      .select("telegram_id")
-      .not(notifyField, "eq", false)
-      .not("telegram_id", "is", null);
+    let query = supabase.from("users").select("telegram_id").not("telegram_id", "is", null);
+    
+    // В тестовом режиме - только админы
+    if (TEST_MODE_NOTIFICATIONS) {
+      query = query.eq("role", "admin");
+      console.log("🔔 TEST MODE: sending only to admins");
+    } else {
+      query = query.not(notifyField, "eq", false);
+    }
+    
+    const { data: users } = await query;
     
     if (!users || users.length === 0) return;
     
