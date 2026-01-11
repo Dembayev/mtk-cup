@@ -7,6 +7,7 @@ const SUPABASE_URL = "https://ecayfpszkleyxuhsekhu.supabase.co";
 // Telegram notifications via Edge Function
 
 const sendNotification = async (type, team1Name, team2Name, score = "") => {
+  console.log("🔔 sendNotification called:", { type, team1Name, team2Name, score });
   try {
     // Определяем поле для фильтра
     let notifyField = "";
@@ -46,7 +47,7 @@ const sendNotification = async (type, team1Name, team2Name, score = "") => {
             text: message,
             reply_markup: {
               inline_keyboard: [[
-                { text: "📱 Открыть приложение", web_app: { url: "https://mtk-cup.vercel.app" } }
+                { text: "📱 Открыть приложение", web_app: { url: "https://app.mtkcup.ru" } }
               ]]
             }
           })
@@ -155,7 +156,7 @@ const sendTeamMessage = async (teamId, teamName, message, senderName) => {
             text: fullMessage,
             reply_markup: {
               inline_keyboard: [[
-                { text: "📱 Открыть приложение", web_app: { url: "https://mtk-cup.vercel.app" } }
+                { text: "📱 Открыть приложение", web_app: { url: "https://app.mtkcup.ru" } }
               ]]
             }
           })
@@ -6234,7 +6235,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
               text: `✅ Вас приняли в команду!\n\nВы теперь в команде "${coachTeam.name}". Добро пожаловать!`,
               reply_markup: {
                 inline_keyboard: [[
-                  { text: "📱 Открыть приложение", web_app: { url: "https://mtk-cup.vercel.app" } }
+                  { text: "📱 Открыть приложение", web_app: { url: "https://app.mtkcup.ru" } }
                 ]]
               }
             }),
@@ -6558,7 +6559,9 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       }
       
       // Уведомление о начале матча (LIVE)
+      console.log("🔔 Checking LIVE notification:", { newStatus: data.status, oldStatus: match.status });
       if (data.status === "live" && match.status !== "live") {
+        console.log("🔔 Sending LIVE notification!");
         sendNotification("live", team1?.name, team2?.name);
       }
 
