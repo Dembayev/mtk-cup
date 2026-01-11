@@ -1278,14 +1278,28 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
   const seasonLeaderboard = (() => {
     const scores = {};
     (predictions || []).forEach(p => {
-      if (!scores[p.user_id]) scores[p.user_id] = { points: 0, count: 0 };
+      if (!scores[p.user_id]) scores[p.user_id] = { points: 0, count: 0, exactCount: 0, earliestTime: null };
       scores[p.user_id].points += p.points_earned || 0;
       scores[p.user_id].count += 1;
+      // Считаем точные прогнозы (3 очка)
+      if (p.points_earned === 3) scores[p.user_id].exactCount += 1;
+      // Запоминаем самое раннее время прогноза
+      if (p.created_at && (!scores[p.user_id].earliestTime || p.created_at < scores[p.user_id].earliestTime)) {
+        scores[p.user_id].earliestTime = p.created_at;
+      }
     });
     return Object.entries(scores)
-      .map(([id, data]) => ({ user: (users || []).find(u => u.id === id), points: data.points, count: data.count }))
+      .map(([id, data]) => ({ user: (users || []).find(u => u.id === id), ...data }))
       .filter(x => x.user)
-      .sort((a, b) => b.points - a.points || b.count - a.count)
+      .sort((a, b) => {
+        // 1. По очкам (больше = лучше)
+        if (b.points !== a.points) return b.points - a.points;
+        // 2. По количеству точных прогнозов (больше = лучше)
+        if (b.exactCount !== a.exactCount) return b.exactCount - a.exactCount;
+        // 3. По времени первого прогноза (раньше = лучше)
+        if (a.earliestTime && b.earliestTime) return new Date(a.earliestTime) - new Date(b.earliestTime);
+        return 0;
+      })
       .slice(0, 10);
   })();
   
