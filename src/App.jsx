@@ -4494,15 +4494,17 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 ) : (
                   <div>
                     {Object.entries((predictions || []).reduce((acc, p) => {
-                      acc[p.user_id] = (acc[p.user_id] || 0) + (p.points_earned || 0);
+                      if (!acc[p.user_id]) acc[p.user_id] = { points: 0, count: 0 };
+                      acc[p.user_id].points += p.points_earned || 0;
+                      acc[p.user_id].count += 1;
                       return acc;
                     }, {}))
-                      .map(([id, pts]) => {
+                      .map(([id, data]) => {
                         const u = (users || []).find(x => x.id === id);
-                        return u ? { user: u, points: pts } : null;
+                        return u ? { user: u, points: data.points, count: data.count } : null;
                       })
                       .filter(Boolean)
-                      .sort((a, b) => b.points - a.points)
+                      .sort((a, b) => b.points - a.points || b.count - a.count)
                       .slice(0, 10)
                       .map((item, i) => (
                         <div key={item.user.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: i < 9 ? "1px solid #eee" : "none" }}>
