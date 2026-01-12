@@ -5085,15 +5085,15 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     if (last.type === "opponent_error") {
       setLiveScore(last.prevScores);
       setActionHistory(prev => prev.slice(0, -1));
-      setStatusText("Отменено: Ошибка соперника");
-      setTimeout(() => setStatusText(""), 2000);
+      setStatusText("↩️ Отменено: Ошибка соперника");
+      setTimeout(() => setStatusText(""), 5000);
     } else {
       // Обычное действие игрока
       setLocalStats(prev => ({ ...prev, [last.playerId]: last.prevStat }));
       setLiveScore(last.prevScores);
       setActionHistory(prev => prev.slice(0, -1));
-      setStatusText("Отменено: " + last.playerName);
-      setTimeout(() => setStatusText(""), 2000);
+      setStatusText("↩️ Отменено: " + last.playerName + " — " + (last.action?.label || ""));
+      setTimeout(() => setStatusText(""), 5000);
     }
     
     // Синхронизируем отмену с БД
@@ -5135,8 +5135,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     }).eq("id", match.id);
     
     setSaving(false);
-    setStatusText("Партия " + currentSet + " завершена!");
-    setTimeout(() => setStatusText(""), 2000);
+    setStatusText("✅ Партия " + currentSet + " завершена!");
+    setTimeout(() => setStatusText(""), 5000);
   };
   
   const handleEndMatch = async () => {
@@ -5471,7 +5471,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                         [teamKey]: prev[teamKey].map(id => id === selectedPlayerId ? p.id : id)
                       }));
                       setStatusText("Замена: " + ((currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.first_name || "") + " " + (currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.last_name || "")).trim() + " → " + ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim());
-                      setTimeout(() => setStatusText(""), 3000);
+                      setTimeout(() => setStatusText(""), 5000);
                       setSelectedPlayerId(null);
                       setShowSubstitutionModal(false);
                     }} style={{ 
