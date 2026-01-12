@@ -1184,7 +1184,8 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
             );
           })()}
           
-          {teamPlayers.length > 0 ? teamPlayers
+          {teamPlayers.length > 0 ? [...teamPlayers]
+            .sort((a, b) => { const numA = parseInt(a.jersey_number) || 9999; const numB = parseInt(b.jersey_number) || 9999; return numA - numB; })
             .filter(player => player.user_id !== team?.coach_id) // Убираем тренера - он уже показан выше
             .map(player => (
             <Card 
