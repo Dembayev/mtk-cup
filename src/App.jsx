@@ -2087,8 +2087,8 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                             {serveTotal > 0 && <span style={{ fontSize: "13px", color: serveEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{serveEff > 0 ? "+" : ""}{serveEff}% эфф.</span>}
                           </div>
                           <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
-                            <span>Всего: {serveTotal}</span>
                             <span style={{ color: "#16a34a" }}>Эйсы: {totalStats.aces}</span>
+                            <span>Подача: {serveTotal}</span>
                             <span style={{ color: "#dc2626" }}>Ош: {totalStats.serve_errors}</span>
                           </div>
                           {serveTotal > 0 && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{acePercent}% эйсов</div>}
@@ -2115,8 +2115,8 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                             {attackTotal > 0 && <span style={{ fontSize: "13px", color: attackEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{attackEff > 0 ? "+" : ""}{attackEff}% эфф.</span>}
                           </div>
                           <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
-                            <span>Всего: {attackTotal}</span>
                             <span style={{ color: "#16a34a" }}>Очки: {totalStats.attack_points}</span>
+                            <span>Атака: {attackTotal}</span>
                             <span style={{ color: "#dc2626" }}>Ош: {totalStats.attack_errors}</span>
                           </div>
                           {attackTotal > 0 && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{attackPercent}% реализация</div>}
