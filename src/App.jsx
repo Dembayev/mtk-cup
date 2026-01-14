@@ -2088,7 +2088,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                           </div>
                           <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
                             <span style={{ color: "#16a34a" }}>Эйсы: {totalStats.aces}</span>
-                            <span>Подача: {serveTotal}</span>
+                            <span style={{ color: "#ca8a04" }}>Подача: {serveTotal}</span>
                             <span style={{ color: "#dc2626" }}>Ош: {totalStats.serve_errors}</span>
                           </div>
                           {serveTotal > 0 && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{acePercent}% эйсов</div>}
@@ -2116,7 +2116,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                           </div>
                           <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
                             <span style={{ color: "#16a34a" }}>Очки: {totalStats.attack_points}</span>
-                            <span>Атака: {attackTotal}</span>
+                            <span style={{ color: "#ca8a04" }}>Атака: {attackTotal}</span>
                             <span style={{ color: "#dc2626" }}>Ош: {totalStats.attack_errors}</span>
                           </div>
                           {attackTotal > 0 && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{attackPercent}% реализация</div>}
