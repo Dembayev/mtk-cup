@@ -5046,43 +5046,35 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [currentSet, setCurrentSet] = useState(1);
   const [setScores, setSetScores] = useState([]);
   // Раздельное хранение счёта для каждой команды
-  const [teamProgress, setTeamProgress] = useState(() => {
-    // Загружаем из localStorage при инициализации
-    if (match?.id) {
-      try {
-        const saved = localStorage.getItem(`matchProgress_${match.id}`);
-        return saved ? JSON.parse(saved) : {};
-      } catch (e) { return {}; }
-    }
-    return {};
-  });
+  const [teamProgress, setTeamProgress] = useState({});
   
-  // Сохраняем teamProgress в localStorage при изменении
-  useEffect(() => {
-    if (match?.id && Object.keys(teamProgress).length > 0) {
-      localStorage.setItem(`matchProgress_${match.id}`, JSON.stringify(teamProgress));
-    }
-  }, [teamProgress, match?.id]);
-  
-  // Загружаем состояние при смене матча
+  // Загружаем из localStorage при смене матча
   useEffect(() => {
     if (!match?.id) return;
     try {
       const saved = localStorage.getItem(`matchProgress_${match.id}`);
       if (saved) {
-        setTeamProgress(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setTeamProgress(parsed);
+        console.log("📂 Загружен прогресс из localStorage:", parsed);
       } else {
         setTeamProgress({});
       }
     } catch (e) {
       setTeamProgress({});
     }
-    setLiveScore({ team1: 0, team2: 0 });
-    setCurrentSet(1);
-    setSetScores([]);
-    setActionHistory([]);
+    // НЕ сбрасываем liveScore/currentSet здесь - они загрузятся при выборе команды
     setSelectedTeamId(null);
+    setTeamLocked(false);
   }, [match?.id]);
+  
+  // Сохраняем teamProgress в localStorage при изменении
+  useEffect(() => {
+    if (match?.id && Object.keys(teamProgress).length > 0) {
+      localStorage.setItem(`matchProgress_${match.id}`, JSON.stringify(teamProgress));
+      console.log("💾 Сохранён прогресс в localStorage:", teamProgress);
+    }
+  }, [teamProgress, match?.id]);
   const [localStats, setLocalStats] = useState({});
   const [statusText, setStatusText] = useState("");
   const [saving, setSaving] = useState(false);
