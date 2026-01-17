@@ -1962,7 +1962,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
           {/* Большое фото игрока */}
           {player?.users?.avatar_url && (
             <div style={{ marginBottom: "20px", borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-              <img src={player.users.avatar_url} alt="" style={{ width: "100%", height: "auto", maxHeight: "400px", objectFit: "cover", display: "block" }} />
+              <img src={player.users.avatar_url} alt="" style={{ width: "100%", height: "auto", objectFit: "contain", display: "block", background: "#f5f5f5" }} />
             </div>
           )}
           <Card style={{ textAlign: "center", marginBottom: "20px" }}>
@@ -4331,15 +4331,22 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                         if (!file || !editingPlayer) return;
                                         try {
                                           const fileName = `player_${editingPlayer.id}_${Date.now()}.${file.name.split('.').pop()}`;
-                                          const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
+                                          console.log('Uploading:', fileName);
+                                          const { data: uploadData, error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
+                                          console.log('Upload result:', uploadData, uploadError);
                                           if (uploadError) throw uploadError;
-                                          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
-                                          await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', editingPlayer.user_id);
+                                          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+                                          const publicUrl = urlData?.publicUrl;
+                                          console.log('Public URL:', publicUrl);
+                                          if (!publicUrl) throw new Error('Не удалось получить URL');
+                                          const { error: updateError } = await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', editingPlayer.user_id);
+                                          console.log('Update result:', updateError);
+                                          if (updateError) throw updateError;
                                           alert('Фото загружено!');
                                           loadData();
                                         } catch (err) {
                                           console.error('Upload error:', err);
-                                          alert('Ошибка загрузки: ' + err.message);
+                                          alert('Ошибка загрузки: ' + (err.message || JSON.stringify(err)));
                                         }
                                       }} style={{ fontSize: "12px" }} />
                                       {editingPlayer?.users?.avatar_url && <img src={editingPlayer.users.avatar_url} alt="" style={{ width: "40px", height: "40px", borderRadius: "50%", marginTop: "4px", objectFit: "cover" }} />}
