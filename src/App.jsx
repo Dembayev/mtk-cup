@@ -814,13 +814,11 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
   const nextTourMatches = nextTour 
     ? (matches || []).filter(m => m.tour_id === nextTour.id && m.status === "upcoming").slice(0, 2)
     : [];
-  // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
+  // Сортируем игроков по набранным очкам (атаки + эйсы + блоки)
   const playersWithStats = (players || []).map(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
     const totalPoints = stats.reduce((sum, s) => {
-      const points = (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0);
-      const errors = (s.attack_errors || 0) + (s.serve_errors || 0) + (s.block_errors || 0) + (s.receive_errors || 0);
-      return sum + points - errors;
+      return sum + (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0);
     }, 0);
     return { ...player, totalPoints };
   }).sort((a, b) => b.totalPoints - a.totalPoints);
