@@ -5429,7 +5429,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       
       {/* Основная область */}
       {selectedTeamId ? (
-        <div style={{ display: "flex", padding: "8px", gap: "8px", alignItems: "stretch", minHeight: "calc(100vh - 280px)" }}>
+        <div style={{ display: "flex", padding: "8px", gap: "8px", alignItems: "stretch", minHeight: "calc(100vh - 320px)" }}>
           {/* Игроки */}
           <div style={{ width: "80px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
             <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "4px 2px", marginBottom: "4px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "11px", color: "#1d4ed8" }}>
@@ -5446,7 +5446,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 }}>
                 <div style={{ fontWeight: 700, fontSize: "16px", color: idx >= 6 ? "#0284c7" : colors.gold }}>{p.jersey_number || "?"}</div>
                 <div style={{ fontSize: "9px", color: colors.goldDark, overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2", wordWrap: "break-word" }}>
-                  {(p.users?.last_name || p.users?.first_name || p.users?.username || "").slice(0, 10)}
+                  {(p.users?.first_name ? p.users.first_name.charAt(0) + "." : "") + (p.users?.last_name || p.users?.username || "").slice(0, 8)}
                 </div>
               </button>
             ))}
