@@ -5072,31 +5072,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const benchPlayers = allCurrentPlayers.filter(p => !onCourtIds.includes(p.id));
   
   // Синхронизация счёта между сервисменами (polling каждые 2 сек)
-  useEffect(() => {
-    if (!match?.id) return;
-    
-    const loadScore = async () => {
-      const { data } = await supabase.from("matches").select("live_score_team1, live_score_team2, current_set, set_scores").eq("id", match.id).single();
-      if (data) {
-        setLiveScore(prev => {
-          // Обновляем только если изменилось (чтобы не сбрасывать локальные изменения)
-          if (prev.team1 !== (data.live_score_team1 || 0) || prev.team2 !== (data.live_score_team2 || 0)) {
-            return { team1: data.live_score_team1 || 0, team2: data.live_score_team2 || 0 };
-          }
-          return prev;
-        });
-        if (data.current_set) setCurrentSet(data.current_set);
-        if (data.set_scores) {
-          try { setSetScores(JSON.parse(data.set_scores)); } catch(e) {}
-        }
-      }
-    };
-    
-    loadScore(); // Загружаем сразу
-    const interval = setInterval(loadScore, 2000); // Потом каждые 2 сек
-    
-    return () => clearInterval(interval);
-  }, [match?.id]);
+  // Синхронизация отключена - используем раздельный счёт для каждой команды (teamProgress)
+  // Счёт загружается/сохраняется при переключении команд
 
   // Инициализация локальной статистики
   useEffect(() => {
