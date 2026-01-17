@@ -5429,7 +5429,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       
       {/* Основная область */}
       {selectedTeamId ? (
-        <div style={{ display: "flex", padding: "8px", gap: "8px", alignItems: "stretch", minHeight: "calc(100vh - 220px)" }}>
+        <div style={{ display: "flex", padding: "8px", gap: "8px", alignItems: "stretch", minHeight: "calc(100vh - 280px)" }}>
           {/* Игроки */}
           <div style={{ width: "80px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
             <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "4px 2px", marginBottom: "4px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "11px", color: "#1d4ed8" }}>
