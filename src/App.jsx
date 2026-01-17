@@ -1997,21 +1997,11 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
             )}
           </Card>
 
-          {(player?.users?.height || age) && (
+          {age && (
             <Card style={{ marginBottom: "20px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: player?.users?.height && age ? "1fr 1fr" : "1fr", gap: "16px", textAlign: "center" }}>
-                {player?.users?.height && (
-                  <div>
-                    <div style={{ fontSize: "28px", fontWeight: 700, color: colors.gold }}>{player.users.height}</div>
-                    <div style={{ fontSize: "12px", color: colors.goldDark }}>Рост (см)</div>
-                  </div>
-                )}
-                {age && (
-                  <div>
-                    <div style={{ fontSize: "28px", fontWeight: 700, color: colors.gold }}>{age}</div>
-                    <div style={{ fontSize: "12px", color: colors.goldDark }}>Возраст</div>
-                  </div>
-                )}
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "28px", fontWeight: 700, color: colors.gold }}>{age}</div>
+                <div style={{ fontSize: "12px", color: colors.goldDark }}>Возраст</div>
               </div>
             </Card>
           )}
@@ -2031,9 +2021,9 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                 )}
               </div>
               {(player?.type !== 'coach' || player?.positions?.length > 0) && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: colors.goldDark }}>Амплуа</span>
-                  <span style={{ fontWeight: 600 }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <span style={{ color: colors.goldDark, flexShrink: 0 }}>Амплуа</span>
+                  <span style={{ fontWeight: 600, textAlign: "right" }}>{player?.positions?.map(p => positionLabels[p] || p).join(", ") || "Не указано"}</span>
                 </div>
               )}
               {player?.jersey_number && (
