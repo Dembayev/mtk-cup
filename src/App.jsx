@@ -5047,6 +5047,16 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [setScores, setSetScores] = useState([]);
   // Раздельное хранение счёта для каждой команды
   const [teamProgress, setTeamProgress] = useState({});  // { teamId: { liveScore, currentSet, setScores, actionHistory } }
+  
+  // Сбрасываем состояние при смене матча
+  useEffect(() => {
+    setTeamProgress({});
+    setLiveScore({ team1: 0, team2: 0 });
+    setCurrentSet(1);
+    setSetScores([]);
+    setActionHistory([]);
+    setSelectedTeamId(null);
+  }, [match?.id]);
   const [localStats, setLocalStats] = useState({});
   const [statusText, setStatusText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -5289,22 +5299,25 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     const newSetScores = [...setScores, { ...liveScore }];
     const newSet = currentSet + 1;
+    const newLiveScore = { team1: 0, team2: 0 };
     
     setSetScores(newSetScores);
-    setLiveScore({ team1: 0, team2: 0 });
+    setLiveScore(newLiveScore);
     setCurrentSet(newSet);
     setActionHistory([]);
     
-    // Синхронизируем с БД
-    await supabase.from("matches").update({
-      live_score_team1: 0,
-      live_score_team2: 0,
-      current_set: newSet,
-      set_scores: JSON.stringify(newSetScores)
-    }).eq("id", match.id);
+    // Сохраняем прогресс текущей команды
+    if (selectedTeamId) {
+      setTeamProgress(prev => ({ ...prev, [selectedTeamId]: { 
+        liveScore: newLiveScore, 
+        currentSet: newSet, 
+        setScores: newSetScores, 
+        actionHistory: [] 
+      }}));
+    }
     
     setSaving(false);
-    setStatusText("✅ Партия " + currentSet + " завершена!");
+    setStatusText("✅ Партия " + (currentSet) + " завершена!");
     setTimeout(() => setStatusText(""), 5000);
   };
   
