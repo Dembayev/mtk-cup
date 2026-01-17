@@ -814,11 +814,15 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
   const nextTourMatches = nextTour 
     ? (matches || []).filter(m => m.tour_id === nextTour.id && m.status === "upcoming").slice(0, 2)
     : [];
-  // Сортируем игроков по набранным очкам (атаки + эйсы + блоки)
+  // Сортируем игроков по эффективности (очки - ошибки по всем элементам)
   const playersWithStats = (players || []).map(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
     const totalPoints = stats.reduce((sum, s) => {
-      return sum + (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0);
+      const serve = (s.aces || 0) - (s.serve_errors || 0);
+      const receive = (s.receive_excellent || 0) - (s.receive_errors || 0);
+      const attack = (s.attack_points || 0) - (s.attack_errors || 0);
+      const block = (s.block_points || 0) - (s.block_errors || 0);
+      return sum + serve + receive + attack + block;
     }, 0);
     return { ...player, totalPoints };
   }).sort((a, b) => b.totalPoints - a.totalPoints);
@@ -959,7 +963,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
                     {player.totalPoints > 0 && (
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>{player.totalPoints}</div>
-                        <div style={{ fontSize: "10px", color: colors.goldDark }}>очков</div>
+                        <div style={{ fontSize: "10px", color: colors.goldDark }}>эфф.</div>
                       </div>
                     )}
                   </div>
@@ -1735,7 +1739,11 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   (players || []).forEach(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
     const totalPoints = stats.reduce((sum, s) => {
-      return sum + (s.attack_points || 0) + (s.aces || 0) + (s.block_points || 0);
+      const serve = (s.aces || 0) - (s.serve_errors || 0);
+      const receive = (s.receive_excellent || 0) - (s.receive_errors || 0);
+      const attack = (s.attack_points || 0) - (s.attack_errors || 0);
+      const block = (s.block_points || 0) - (s.block_errors || 0);
+      return sum + serve + receive + attack + block;
     }, 0);
     allPeople.push({ 
       ...player, 
@@ -1881,7 +1889,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
                   {player.totalPoints > 0 && (
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>{player.totalPoints}</div>
-                      <div style={{ fontSize: "10px", color: colors.goldDark }}>очков</div>
+                      <div style={{ fontSize: "10px", color: colors.goldDark }}>эфф.</div>
                     </div>
                   )}
                   {player.isCoach && <Badge variant="gold">Тренер</Badge>}
