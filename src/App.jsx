@@ -5187,7 +5187,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       
       setStatusText("✓ Ошибка соперника — +1 очко");
       setSelectedAction(null);
-      setTimeout(() => setStatusText(""), 1500);
+      
       
       // Проверка автозавершения
       const winScore = currentSet >= 5 ? 15 : 25;
@@ -5267,7 +5267,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     setSelectedPlayerId(null);
     setSelectedAction(null);
-    setStatusText("");
+    // statusText сохраняется
   };
   
   const handleUndo = () => {
@@ -5279,14 +5279,14 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       setLiveScore(last.prevScores);
       setActionHistory(prev => prev.slice(0, -1));
       setStatusText("↩️ Отменено: Ошибка соперника");
-      setTimeout(() => setStatusText(""), 5000);
+      
     } else {
       // Обычное действие игрока
       setLocalStats(prev => ({ ...prev, [last.playerId]: last.prevStat }));
       setLiveScore(last.prevScores);
       setActionHistory(prev => prev.slice(0, -1));
       setStatusText("↩️ Отменено: " + last.playerName + " — " + (last.action?.label || ""));
-      setTimeout(() => setStatusText(""), 5000);
+      
     }
     
     // Синхронизируем отмену с БД
@@ -5332,7 +5332,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     setSaving(false);
     setStatusText("✅ Партия " + (currentSet) + " завершена!");
-    setTimeout(() => setStatusText(""), 5000);
+    
   };
   
   const handleEndMatch = async () => {
@@ -5487,12 +5487,10 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
         )}
       </Container>
       
-      {/* Статус */}
-      {statusText && (
-        <div style={{ background: colors.goldLight, padding: "4px 12px", textAlign: "center", fontWeight: 600, fontSize: "12px", color: colors.goldDark }}>
-          {statusText}
-        </div>
-      )}
+      {/* Статус - всегда отображается */}
+      <div style={{ background: statusText ? colors.goldLight : "#f3f4f6", padding: "6px 12px", textAlign: "center", fontWeight: 600, fontSize: "12px", color: statusText ? colors.goldDark : "#9ca3af", minHeight: "28px" }}>
+        {statusText || "Выберите игрока и действие"}
+      </div>
       
       {/* Основная область */}
       {selectedTeamId ? (
@@ -5716,7 +5714,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                         [teamKey]: prev[teamKey].map(id => id === selectedPlayerId ? p.id : id)
                       }));
                       setStatusText("Замена: " + ((currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.first_name || "") + " " + (currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.last_name || "")).trim() + " → " + ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim());
-                      setTimeout(() => setStatusText(""), 5000);
+                      
                       setSelectedPlayerId(null);
                       setShowSubstitutionModal(false);
                     }} style={{ 
