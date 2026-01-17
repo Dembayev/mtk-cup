@@ -2034,6 +2034,18 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                   <span style={{ fontWeight: 700, color: colors.gold }}>#{player.jersey_number}</span>
                 </div>
               )}
+              {player?.height && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: colors.goldDark }}>Рост</span>
+                  <span style={{ fontWeight: 600 }}>{player.height} см</span>
+                </div>
+              )}
+              {player?.jump_height && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: colors.goldDark }}>Высота прыжка</span>
+                  <span style={{ fontWeight: 600 }}>{player.jump_height} см{player.measurement_date ? ` (${new Date(player.measurement_date).toLocaleDateString("ru-RU")})` : ""}</span>
+                </div>
+              )}
               {player?.birth_date && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: colors.goldDark }}>Дата рождения</span>
@@ -2123,17 +2135,23 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                         </div>
                         
                         {/* Блок */}
-                        <div style={{ padding: "10px 0" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                            <span style={{ fontWeight: 600 }}>Блок</span>
-                            <span style={{ fontSize: "13px", color: colors.gold, fontWeight: 600 }}>{totalStats.block_points} очков</span>
-                          </div>
-                          <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
-                            <span style={{ color: "#16a34a" }}>Очки: {totalStats.block_points}</span>
-                            <span style={{ color: "#ca8a04" }}>Касания: {totalStats.block_touches}</span>
-                            <span style={{ color: "#dc2626" }}>Ош: {totalStats.block_errors}</span>
-                          </div>
-                        </div>
+                        {(() => {
+                          const blockTotal = totalStats.block_points + totalStats.block_touches + totalStats.block_errors;
+                          const blockEff = blockTotal > 0 ? Math.round(((totalStats.block_points - totalStats.block_errors) / blockTotal) * 100) : 0;
+                          return (
+                            <div style={{ padding: "10px 0" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                                <span style={{ fontWeight: 600 }}>Блок</span>
+                                {blockTotal > 0 && <span style={{ fontSize: "13px", color: blockEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{blockEff > 0 ? "+" : ""}{blockEff}% эфф.</span>}
+                              </div>
+                              <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
+                                <span style={{ color: "#16a34a" }}>Очки: {totalStats.block_points}</span>
+                                <span style={{ color: "#ca8a04" }}>Касания: {totalStats.block_touches}</span>
+                                <span style={{ color: "#dc2626" }}>Ош: {totalStats.block_errors}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </>
                     );
                   })()}
@@ -2145,6 +2163,47 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
               </div>
             )}
           </Card>
+
+          {/* Статистика по матчам */}
+          {stats.length > 0 && (
+            <Card style={{ marginBottom: "20px" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>ПО МАТЧАМ</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {stats.map(stat => {
+                  const match = matches?.find(m => m.id === stat.match_id);
+                  if (!match) return null;
+                  const team1 = teams.find(t => t.id === match.team1_id);
+                  const team2 = teams.find(t => t.id === match.team2_id);
+                  const isWin = match.status === "finished" && (
+                    (match.team1_id === player?.team_id && match.sets_team1 > match.sets_team2) ||
+                    (match.team2_id === player?.team_id && match.sets_team2 > match.sets_team1)
+                  );
+                  const isLoss = match.status === "finished" && !isWin;
+                  
+                  return (
+                    <div key={stat.id} style={{ padding: "10px", background: "#fafafa", borderRadius: "8px", border: "1px solid " + colors.grayBorder }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "13px", fontWeight: 600 }}>
+                          {team1?.name || "?"} vs {team2?.name || "?"}
+                        </span>
+                        {match.status === "finished" && (
+                          <span style={{ fontSize: "12px", fontWeight: 600, color: isWin ? "#16a34a" : "#dc2626" }}>
+                            {match.sets_team1}:{match.sets_team2} {isWin ? "W" : "L"}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", fontSize: "11px", color: colors.goldDark }}>
+                        {(stat.aces > 0 || stat.serve_errors > 0) && <span>П: {stat.aces || 0}э/{stat.serves_total || 0}/{stat.serve_errors || 0}о</span>}
+                        {(stat.receive_excellent > 0 || stat.receive_good > 0 || stat.receive_poor > 0 || stat.receive_errors > 0) && <span>Пр: {stat.receive_excellent || 0}/{stat.receive_good || 0}/{stat.receive_poor || 0}/{stat.receive_errors || 0}</span>}
+                        {(stat.attack_points > 0 || stat.attack_errors > 0) && <span>А: {stat.attack_points || 0}о/{stat.attacks_total || 0}/{stat.attack_errors || 0}о</span>}
+                        {(stat.block_points > 0 || stat.block_touches > 0 || stat.block_errors > 0) && <span>Б: {stat.block_points || 0}/{stat.block_touches || 0}/{stat.block_errors || 0}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           {player?.bio && (
             <Card style={{ marginBottom: "20px" }}>
@@ -2937,16 +2996,28 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [playerJersey, setPlayerJersey] = useState("");
   const [playerPositions, setPlayerPositions] = useState([]);
+  const [playerHeight, setPlayerHeight] = useState("");
+  const [playerJumpHeight, setPlayerJumpHeight] = useState("");
+  const [playerMeasurementDate, setPlayerMeasurementDate] = useState("");
 
   const startEditPlayer = (player) => {
     setEditingPlayer(player);
     setPlayerJersey(player.jersey_number || "");
     setPlayerPositions(player.positions || []);
+    setPlayerHeight(player.height || "");
+    setPlayerJumpHeight(player.jump_height || "");
+    setPlayerMeasurementDate(player.measurement_date || "");
   };
 
   const savePlayer = async () => {
     if (!editingPlayer || !onUpdatePlayer) return;
-    await onUpdatePlayer(editingPlayer.id, playerJersey, playerPositions);
+    await onUpdatePlayer(editingPlayer.id, {
+      jersey_number: playerJersey || null,
+      positions: playerPositions || [],
+      height: playerHeight ? parseInt(playerHeight) : null,
+      jump_height: playerJumpHeight ? parseInt(playerJumpHeight) : null,
+      measurement_date: playerMeasurementDate || null
+    });
     setEditingPlayer(null);
   };
 
@@ -4244,6 +4315,40 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                           <button key={pos} onClick={() => togglePosition(pos)} style={{ padding: "4px 8px", borderRadius: "12px", border: "none", fontSize: "11px", cursor: "pointer", background: playerPositions.includes(pos) ? colors.gold : colors.grayBorder, color: playerPositions.includes(pos) ? "white" : colors.text }}>{positionLabels[pos]}</button>
                                         ))}
                                       </div>
+                                    </div>
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Фото игрока:</label>
+                                      <input type="file" accept="image/*" onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file || !editingPlayer) return;
+                                        try {
+                                          const fileName = `player_${editingPlayer.id}_${Date.now()}.${file.name.split('.').pop()}`;
+                                          const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
+                                          if (uploadError) throw uploadError;
+                                          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+                                          await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', editingPlayer.user_id);
+                                          alert('Фото загружено!');
+                                          loadData();
+                                        } catch (err) {
+                                          console.error('Upload error:', err);
+                                          alert('Ошибка загрузки: ' + err.message);
+                                        }
+                                      }} style={{ fontSize: "12px" }} />
+                                      {editingPlayer?.users?.avatar_url && <img src={editingPlayer.users.avatar_url} alt="" style={{ width: "40px", height: "40px", borderRadius: "50%", marginTop: "4px", objectFit: "cover" }} />}
+                                    </div>
+                                    <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                                      <div style={{ flex: 1 }}>
+                                        <label style={{ fontSize: "12px", color: colors.goldDark }}>Рост (см):</label>
+                                        <input type="number" min="100" max="250" value={playerHeight} onChange={e => setPlayerHeight(e.target.value)} style={{ width: "100%", marginTop: "4px", padding: "4px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}` }} />
+                                      </div>
+                                      <div style={{ flex: 1 }}>
+                                        <label style={{ fontSize: "12px", color: colors.goldDark }}>Прыжок (см):</label>
+                                        <input type="number" min="0" max="150" value={playerJumpHeight} onChange={e => setPlayerJumpHeight(e.target.value)} style={{ width: "100%", marginTop: "4px", padding: "4px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}` }} />
+                                      </div>
+                                    </div>
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark }}>Дата замера:</label>
+                                      <input type="date" value={playerMeasurementDate} onChange={e => setPlayerMeasurementDate(e.target.value)} style={{ marginLeft: "8px", padding: "4px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}` }} />
                                     </div>
                                     <div style={{ display: "flex", gap: "6px" }}>
                                       <button onClick={savePlayer} style={{ flex: 1, padding: "6px", background: colors.gold, color: "white", border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Сохранить</button>
@@ -7100,13 +7205,15 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
   };
 
   // Update player (jersey + positions) for admin
-  const handleUpdatePlayer = async (playerId, jerseyNumber, positions) => {
+  const handleUpdatePlayer = async (playerId, jerseyNumberOrData, positions) => {
     try {
       setActionLoading(true);
-      await supabase.from('players').update({ 
-        jersey_number: jerseyNumber || null,
+      // Если передан объект - используем его напрямую
+      const updateData = typeof jerseyNumberOrData === 'object' ? jerseyNumberOrData : { 
+        jersey_number: jerseyNumberOrData || null,
         positions: positions || []
-      }).eq('id', playerId);
+      };
+      await supabase.from('players').update(updateData).eq('id', playerId);
       await loadData();
     } catch (error) {
       console.error('Error updating player:', error);
