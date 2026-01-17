@@ -2084,19 +2084,29 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "14px" }}>
                   {(() => {
-                    // Подача: эффективность = (Эйсы - Ошибки) / Всего × 100
+                    // ПОДАЧА: 3 формулы
                     const serveTotal = totalStats.serves_total || (totalStats.aces + totalStats.serve_errors);
                     const serveEff = serveTotal > 0 ? Math.round(((totalStats.aces - totalStats.serve_errors) / serveTotal) * 100) : 0;
-                    const acePercent = serveTotal > 0 ? Math.round((totalStats.aces / serveTotal) * 100) : 0;
+                    const serveStab = serveTotal > 0 ? Math.round(((totalStats.aces + (serveTotal - totalStats.aces - totalStats.serve_errors)) / serveTotal) * 100) : 0;
+                    const serveReal = serveTotal > 0 ? Math.round((totalStats.aces / serveTotal) * 100) : 0;
                     
-                    // Приём: эффективность = (Отл×1 + Норм×0.5 - Ошибка×1) / Всего × 100
+                    // ПРИЁМ: 3 формулы
                     const receiveTotal = totalStats.receive_excellent + totalStats.receive_good + totalStats.receive_poor + totalStats.receive_errors;
-                    const receiveEff = receiveTotal > 0 ? Math.round(((totalStats.receive_excellent * 1 + totalStats.receive_good * 0.5 - totalStats.receive_errors * 1) / receiveTotal) * 100) : 0;
+                    const receiveEff = receiveTotal > 0 ? Math.round(((totalStats.receive_excellent + totalStats.receive_good * 0.5 - totalStats.receive_errors) / receiveTotal) * 100) : 0;
+                    const receiveStab = receiveTotal > 0 ? Math.round(((totalStats.receive_excellent + totalStats.receive_good) / receiveTotal) * 100) : 0;
+                    const receiveClean = receiveTotal > 0 ? Math.round((totalStats.receive_excellent / receiveTotal) * 100) : 0;
                     
-                    // Атака: эффективность = (Очки - Ошибки) / Всего × 100
+                    // АТАКА: 3 формулы
                     const attackTotal = totalStats.attacks_total || (totalStats.attack_points + totalStats.attack_errors);
                     const attackEff = attackTotal > 0 ? Math.round(((totalStats.attack_points - totalStats.attack_errors) / attackTotal) * 100) : 0;
-                    const attackPercent = attackTotal > 0 ? Math.round((totalStats.attack_points / attackTotal) * 100) : 0;
+                    const attackStab = attackTotal > 0 ? Math.round(((totalStats.attack_points + (attackTotal - totalStats.attack_points - totalStats.attack_errors)) / attackTotal) * 100) : 0;
+                    const attackReal = attackTotal > 0 ? Math.round((totalStats.attack_points / attackTotal) * 100) : 0;
+                    
+                    // БЛОК: 3 формулы
+                    const blockTotal = totalStats.block_points + totalStats.block_touches + totalStats.block_errors;
+                    const blockEff = blockTotal > 0 ? Math.round(((totalStats.block_points - totalStats.block_errors) / blockTotal) * 100) : 0;
+                    const blockStab = blockTotal > 0 ? Math.round(((totalStats.block_points + totalStats.block_touches) / blockTotal) * 100) : 0;
+                    const blockReal = blockTotal > 0 ? Math.round((totalStats.block_points / blockTotal) * 100) : 0;
                     
                     return (
                       <>
@@ -2111,7 +2121,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                             <span style={{ color: "#ca8a04" }}>Подача: {serveTotal}</span>
                             <span style={{ color: "#dc2626" }}>Ош: {totalStats.serve_errors}</span>
                           </div>
-                          {serveTotal > 0 && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{acePercent}% эйсов</div>}
+                          {serveTotal > 0 && <div style={{ fontSize: "11px", color: colors.goldDark, marginTop: "4px" }}>Стаб: {serveStab}% • Реализ: {serveReal}%</div>}
                         </div>
                         
                         {/* Приём */}
@@ -2126,6 +2136,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                             <span style={{ color: "#f97316" }}>Плохо: {totalStats.receive_poor}</span>
                             <span style={{ color: "#dc2626" }}>Ош: {totalStats.receive_errors}</span>
                           </div>
+                          {receiveTotal > 0 && <div style={{ fontSize: "11px", color: colors.goldDark, marginTop: "4px" }}>Стаб: {receiveStab}% • Чистота: {receiveClean}%</div>}
                         </div>
                         
                         {/* Атака */}
@@ -2139,27 +2150,22 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                             <span style={{ color: "#ca8a04" }}>Атака: {attackTotal}</span>
                             <span style={{ color: "#dc2626" }}>Ош: {totalStats.attack_errors}</span>
                           </div>
-                          {attackTotal > 0 && <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{attackPercent}% реализация</div>}
+                          {attackTotal > 0 && <div style={{ fontSize: "11px", color: colors.goldDark, marginTop: "4px" }}>Стаб: {attackStab}% • Реализ: {attackReal}%</div>}
                         </div>
                         
                         {/* Блок */}
-                        {(() => {
-                          const blockTotal = totalStats.block_points + totalStats.block_touches + totalStats.block_errors;
-                          const blockEff = blockTotal > 0 ? Math.round(((totalStats.block_points - totalStats.block_errors) / blockTotal) * 100) : 0;
-                          return (
-                            <div style={{ padding: "10px 0" }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                                <span style={{ fontWeight: 600 }}>Блок</span>
-                                {blockTotal > 0 && <span style={{ fontSize: "13px", color: blockEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{blockEff > 0 ? "+" : ""}{blockEff}% эфф.</span>}
-                              </div>
-                              <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
-                                <span style={{ color: "#16a34a" }}>Очки: {totalStats.block_points}</span>
-                                <span style={{ color: "#ca8a04" }}>Касания: {totalStats.block_touches}</span>
-                                <span style={{ color: "#dc2626" }}>Ош: {totalStats.block_errors}</span>
-                              </div>
-                            </div>
-                          );
-                        })()}
+                        <div style={{ padding: "10px 0" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                            <span style={{ fontWeight: 600 }}>Блок</span>
+                            {blockTotal > 0 && <span style={{ fontSize: "13px", color: blockEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{blockEff > 0 ? "+" : ""}{blockEff}% эфф.</span>}
+                          </div>
+                          <div style={{ display: "flex", gap: "12px", fontSize: "13px" }}>
+                            <span style={{ color: "#16a34a" }}>Очки: {totalStats.block_points}</span>
+                            <span style={{ color: "#ca8a04" }}>Касания: {totalStats.block_touches}</span>
+                            <span style={{ color: "#dc2626" }}>Ош: {totalStats.block_errors}</span>
+                          </div>
+                          {blockTotal > 0 && <div style={{ fontSize: "11px", color: colors.goldDark, marginTop: "4px" }}>Стаб: {blockStab}% • Реализ: {blockReal}%</div>}
+                        </div>
                       </>
                     );
                   })()}
@@ -5500,7 +5506,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       
       {/* Основная область */}
       {selectedTeamId ? (
-        <div style={{ display: "flex", padding: "8px", gap: "8px", alignItems: "stretch", minHeight: "calc(100vh - 320px)" }}>
+        <div style={{ display: "flex", padding: "8px", gap: "8px", alignItems: "stretch", minHeight: "calc(100vh - 360px)" }}>
           {/* Игроки */}
           <div style={{ width: "80px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
             <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "4px 2px", marginBottom: "4px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "11px", color: "#1d4ed8" }}>
@@ -5517,7 +5523,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 }}>
                 <div style={{ fontWeight: 700, fontSize: "16px", color: idx >= 6 ? "#0284c7" : colors.gold }}>{p.jersey_number || "?"}</div>
                 <div style={{ fontSize: "9px", color: colors.goldDark, overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2", wordWrap: "break-word" }}>
-                  {(p.users?.first_name ? p.users.first_name.charAt(0) + "." : "") + (p.users?.last_name || p.users?.username || "").slice(0, 8)}
+                  <>{p.users?.first_name || ""}<br/>{(p.users?.last_name || p.users?.username || "").slice(0, 8)}</>
                 </div>
               </button>
             ))}
