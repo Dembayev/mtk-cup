@@ -2803,6 +2803,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     set4_team1: "", set4_team2: "", set5_team1: "", set5_team2: ""
   });
   const [editingUser, setEditingUser] = useState(null);
+  const [userHeight, setUserHeight] = useState("");
+  const [userJumpHeight, setUserJumpHeight] = useState("");
+  const [userMeasurementDate, setUserMeasurementDate] = useState("");
   const [userRole, setUserRole] = useState("fan");
   const [gameRole, setGameRole] = useState("fan");
   const [userFirstName, setUserFirstName] = useState("");
@@ -3104,6 +3107,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     setUserFirstName(u.first_name || "");
     setUserLastName(u.last_name || "");
     setIsServiceman(u.is_serviceman === true);
+    setUserHeight(u.height || "");
+    setUserJumpHeight(u.jump_height || "");
+    setUserMeasurementDate(u.measurement_date || "");
     // Определяем текущую игровую роль (с учетом role_requests)
     const isCoach = teams.some(t => t.coach_id === u.id);
     const hasCoachRequest = roleRequests.some(r => r.user_id === u.id && r.requested_role === "coach" && r.status === "approved");
@@ -3125,6 +3131,13 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     
     // Обновляем имя, фамилию и права администратора
     await onUpdateUser(editingUser.id, userRole, userFirstName, userLastName, isServiceman);
+    
+    // Обновляем рост/прыжок
+    await supabase.from('users').update({
+      height: userHeight ? parseInt(userHeight) : null,
+      jump_height: userJumpHeight ? parseInt(userJumpHeight) : null,
+      measurement_date: userMeasurementDate || null
+    }).eq('id', editingUser.id);
     
     // Смена игровой роли (отдельно)
     const currentIsCoach = teams.some(t => t.coach_id === editingUser.id);
@@ -3883,6 +3896,49 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                             { value: "coach", label: "Тренер" },
                           ]}
                         />
+                        
+                        {/* Рост, прыжок, дата замера */}
+                        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Рост (см)</label>
+                            <input type="number" min="100" max="250" value={userHeight} onChange={e => setUserHeight(e.target.value)} style={{ width: "100%", padding: "8px", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Прыжок (см)</label>
+                            <input type="number" min="0" max="150" value={userJumpHeight} onChange={e => setUserJumpHeight(e.target.value)} style={{ width: "100%", padding: "8px", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }} />
+                          </div>
+                        </div>
+                        <div style={{ marginTop: "8px" }}>
+                          <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Дата замера</label>
+                          <input type="date" value={userMeasurementDate} onChange={e => setUserMeasurementDate(e.target.value)} style={{ width: "100%", padding: "8px", borderRadius: "6px", border: `1px solid ${colors.grayBorder}` }} />
+                        </div>
+                        
+                        {/* Фото пользователя */}
+                        <div style={{ marginTop: "12px" }}>
+                          <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Фото</label>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            {editingUser?.avatar_url && <img src={editingUser.avatar_url} alt="" style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} />}
+                            <input type="file" accept="image/*" onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file || !editingUser) return;
+                              try {
+                                const fileName = `user_${editingUser.id}_${Date.now()}.${file.name.split('.').pop()}`;
+                                const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
+                                if (uploadError) throw uploadError;
+                                const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+                                const publicUrl = urlData?.publicUrl;
+                                if (!publicUrl) throw new Error('Не удалось получить URL');
+                                await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', editingUser.id);
+                                alert('Фото загружено!');
+                                loadData();
+                              } catch (err) {
+                                console.error('Upload error:', err);
+                                alert('Ошибка загрузки: ' + (err.message || JSON.stringify(err)));
+                              }
+                            }} style={{ fontSize: "12px" }} />
+                          </div>
+                        </div>
+                        
                         {false && (
                           <Button 
                             onClick={() => onMakePlayer(u.id)} 
@@ -4359,47 +4415,6 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                           <button key={pos} onClick={() => togglePosition(pos)} style={{ padding: "4px 8px", borderRadius: "12px", border: "none", fontSize: "11px", cursor: "pointer", background: playerPositions.includes(pos) ? colors.gold : colors.grayBorder, color: playerPositions.includes(pos) ? "white" : colors.text }}>{positionLabels[pos]}</button>
                                         ))}
                                       </div>
-                                    </div>
-                                    <div style={{ marginBottom: "8px" }}>
-                                      <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Фото игрока:</label>
-                                      <input type="file" accept="image/*" onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file || !editingPlayer) return;
-                                        try {
-                                          const fileName = `player_${editingPlayer.id}_${Date.now()}.${file.name.split('.').pop()}`;
-                                          console.log('Uploading:', fileName);
-                                          const { data: uploadData, error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
-                                          console.log('Upload result:', uploadData, uploadError);
-                                          if (uploadError) throw uploadError;
-                                          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-                                          const publicUrl = urlData?.publicUrl;
-                                          console.log('Public URL:', publicUrl);
-                                          if (!publicUrl) throw new Error('Не удалось получить URL');
-                                          const { error: updateError } = await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', editingPlayer.user_id);
-                                          console.log('Update result:', updateError);
-                                          if (updateError) throw updateError;
-                                          alert('Фото загружено!');
-                                          loadData();
-                                        } catch (err) {
-                                          console.error('Upload error:', err);
-                                          alert('Ошибка загрузки: ' + (err.message || JSON.stringify(err)));
-                                        }
-                                      }} style={{ fontSize: "12px" }} />
-                                      {editingPlayer?.users?.avatar_url && <img src={editingPlayer.users.avatar_url} alt="" style={{ width: "40px", height: "40px", borderRadius: "50%", marginTop: "4px", objectFit: "cover" }} />}
-                                    </div>
-                                    <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-                                      <div style={{ flex: 1 }}>
-                                        <label style={{ fontSize: "12px", color: colors.goldDark }}>Рост (см):</label>
-                                        <input type="number" min="100" max="250" value={playerHeight} onChange={e => setPlayerHeight(e.target.value)} style={{ width: "100%", marginTop: "4px", padding: "4px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}` }} />
-                                      </div>
-                                      <div style={{ flex: 1 }}>
-                                        <label style={{ fontSize: "12px", color: colors.goldDark }}>Прыжок (см):</label>
-                                        <input type="number" min="0" max="150" value={playerJumpHeight} onChange={e => setPlayerJumpHeight(e.target.value)} style={{ width: "100%", marginTop: "4px", padding: "4px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}` }} />
-                                      </div>
-                                    </div>
-                                    <div style={{ marginBottom: "8px" }}>
-                                      <label style={{ fontSize: "12px", color: colors.goldDark }}>Дата замера:</label>
-                                      <input type="date" value={playerMeasurementDate} onChange={e => setPlayerMeasurementDate(e.target.value)} style={{ marginLeft: "8px", padding: "4px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}` }} />
                                     </div>
                                     <div style={{ display: "flex", gap: "6px" }}>
                                       <button onClick={savePlayer} style={{ flex: 1, padding: "6px", background: colors.gold, color: "white", border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Сохранить</button>
