@@ -1906,7 +1906,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   );
 };
 
-const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerStats, matches, user, onToggleFavorite, userRoles }) => {
+const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerStats, matches, tours, user, onToggleFavorite, userRoles }) => {
   const team = teams.find(t => t.id === player?.team_id);
   const coachOfTeam = teams?.find(t => t.coach_id === player?.user_id); // Проверяем является ли игрок тренером
   
@@ -2197,17 +2197,25 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                   const blockTotal = (stat.block_points || 0) + (stat.block_touches || 0) + (stat.block_errors || 0);
                   const blockEff = blockTotal > 0 ? Math.round((((stat.block_points || 0) - (stat.block_errors || 0)) / blockTotal) * 100) : 0;
                   
+                  const tour = tours?.find(t => t.id === match.tour_id);
+                  const matchDate = match.scheduled_time ? new Date(match.scheduled_time).toLocaleDateString("ru-RU") : "";
+                  
                   return (
                     <div key={stat.id} style={{ padding: "12px", background: "#fafafa", borderRadius: "8px", border: "1px solid " + colors.grayBorder }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid " + colors.grayBorder }}>
-                        <span style={{ fontSize: "13px", fontWeight: 600 }}>
-                          {team1?.name || "?"} vs {team2?.name || "?"}
-                        </span>
-                        {match.status === "finished" && (
-                          <span style={{ fontSize: "13px", fontWeight: 700, color: isWin ? "#16a34a" : "#dc2626" }}>
-                            {match.sets_team1}:{match.sets_team2} {isWin ? "W" : "L"}
+                      <div style={{ marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid " + colors.grayBorder }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                          <span style={{ fontSize: "13px", fontWeight: 600 }}>
+                            {team1?.name || "?"} vs {team2?.name || "?"}
                           </span>
-                        )}
+                          {match.status === "finished" && (
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: isWin ? "#16a34a" : "#dc2626" }}>
+                              {match.sets_team1}:{match.sets_team2} {isWin ? "W" : "L"}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "11px", color: colors.goldDark }}>
+                          {tour ? `Тур ${tour.number}` : ""}{tour && matchDate ? " • " : ""}{matchDate}
+                        </div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px" }}>
                         {serveTotal > 0 && (
@@ -7995,7 +8003,7 @@ const handleGuest = () => {
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} tours={tours} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} players={players} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
-      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
+      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} tours={tours} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} users={users} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
