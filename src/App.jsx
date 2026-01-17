@@ -5266,6 +5266,12 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     setSelectedPlayerId(null);
     setSelectedAction(null);
     // statusText сохраняется
+    
+    // Автосохранение статистики в БД после каждого действия
+    (async () => {
+      const existingStat = (playerStats || []).find(s => s.player_id === selectedPlayerId && s.match_id === match?.id);
+      await onSaveStat(selectedPlayerId, match?.id, stat, existingStat?.id);
+    })();
   };
   
   const handleUndo = () => {
