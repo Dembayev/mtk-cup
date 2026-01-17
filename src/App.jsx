@@ -1997,12 +1997,12 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
             )}
           </Card>
 
-          {(player?.height || age) && (
+          {(player?.users?.height || age) && (
             <Card style={{ marginBottom: "20px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: player?.height && age ? "1fr 1fr" : "1fr", gap: "16px", textAlign: "center" }}>
-                {player?.height && (
+              <div style={{ display: "grid", gridTemplateColumns: player?.users?.height && age ? "1fr 1fr" : "1fr", gap: "16px", textAlign: "center" }}>
+                {player?.users?.height && (
                   <div>
-                    <div style={{ fontSize: "28px", fontWeight: 700, color: colors.gold }}>{player.height}</div>
+                    <div style={{ fontSize: "28px", fontWeight: 700, color: colors.gold }}>{player.users.height}</div>
                     <div style={{ fontSize: "12px", color: colors.goldDark }}>Рост (см)</div>
                   </div>
                 )}
@@ -2042,16 +2042,16 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                   <span style={{ fontWeight: 700, color: colors.gold }}>#{player.jersey_number}</span>
                 </div>
               )}
-              {player?.height && (
+              {player?.users?.height && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: colors.goldDark }}>Рост</span>
-                  <span style={{ fontWeight: 600 }}>{player.height} см</span>
+                  <span style={{ fontWeight: 600 }}>{player.users.height} см</span>
                 </div>
               )}
-              {player?.jump_height && (
+              {player?.users?.jump_height && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: colors.goldDark }}>Высота прыжка</span>
-                  <span style={{ fontWeight: 600 }}>{player.jump_height} см{player.measurement_date ? ` (${new Date(player.measurement_date).toLocaleDateString("ru-RU")})` : ""}</span>
+                  <span style={{ fontWeight: 600 }}>{player.users.jump_height} см{player.users.measurement_date ? ` (${new Date(player.users.measurement_date).toLocaleDateString("ru-RU")})` : ""}</span>
                 </div>
               )}
               {player?.birth_date && (
@@ -2176,7 +2176,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
           {stats.length > 0 && (
             <Card style={{ marginBottom: "20px" }}>
               <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>ПО МАТЧАМ</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {stats.map(stat => {
                   const match = matches?.find(m => m.id === stat.match_id);
                   if (!match) return null;
@@ -2186,25 +2186,54 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                     (match.team1_id === player?.team_id && match.sets_team1 > match.sets_team2) ||
                     (match.team2_id === player?.team_id && match.sets_team2 > match.sets_team1)
                   );
-                  const isLoss = match.status === "finished" && !isWin;
+                  
+                  // Расчёт эффективности для матча
+                  const serveTotal = stat.serves_total || (stat.aces + stat.serve_errors) || 0;
+                  const serveEff = serveTotal > 0 ? Math.round(((stat.aces - stat.serve_errors) / serveTotal) * 100) : 0;
+                  const receiveTotal = (stat.receive_excellent || 0) + (stat.receive_good || 0) + (stat.receive_poor || 0) + (stat.receive_errors || 0);
+                  const receiveEff = receiveTotal > 0 ? Math.round((((stat.receive_excellent || 0) + (stat.receive_good || 0) * 0.5 - (stat.receive_errors || 0)) / receiveTotal) * 100) : 0;
+                  const attackTotal = stat.attacks_total || ((stat.attack_points || 0) + (stat.attack_errors || 0)) || 0;
+                  const attackEff = attackTotal > 0 ? Math.round((((stat.attack_points || 0) - (stat.attack_errors || 0)) / attackTotal) * 100) : 0;
+                  const blockTotal = (stat.block_points || 0) + (stat.block_touches || 0) + (stat.block_errors || 0);
+                  const blockEff = blockTotal > 0 ? Math.round((((stat.block_points || 0) - (stat.block_errors || 0)) / blockTotal) * 100) : 0;
                   
                   return (
-                    <div key={stat.id} style={{ padding: "10px", background: "#fafafa", borderRadius: "8px", border: "1px solid " + colors.grayBorder }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <div key={stat.id} style={{ padding: "12px", background: "#fafafa", borderRadius: "8px", border: "1px solid " + colors.grayBorder }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid " + colors.grayBorder }}>
                         <span style={{ fontSize: "13px", fontWeight: 600 }}>
                           {team1?.name || "?"} vs {team2?.name || "?"}
                         </span>
                         {match.status === "finished" && (
-                          <span style={{ fontSize: "12px", fontWeight: 600, color: isWin ? "#16a34a" : "#dc2626" }}>
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: isWin ? "#16a34a" : "#dc2626" }}>
                             {match.sets_team1}:{match.sets_team2} {isWin ? "W" : "L"}
                           </span>
                         )}
                       </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", fontSize: "11px", color: colors.goldDark }}>
-                        {(stat.aces > 0 || stat.serve_errors > 0) && <span>П: {stat.aces || 0}э/{stat.serves_total || 0}/{stat.serve_errors || 0}о</span>}
-                        {(stat.receive_excellent > 0 || stat.receive_good > 0 || stat.receive_poor > 0 || stat.receive_errors > 0) && <span>Пр: {stat.receive_excellent || 0}/{stat.receive_good || 0}/{stat.receive_poor || 0}/{stat.receive_errors || 0}</span>}
-                        {(stat.attack_points > 0 || stat.attack_errors > 0) && <span>А: {stat.attack_points || 0}о/{stat.attacks_total || 0}/{stat.attack_errors || 0}о</span>}
-                        {(stat.block_points > 0 || stat.block_touches > 0 || stat.block_errors > 0) && <span>Б: {stat.block_points || 0}/{stat.block_touches || 0}/{stat.block_errors || 0}</span>}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px" }}>
+                        {serveTotal > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span><b>Подача:</b> <span style={{ color: "#16a34a" }}>Эйсы: {stat.aces || 0}</span> <span style={{ color: "#ca8a04" }}>Подача: {serveTotal}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.serve_errors || 0}</span></span>
+                            <span style={{ color: serveEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{serveEff > 0 ? "+" : ""}{serveEff}%</span>
+                          </div>
+                        )}
+                        {receiveTotal > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span><b>Приём:</b> <span style={{ color: "#16a34a" }}>Отл: {stat.receive_excellent || 0}</span> <span style={{ color: "#ca8a04" }}>Норм: {stat.receive_good || 0}</span> <span style={{ color: "#f97316" }}>Плохо: {stat.receive_poor || 0}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.receive_errors || 0}</span></span>
+                            <span style={{ color: receiveEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{receiveEff > 0 ? "+" : ""}{receiveEff}%</span>
+                          </div>
+                        )}
+                        {attackTotal > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span><b>Атака:</b> <span style={{ color: "#16a34a" }}>Очки: {stat.attack_points || 0}</span> <span style={{ color: "#ca8a04" }}>Атака: {attackTotal}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.attack_errors || 0}</span></span>
+                            <span style={{ color: attackEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{attackEff > 0 ? "+" : ""}{attackEff}%</span>
+                          </div>
+                        )}
+                        {blockTotal > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span><b>Блок:</b> <span style={{ color: "#16a34a" }}>Очки: {stat.block_points || 0}</span> <span style={{ color: "#ca8a04" }}>Касания: {stat.block_touches || 0}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.block_errors || 0}</span></span>
+                            <span style={{ color: blockEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{blockEff > 0 ? "+" : ""}{blockEff}%</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -3012,21 +3041,28 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     setEditingPlayer(player);
     setPlayerJersey(player.jersey_number || "");
     setPlayerPositions(player.positions || []);
-    setPlayerHeight(player.height || "");
-    setPlayerJumpHeight(player.jump_height || "");
-    setPlayerMeasurementDate(player.measurement_date || "");
+    setPlayerHeight(player.users?.height || "");
+    setPlayerJumpHeight(player.users?.jump_height || "");
+    setPlayerMeasurementDate(player.users?.measurement_date || "");
   };
 
   const savePlayer = async () => {
     if (!editingPlayer || !onUpdatePlayer) return;
+    // Сохраняем данные игрока в players
     await onUpdatePlayer(editingPlayer.id, {
       jersey_number: playerJersey || null,
-      positions: playerPositions || [],
-      height: playerHeight ? parseInt(playerHeight) : null,
-      jump_height: playerJumpHeight ? parseInt(playerJumpHeight) : null,
-      measurement_date: playerMeasurementDate || null
+      positions: playerPositions || []
     });
+    // Сохраняем рост/прыжок в users
+    if (editingPlayer.user_id) {
+      await supabase.from('users').update({
+        height: playerHeight ? parseInt(playerHeight) : null,
+        jump_height: playerJumpHeight ? parseInt(playerJumpHeight) : null,
+        measurement_date: playerMeasurementDate || null
+      }).eq('id', editingPlayer.user_id);
+    }
     setEditingPlayer(null);
+    loadData();
   };
 
   const togglePosition = (pos) => {
