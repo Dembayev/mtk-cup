@@ -5046,11 +5046,37 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [currentSet, setCurrentSet] = useState(1);
   const [setScores, setSetScores] = useState([]);
   // Раздельное хранение счёта для каждой команды
-  const [teamProgress, setTeamProgress] = useState({});  // { teamId: { liveScore, currentSet, setScores, actionHistory } }
+  const [teamProgress, setTeamProgress] = useState(() => {
+    // Загружаем из localStorage при инициализации
+    if (match?.id) {
+      try {
+        const saved = localStorage.getItem(`matchProgress_${match.id}`);
+        return saved ? JSON.parse(saved) : {};
+      } catch (e) { return {}; }
+    }
+    return {};
+  });
   
-  // Сбрасываем состояние при смене матча
+  // Сохраняем teamProgress в localStorage при изменении
   useEffect(() => {
-    setTeamProgress({});
+    if (match?.id && Object.keys(teamProgress).length > 0) {
+      localStorage.setItem(`matchProgress_${match.id}`, JSON.stringify(teamProgress));
+    }
+  }, [teamProgress, match?.id]);
+  
+  // Загружаем состояние при смене матча
+  useEffect(() => {
+    if (!match?.id) return;
+    try {
+      const saved = localStorage.getItem(`matchProgress_${match.id}`);
+      if (saved) {
+        setTeamProgress(JSON.parse(saved));
+      } else {
+        setTeamProgress({});
+      }
+    } catch (e) {
+      setTeamProgress({});
+    }
     setLiveScore({ team1: 0, team2: 0 });
     setCurrentSet(1);
     setSetScores([]);
