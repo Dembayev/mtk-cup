@@ -3163,6 +3163,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
       console.log("💾 SaveUser: No role change needed or handler missing");
     }
     setEditingUser(null);
+    loadData();
   };
 
   const startEditTeam = (team) => {
@@ -3916,8 +3917,18 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         {/* Фото пользователя */}
                         <div style={{ marginTop: "12px" }}>
                           <label style={{ fontSize: "12px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Фото</label>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            {editingUser?.avatar_url && <img src={editingUser.avatar_url} alt="" style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} />}
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                            {editingUser?.avatar_url && (
+                              <div style={{ position: "relative" }}>
+                                <img src={editingUser.avatar_url} alt="" style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} />
+                                <button onClick={async () => {
+                                  if (!confirm("Удалить фото?")) return;
+                                  await supabase.from('users').update({ avatar_url: null }).eq('id', editingUser.id);
+                                  alert('Фото удалено');
+                                  loadData();
+                                }} style={{ position: "absolute", top: "-5px", right: "-5px", width: "20px", height: "20px", borderRadius: "50%", background: "#dc2626", color: "white", border: "none", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+                              </div>
+                            )}
                             <input type="file" accept="image/*" onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file || !editingUser) return;
