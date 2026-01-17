@@ -960,7 +960,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
                       <div style={{ fontWeight: 600, fontSize: "14px" }}>{player.users?.first_name || `@${player.users?.username}`} {player.users?.last_name || ""}</div>
                       <div style={{ fontSize: "12px", color: colors.goldDark }}>{player.positions?.map(p => positionLabels[p] || p).join(", ")} • {player.teams?.name || "Без команды"}</div>
                     </div>
-                    {player.totalPoints > 0 && (
+                    {player.totalPoints !== 0 && (
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>{player.totalPoints}</div>
                         <div style={{ fontSize: "10px", color: colors.goldDark }}>эфф.</div>
@@ -1886,7 +1886,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
                   <div style={{ fontSize: "12px", color: colors.goldDark, marginTop: "2px" }}>{player.teams?.name || "Без команды"}</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
-                  {player.totalPoints > 0 && (
+                  {player.totalPoints !== 0 && (
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: "18px", fontWeight: 700, color: colors.gold }}>{player.totalPoints}</div>
                       <div style={{ fontSize: "10px", color: colors.goldDark }}>эфф.</div>
