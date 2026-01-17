@@ -5352,10 +5352,17 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
               {liveScore.team1}:{liveScore.team2}
             </div>
             <div style={{ fontSize: "12px", color: colors.goldDark }}>П{currentSet}</div>
-            <div 
-              onClick={() => { if (confirm("Сменить команду?")) { setTeamLocked(false); setSelectedTeamId(null); setSelectedPlayerId(null); }}}
-              style={{ flex: 1, padding: "6px 10px", background: colors.gold, borderRadius: "6px", fontWeight: 600, fontSize: "12px", color: "white", textAlign: "center", cursor: "pointer" }}>
-              {selectedTeamId === match.team1_id ? team1?.name : team2?.name}
+            <div style={{ flex: 1, display: "flex", gap: "4px" }}>
+              <div 
+                onClick={() => { setSelectedTeamId(match.team1_id); setSelectedPlayerId(null); setTeamLocked(true); }}
+                style={{ flex: 1, padding: "6px 8px", background: selectedTeamId === match.team1_id ? colors.gold : "#e5e7eb", borderRadius: "6px", fontWeight: 600, fontSize: "11px", color: selectedTeamId === match.team1_id ? "white" : colors.goldDark, textAlign: "center", cursor: "pointer" }}>
+                {team1?.name}
+              </div>
+              <div 
+                onClick={() => { setSelectedTeamId(match.team2_id); setSelectedPlayerId(null); setTeamLocked(true); }}
+                style={{ flex: 1, padding: "6px 8px", background: selectedTeamId === match.team2_id ? colors.gold : "#e5e7eb", borderRadius: "6px", fontWeight: 600, fontSize: "11px", color: selectedTeamId === match.team2_id ? "white" : colors.goldDark, textAlign: "center", cursor: "pointer" }}>
+                {team2?.name}
+              </div>
             </div>
             {saving && <span style={{ fontSize: "10px", color: colors.gold }}>💾</span>}
           </div>
@@ -5424,10 +5431,10 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                       return (
                         <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={isDisabled}
                           style={{ 
-                            flex: 1, padding: isOpponent ? "12px 4px" : "10px 4px", 
+                            flex: 1, padding: isOpponent ? "14px 4px" : "14px 4px", minHeight: isOpponent ? "48px" : "44px",
                             background: selectedAction?.field === btn.field ? btn.color : "white",
                             border: "2px solid " + btn.color, borderRadius: "6px", 
-                            fontWeight: 600, fontSize: isOpponent ? "13px" : "13px", 
+                            fontWeight: 600, fontSize: "14px", 
                             cursor: isDisabled ? "not-allowed" : "pointer",
                             color: selectedAction?.field === btn.field ? "white" : btn.color,
                             opacity: isDisabled ? 0.5 : 1,
