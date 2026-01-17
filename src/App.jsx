@@ -5037,6 +5037,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [teamScores, setTeamScores] = useState({ team1: 0, team2: 0 });
   const [currentSet, setCurrentSet] = useState(1);
   const [setScores, setSetScores] = useState([]);
+  // Раздельное хранение счёта для каждой команды
+  const [teamProgress, setTeamProgress] = useState({});  // { teamId: { liveScore, currentSet, setScores, actionHistory } }
   const [localStats, setLocalStats] = useState({});
   const [statusText, setStatusText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -5416,12 +5418,54 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
             <div style={{ fontSize: "12px", color: colors.goldDark }}>П{currentSet}</div>
             <div style={{ flex: 1, display: "flex", gap: "4px" }}>
               <div 
-                onClick={() => { setSelectedTeamId(match.team1_id); setSelectedPlayerId(null); setTeamLocked(true); }}
+                onClick={() => { 
+                  // Сохраняем текущий прогресс
+                  if (selectedTeamId) {
+                    setTeamProgress(prev => ({ ...prev, [selectedTeamId]: { liveScore, currentSet, setScores, actionHistory } }));
+                  }
+                  // Загружаем прогресс team1 или начинаем с нуля
+                  const saved = teamProgress[match.team1_id];
+                  if (saved) {
+                    setLiveScore(saved.liveScore);
+                    setCurrentSet(saved.currentSet);
+                    setSetScores(saved.setScores);
+                    setActionHistory(saved.actionHistory);
+                  } else {
+                    setLiveScore({ team1: 0, team2: 0 });
+                    setCurrentSet(1);
+                    setSetScores([]);
+                    setActionHistory([]);
+                  }
+                  setSelectedTeamId(match.team1_id); 
+                  setSelectedPlayerId(null); 
+                  setTeamLocked(true); 
+                }}
                 style={{ flex: 1, padding: "6px 8px", background: selectedTeamId === match.team1_id ? colors.gold : "#e5e7eb", borderRadius: "6px", fontWeight: 600, fontSize: "11px", color: selectedTeamId === match.team1_id ? "white" : colors.goldDark, textAlign: "center", cursor: "pointer" }}>
                 {team1?.name}
               </div>
               <div 
-                onClick={() => { setSelectedTeamId(match.team2_id); setSelectedPlayerId(null); setTeamLocked(true); }}
+                onClick={() => { 
+                  // Сохраняем текущий прогресс
+                  if (selectedTeamId) {
+                    setTeamProgress(prev => ({ ...prev, [selectedTeamId]: { liveScore, currentSet, setScores, actionHistory } }));
+                  }
+                  // Загружаем прогресс team2 или начинаем с нуля
+                  const saved = teamProgress[match.team2_id];
+                  if (saved) {
+                    setLiveScore(saved.liveScore);
+                    setCurrentSet(saved.currentSet);
+                    setSetScores(saved.setScores);
+                    setActionHistory(saved.actionHistory);
+                  } else {
+                    setLiveScore({ team1: 0, team2: 0 });
+                    setCurrentSet(1);
+                    setSetScores([]);
+                    setActionHistory([]);
+                  }
+                  setSelectedTeamId(match.team2_id); 
+                  setSelectedPlayerId(null); 
+                  setTeamLocked(true); 
+                }}
                 style={{ flex: 1, padding: "6px 8px", background: selectedTeamId === match.team2_id ? colors.gold : "#e5e7eb", borderRadius: "6px", fontWeight: 600, fontSize: "11px", color: selectedTeamId === match.team2_id ? "white" : colors.goldDark, textAlign: "center", cursor: "pointer" }}>
                 {team2?.name}
               </div>
