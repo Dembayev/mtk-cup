@@ -2213,7 +2213,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                           </span>
                           {match.status === "finished" && (
                             <span style={{ fontSize: "13px", fontWeight: 700, color: isWin ? "#16a34a" : "#dc2626" }}>
-                              {match.sets_team1}:{match.sets_team2} {isWin ? "W" : "L"}
+                              {match.sets_team1}:{match.sets_team2} {isWin ? "Победа" : "Поражение"}
                             </span>
                           )}
                         </div>
@@ -2221,31 +2221,55 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                           {tour ? `Тур ${tour.number}` : ""}{tour && matchDate ? " • " : ""}{matchDate}
                         </div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px" }}>
-                        {serveTotal > 0 && (
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span><b>Подача:</b> <span style={{ color: "#16a34a" }}>Эйсы: {stat.aces || 0}</span> <span style={{ color: "#ca8a04" }}>Подача: {serveTotal}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.serve_errors || 0}</span></span>
-                            <span style={{ color: serveEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{serveEff > 0 ? "+" : ""}{serveEff}%</span>
-                          </div>
-                        )}
-                        {receiveTotal > 0 && (
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span><b>Приём:</b> <span style={{ color: "#16a34a" }}>Отл: {stat.receive_excellent || 0}</span> <span style={{ color: "#ca8a04" }}>Норм: {stat.receive_good || 0}</span> <span style={{ color: "#f97316" }}>Плохо: {stat.receive_poor || 0}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.receive_errors || 0}</span></span>
-                            <span style={{ color: receiveEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{receiveEff > 0 ? "+" : ""}{receiveEff}%</span>
-                          </div>
-                        )}
-                        {attackTotal > 0 && (
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span><b>Атака:</b> <span style={{ color: "#16a34a" }}>Очки: {stat.attack_points || 0}</span> <span style={{ color: "#ca8a04" }}>Атака: {attackTotal}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.attack_errors || 0}</span></span>
-                            <span style={{ color: attackEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{attackEff > 0 ? "+" : ""}{attackEff}%</span>
-                          </div>
-                        )}
-                        {blockTotal > 0 && (
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span><b>Блок:</b> <span style={{ color: "#16a34a" }}>Очки: {stat.block_points || 0}</span> <span style={{ color: "#ca8a04" }}>Касания: {stat.block_touches || 0}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.block_errors || 0}</span></span>
-                            <span style={{ color: blockEff >= 0 ? colors.gold : "#dc2626", fontWeight: 600 }}>{blockEff > 0 ? "+" : ""}{blockEff}%</span>
-                          </div>
-                        )}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "11px" }}>
+                        {serveTotal > 0 && (() => {
+                          const stab = Math.round(((stat.aces || 0) + (serveTotal - (stat.aces || 0) - (stat.serve_errors || 0))) / serveTotal * 100);
+                          const real = Math.round((stat.aces || 0) / serveTotal * 100);
+                          return (
+                            <div>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                                <span><b>Подача:</b> <span style={{ color: "#16a34a" }}>Эйсы: {stat.aces || 0}</span> <span style={{ color: "#ca8a04" }}>Подача: {serveTotal}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.serve_errors || 0}</span></span>
+                              </div>
+                              <div style={{ color: colors.goldDark, fontSize: "10px" }}>Эфф: {serveEff > 0 ? "+" : ""}{serveEff}% • Стаб: {stab}% • Реал: {real}%</div>
+                            </div>
+                          );
+                        })()}
+                        {receiveTotal > 0 && (() => {
+                          const stab = Math.round(((stat.receive_excellent || 0) + (stat.receive_good || 0)) / receiveTotal * 100);
+                          const clean = Math.round((stat.receive_excellent || 0) / receiveTotal * 100);
+                          return (
+                            <div>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                                <span><b>Приём:</b> <span style={{ color: "#16a34a" }}>Отл: {stat.receive_excellent || 0}</span> <span style={{ color: "#ca8a04" }}>Норм: {stat.receive_good || 0}</span> <span style={{ color: "#f97316" }}>Плохо: {stat.receive_poor || 0}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.receive_errors || 0}</span></span>
+                              </div>
+                              <div style={{ color: colors.goldDark, fontSize: "10px" }}>Эфф: {receiveEff > 0 ? "+" : ""}{receiveEff}% • Стаб: {stab}% • Чист: {clean}%</div>
+                            </div>
+                          );
+                        })()}
+                        {attackTotal > 0 && (() => {
+                          const stab = Math.round(((stat.attack_points || 0) + (attackTotal - (stat.attack_points || 0) - (stat.attack_errors || 0))) / attackTotal * 100);
+                          const real = Math.round((stat.attack_points || 0) / attackTotal * 100);
+                          return (
+                            <div>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                                <span><b>Атака:</b> <span style={{ color: "#16a34a" }}>Очки: {stat.attack_points || 0}</span> <span style={{ color: "#ca8a04" }}>Атака: {attackTotal}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.attack_errors || 0}</span></span>
+                              </div>
+                              <div style={{ color: colors.goldDark, fontSize: "10px" }}>Эфф: {attackEff > 0 ? "+" : ""}{attackEff}% • Стаб: {stab}% • Реал: {real}%</div>
+                            </div>
+                          );
+                        })()}
+                        {blockTotal > 0 && (() => {
+                          const stab = Math.round(((stat.block_points || 0) + (stat.block_touches || 0)) / blockTotal * 100);
+                          const real = Math.round((stat.block_points || 0) / blockTotal * 100);
+                          return (
+                            <div>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                                <span><b>Блок:</b> <span style={{ color: "#16a34a" }}>Очки: {stat.block_points || 0}</span> <span style={{ color: "#ca8a04" }}>Касания: {stat.block_touches || 0}</span> <span style={{ color: "#dc2626" }}>Ош: {stat.block_errors || 0}</span></span>
+                              </div>
+                              <div style={{ color: colors.goldDark, fontSize: "10px" }}>Эфф: {blockEff > 0 ? "+" : ""}{blockEff}% • Стаб: {stab}% • Реал: {real}%</div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
