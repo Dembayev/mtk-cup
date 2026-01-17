@@ -2211,7 +2211,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                           <span style={{ fontSize: "13px", fontWeight: 600 }}>
                             {team1?.name || "?"} vs {team2?.name || "?"}
                           </span>
-                          {match.status === "finished" && (
+                          {(match.sets_team1 > 0 || match.sets_team2 > 0) && (
                             <span style={{ fontSize: "13px", fontWeight: 700, color: isWin ? "#16a34a" : "#dc2626" }}>
                               {match.sets_team1}:{match.sets_team2} {isWin ? "Победа" : "Поражение"}
                             </span>
