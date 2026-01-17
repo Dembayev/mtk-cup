@@ -5482,7 +5482,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                       return (
                         <button key={btn.field} onClick={() => handleSelectAction(type, btn)} disabled={isDisabled}
                           style={{ 
-                            flex: 1, padding: isOpponent ? "14px 4px" : "14px 4px", minHeight: isOpponent ? "48px" : "44px",
+                            flex: 1, padding: isOpponent ? "16px 4px" : "16px 4px", minHeight: isOpponent ? "56px" : "52px",
                             background: selectedAction?.field === btn.field ? btn.color : "white",
                             border: "2px solid " + btn.color, borderRadius: "6px", 
                             fontWeight: 600, fontSize: "14px", 
