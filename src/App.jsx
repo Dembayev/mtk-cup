@@ -1812,8 +1812,12 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
     if (aIsMy && !bIsMy) return -1;
     if (!aIsMy && bIsMy) return 1;
     
-    // Сортировка по очкам (больше очков - выше)
-    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+    // Сортировка: сначала те у кого есть статистика, потом по значению
+    const aHasStats = a.totalPoints !== 0;
+    const bHasStats = b.totalPoints !== 0;
+    if (aHasStats && !bHasStats) return -1;
+    if (!aHasStats && bHasStats) return 1;
+    if (aHasStats && bHasStats) return b.totalPoints - a.totalPoints;
     
     // Сортировка по имени
     return (a.sortName || '').localeCompare(b.sortName || '');
