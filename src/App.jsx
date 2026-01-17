@@ -5377,7 +5377,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
       {/* Панель управления */}
       <Container>
         <div style={{ display: "flex", gap: "6px", marginBottom: "8px", paddingTop: "8px" }}>
-          {selectedTeamId === match?.team1_id ? (
+          {selectedTeamId ? (
             <>
               <button onClick={() => setShowEndMatchModal(true)} style={{ flex: 1, padding: "8px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", fontWeight: 600, fontSize: "12px", cursor: "pointer", color: "#991b1b" }}>
                 Конец Матча
