@@ -1959,10 +1959,18 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
       <Header title="Профиль игрока" showBack onBack={() => setScreen("players")} />
       <Container>
         <div style={{ padding: "20px 0" }}>
-          <Card style={{ textAlign: "center", marginBottom: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
-              <Avatar name={player?.users?.first_name || player?.users?.username} size={80} url={player?.users?.avatar_url} />
+          {/* Большое фото игрока */}
+          {player?.users?.avatar_url && (
+            <div style={{ marginBottom: "20px", borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+              <img src={player.users.avatar_url} alt="" style={{ width: "100%", height: "auto", maxHeight: "400px", objectFit: "cover", display: "block" }} />
             </div>
+          )}
+          <Card style={{ textAlign: "center", marginBottom: "20px" }}>
+            {!player?.users?.avatar_url && (
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+                <Avatar name={player?.users?.first_name || player?.users?.username} size={80} />
+              </div>
+            )}
             <h2 style={{ margin: "0 0 4px", fontSize: "22px", fontWeight: 700 }}>
               {player?.users?.first_name || `@${player?.users?.username}`} {player?.users?.last_name || ""}
             </h2>
