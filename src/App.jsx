@@ -5303,8 +5303,14 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     // Автосохранение статистики в БД после каждого действия
     (async () => {
-      const existingStat = (playerStats || []).find(s => s.player_id === selectedPlayerId && s.match_id === match?.id);
-      await onSaveStat(selectedPlayerId, match?.id, stat, existingStat?.id);
+      // Проверяем в БД напрямую, т.к. playerStats может быть устаревшим
+      const { data: existing } = await supabase
+        .from("match_player_stats")
+        .select("id")
+        .eq("player_id", selectedPlayerId)
+        .eq("match_id", match?.id)
+        .maybeSingle();
+      await onSaveStat(selectedPlayerId, match?.id, stat, existing?.id);
     })();
   };
   
