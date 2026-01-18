@@ -5301,16 +5301,21 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     setSelectedAction(null);
     // statusText сохраняется
     
-    // Автосохранение статистики в БД после каждого действия
+    // Автосохранение статистики в БД - используем upsert чтобы избежать дублей
     (async () => {
-      // Проверяем в БД напрямую, т.к. playerStats может быть устаревшим
-      const { data: existing } = await supabase
+      const player = players?.find(p => p.id === selectedPlayerId);
+      const teamId = player?.team_id;
+      await supabase
         .from("match_player_stats")
-        .select("id")
-        .eq("player_id", selectedPlayerId)
-        .eq("match_id", match?.id)
-        .maybeSingle();
-      await onSaveStat(selectedPlayerId, match?.id, stat, existing?.id);
+        .upsert({
+          player_id: selectedPlayerId,
+          match_id: match?.id,
+          team_id: teamId,
+          ...stat
+        }, { 
+          onConflict: 'player_id,match_id',
+          ignoreDuplicates: false 
+        });
     })();
   };
   
