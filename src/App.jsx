@@ -1956,7 +1956,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
   // Считаем победы/поражения - используем team_id из статистики матча
   const wins = stats.filter(s => {
     const m = matches?.find(match => match.id === s.match_id);
-    if (!m || m.status !== "finished") return false;
+    if (!m || (m.status !== "finished" && m.status !== "live")) return false;
     const playerTeamInMatch = s.team_id || player?.team_id;
     const isTeam1 = m.team1_id === playerTeamInMatch;
     return isTeam1 ? m.sets_team1 > m.sets_team2 : m.sets_team2 > m.sets_team1;
@@ -2189,7 +2189,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                   const team2 = teams.find(t => t.id === match.team2_id);
                   // Используем stat.team_id - команду за которую играл в этом матче
                   const playerTeamInMatch = stat.team_id || player?.team_id;
-                  const isWin = match.status === "finished" && (
+                  const isWin = (match.status === "finished" || match.status === "live") && (
                     (match.team1_id === playerTeamInMatch && match.sets_team1 > match.sets_team2) ||
                     (match.team2_id === playerTeamInMatch && match.sets_team2 > match.sets_team1)
                   );
