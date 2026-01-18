@@ -5306,14 +5306,13 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     
     // Автосохранение статистики в БД - используем upsert чтобы избежать дублей
     (async () => {
-      const player = players?.find(p => p.id === selectedPlayerId);
-      const teamId = player?.team_id;
+      // Используем selectedTeamId - команду за которую ведём статистику
       await supabase
         .from("match_player_stats")
         .upsert({
           player_id: selectedPlayerId,
           match_id: match?.id,
-          team_id: teamId,
+          team_id: selectedTeamId,
           ...stat
         }, { 
           onConflict: 'player_id,match_id',
