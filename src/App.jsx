@@ -1953,11 +1953,12 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
     block_errors: acc.block_errors + (s.block_errors || 0),
   }), { games: 0, serves_total: 0, aces: 0, serve_errors: 0, receive_excellent: 0, receive_good: 0, receive_poor: 0, receive_errors: 0, attacks_total: 0, attack_points: 0, attack_errors: 0, block_points: 0, block_touches: 0, block_errors: 0 });
   
-  // Считаем победы/поражения
-  const playerMatches = stats.map(s => matches?.find(m => m.id === s.match_id)).filter(Boolean);
-  const wins = playerMatches.filter(m => {
-    if (m.status !== "finished") return false;
-    const isTeam1 = m.team1_id === player?.team_id;
+  // Считаем победы/поражения - используем team_id из статистики матча
+  const wins = stats.filter(s => {
+    const m = matches?.find(match => match.id === s.match_id);
+    if (!m || m.status !== "finished") return false;
+    const playerTeamInMatch = s.team_id || player?.team_id;
+    const isTeam1 = m.team1_id === playerTeamInMatch;
     return isTeam1 ? m.sets_team1 > m.sets_team2 : m.sets_team2 > m.sets_team1;
   }).length;
   const losses = totalStats.games - wins;
@@ -2186,9 +2187,11 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
                   if (!match) return null;
                   const team1 = teams.find(t => t.id === match.team1_id);
                   const team2 = teams.find(t => t.id === match.team2_id);
+                  // Используем stat.team_id - команду за которую играл в этом матче
+                  const playerTeamInMatch = stat.team_id || player?.team_id;
                   const isWin = match.status === "finished" && (
-                    (match.team1_id === player?.team_id && match.sets_team1 > match.sets_team2) ||
-                    (match.team2_id === player?.team_id && match.sets_team2 > match.sets_team1)
+                    (match.team1_id === playerTeamInMatch && match.sets_team1 > match.sets_team2) ||
+                    (match.team2_id === playerTeamInMatch && match.sets_team2 > match.sets_team1)
                   );
                   
                   // Расчёт эффективности для матча
