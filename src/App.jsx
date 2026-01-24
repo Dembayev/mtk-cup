@@ -10,7 +10,7 @@ const SUPABASE_URL = window.location.hostname === "localhost"
 // Telegram notifications via Edge Function
 
 // ТЕСТОВЫЙ РЕЖИМ: уведомления только админам
-const TEST_MODE_NOTIFICATIONS = true;
+const TEST_MODE_NOTIFICATIONS = false;
 
 const sendNotification = async (type, team1Name, team2Name, score = "") => {
   console.log("🔔 sendNotification called:", { type, team1Name, team2Name, score, testMode: TEST_MODE_NOTIFICATIONS });
