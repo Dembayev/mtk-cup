@@ -801,13 +801,16 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
   
   // Находим ближайший будущий тур (даже без матчей)
   const nextTour = (() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    // Сортируем туры по дате и берём ближайший будущий
-    const futureTours = (tours || [])
-      .filter(t => new Date(t.date) >= today)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-    return futureTours[0] || null;
+    // Сортируем туры по номеру
+    const sortedTours = (tours || []).sort((a, b) => a.number - b.number);
+    // Ищем первый тур, в котором есть незавершённые матчи (upcoming или live)
+    for (const tour of sortedTours) {
+      const tourMatches = (matches || []).filter(m => m.tour_id === tour.id);
+      const hasUnfinished = tourMatches.some(m => m.status === "upcoming" || m.status === "live");
+      if (hasUnfinished) return tour;
+    }
+    // Если все матчи завершены - показываем последний тур
+    return sortedTours[sortedTours.length - 1] || null;
   })();
   
   // Матчи для nextTour (если есть)
