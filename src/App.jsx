@@ -795,7 +795,7 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
   );
 };
 
-const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, playerStats, tours }) => {
+const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, setSelectedTeam, playerStats, tours }) => {
   const liveMatch = matches.find(m => m.status === "live");
   const upcomingMatches = (matches || []).filter(m => m.status === "upcoming").slice(0, 2);
   
@@ -942,7 +942,9 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
                 </div>
               )}
               {nextTourMatches.length > 0 ? nextTourMatches.map(match => (
-                <Card key={match.id} onClick={() => setScreen("schedule")} style={{ marginBottom: "12px", cursor: "pointer" }}><MatchCard match={match} teams={teams} /></Card>
+                <Card key={match.id} style={{ marginBottom: "12px" }}>
+                  <MatchCard match={match} teams={teams} onTeamClick={(team) => { setSelectedTeam(team); setScreen("teamDetail"); }} />
+                </Card>
               )) : (
                 <Card style={{ marginBottom: "12px", textAlign: "center", color: colors.goldDark, padding: "20px" }}>
                   Матчи скоро будут добавлены
@@ -1094,7 +1096,7 @@ const TeamsScreen = ({ setScreen, teams, players, setSelectedTeam, user, myTeamI
   );
 }
 
-const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles, currentPlayer, onLeaveTeam, onSendTeamRequest, teamRequests, actionLoading }) => {
+const TeamDetailScreen = ({ setScreen, goBack, team, players, users, setSelectedPlayer, user, onSelectFavoriteTeam, userRoles, currentPlayer, onLeaveTeam, onSendTeamRequest, teamRequests, actionLoading }) => {
   const teamPlayers = (players || []).filter(p => p.team_id === team?.id);
   const isMyTeam = currentPlayer && currentPlayer.team_id === team?.id;
   const isFreeAgent = currentPlayer && currentPlayer.is_free_agent;
@@ -1105,7 +1107,7 @@ const TeamDetailScreen = ({ setScreen, team, players, users, setSelectedPlayer, 
       <Header 
         title={team?.name || "Команда"} 
         showBack 
-        onBack={() => setScreen("teams")} 
+        onBack={() => goBack("teams")} 
         rightElement={
           isMyTeam && onLeaveTeam ? (
             <button onClick={onLeaveTeam} style={{ background: "none", border: "none", color: "#dc2626", fontSize: "13px", cursor: "pointer" }}>Покинуть</button>
@@ -1589,7 +1591,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
     </div>
   );
 };
-const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setScreen }) => {
+const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setScreen, goBack }) => {
   const today = new Date();
   const sortedTours = [...tours].sort((a, b) => {
     const dateA = new Date(a.date);
@@ -1673,7 +1675,7 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
   );
 };
 
-const TableScreen = ({ teams, setSelectedTeam, setScreen }) => {
+const TableScreen = ({ teams, setSelectedTeam, setScreen, goBack }) => {
   const sortedTeams = [...teams].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     return ((b.sets_won || 0) - (b.sets_lost || 0)) - ((a.sets_won || 0) - (a.sets_lost || 0));
@@ -1932,7 +1934,7 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   );
 };
 
-const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerStats, matches, tours, user, onToggleFavorite, userRoles }) => {
+const PlayerDetailScreen = ({ setScreen, goBack, player, teams, setSelectedTeam, playerStats, matches, tours, user, onToggleFavorite, userRoles }) => {
   const team = teams.find(t => t.id === player?.team_id);
   const coachOfTeam = teams?.find(t => t.coach_id === player?.user_id); // Проверяем является ли игрок тренером
   
@@ -1983,7 +1985,7 @@ const PlayerDetailScreen = ({ setScreen, player, teams, setSelectedTeam, playerS
   
   return (
     <div style={{ paddingBottom: "100px" }}>
-      <Header title="Профиль игрока" showBack onBack={() => setScreen("players")} />
+      <Header title="Профиль игрока" showBack onBack={() => goBack("players")} />
       <Container>
         <div style={{ padding: "20px 0" }}>
           {/* Большое фото игрока */}
@@ -6263,7 +6265,38 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
 
 // Main App
 export default function MTKCupApp() {
-  const [screen, setScreen] = useState("welcome");
+  const [screen, setScreenRaw] = useState("welcome");
+  const [navStack, setNavStack] = useState([]);
+  
+  // Обёртка для навигации с историей
+  const setScreen = (newScreen, options = {}) => {
+    const { replace = false, addToStack = true } = options;
+    if (addToStack && !replace && screen !== newScreen) {
+      // Добавляем текущий экран в стек (кроме основных вкладок)
+      const mainTabs = ["home", "players", "teams", "schedule", "table"];
+      if (!mainTabs.includes(screen)) {
+        setNavStack(prev => [...prev, screen]);
+      } else {
+        // Для главных вкладок очищаем стек и запоминаем откуда пришли
+        setNavStack([screen]);
+      }
+    }
+    if (replace) {
+      // Замена без добавления в историю
+    }
+    setScreenRaw(newScreen);
+  };
+  
+  // Функция возврата назад
+  const goBack = (defaultScreen = "home") => {
+    if (navStack.length > 0) {
+      const prevScreen = navStack[navStack.length - 1];
+      setNavStack(prev => prev.slice(0, -1));
+      setScreenRaw(prevScreen);
+    } else {
+      setScreenRaw(defaultScreen);
+    }
+  };
   const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isTelegram, setIsTelegram] = useState(false);
@@ -8071,16 +8104,16 @@ const handleGuest = () => {
     switch (screen) {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} playerStats={playerStats} tours={tours} />;
+      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} players={players} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
-      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
-      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} tours={tours} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
+      case "teamDetail": return <TeamDetailScreen setScreen={setScreen} goBack={goBack} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
+      case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} goBack={goBack} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} tours={tours} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
       case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} users={users} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
       case "predictions": return <PredictionsScreen matches={matches} teams={teams} tours={tours} sponsors={sponsors} prizes={prizes} predictions={predictions} user={user} onMakePrediction={handleMakePrediction} users={users} />;
-      case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
-      case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} />;
+      case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} />;
+      case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} />;
       case "servicemanSelect": return <ServicemanMatchSelectScreen matches={matches} teams={teams} tours={tours} onSelectMatch={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} setScreen={setScreen} />;
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
