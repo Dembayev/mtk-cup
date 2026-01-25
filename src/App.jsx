@@ -6876,6 +6876,14 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       if (data.set4_team1 > data.set4_team2) setsWon1++; else if (data.set4_team2 > data.set4_team1) setsWon2++;
       if (data.set5_team1 > data.set5_team2) setsWon1++; else if (data.set5_team2 > data.set5_team1) setsWon2++;
       
+      // Формируем set_scores JSON из введённых данных
+      const setScoresArray = [];
+      if (data.set1_team1 || data.set1_team2) setScoresArray.push({ team1: Number(data.set1_team1) || 0, team2: Number(data.set1_team2) || 0 });
+      if (data.set2_team1 || data.set2_team2) setScoresArray.push({ team1: Number(data.set2_team1) || 0, team2: Number(data.set2_team2) || 0 });
+      if (data.set3_team1 || data.set3_team2) setScoresArray.push({ team1: Number(data.set3_team1) || 0, team2: Number(data.set3_team2) || 0 });
+      if (data.set4_team1 || data.set4_team2) setScoresArray.push({ team1: Number(data.set4_team1) || 0, team2: Number(data.set4_team2) || 0 });
+      if (data.set5_team1 || data.set5_team2) setScoresArray.push({ team1: Number(data.set5_team1) || 0, team2: Number(data.set5_team2) || 0 });
+
       // Обновляем матч
       await supabase.from("matches").update({
         sets_team1: setsWon1,
@@ -6885,6 +6893,7 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         set3_team1: data.set3_team1 || 0, set3_team2: data.set3_team2 || 0,
         set4_team1: data.set4_team1 || 0, set4_team2: data.set4_team2 || 0,
         set5_team1: data.set5_team1 || 0, set5_team2: data.set5_team2 || 0,
+        set_scores: JSON.stringify(setScoresArray),
         status: data.status,
       }).eq("id", matchId);
 
