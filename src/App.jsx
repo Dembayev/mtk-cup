@@ -1012,8 +1012,23 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
         </div>
           <div style={{ fontWeight: 600, fontSize: "14px" }}>{team1?.name || "—"}</div>
         </div>
-        <div style={{ padding: "8px 16px", background: colors.gray, borderRadius: "8px", fontWeight: 700, fontSize: "20px", minWidth: "80px", textAlign: "center" }}>
-          {match.status === "upcoming" ? "—" : `${match.sets_team1 || 0} : ${match.sets_team2 || 0}`}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ padding: "8px 16px", background: colors.gray, borderRadius: "8px", fontWeight: 700, fontSize: "20px", minWidth: "80px", textAlign: "center" }}>
+            {match.status === "upcoming" ? "—" : `${match.sets_team1 || 0} : ${match.sets_team2 || 0}`}
+          </div>
+          {match.set_scores && match.status !== "upcoming" && (() => {
+            try {
+              const scores = typeof match.set_scores === 'string' ? JSON.parse(match.set_scores) : match.set_scores;
+              if (scores && scores.length > 0) {
+                return (
+                  <div style={{ fontSize: "11px", color: colors.goldDark, marginTop: "4px" }}>
+                    {scores.map((s, i) => `${s.team1}:${s.team2}`).join(" | ")}
+                  </div>
+                );
+              }
+            } catch (e) {}
+            return null;
+          })()}
         </div>
         <div 
           style={{ textAlign: "center", flex: 1, cursor: onTeamClick ? "pointer" : "default" }}
