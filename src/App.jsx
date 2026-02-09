@@ -799,18 +799,14 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
   const liveMatch = matches.find(m => m.status === "live");
   const upcomingMatches = (matches || []).filter(m => m.status === "upcoming").slice(0, 2);
   
-  // Находим ближайший будущий тур (даже без матчей)
+  // Находим ближайший тур по дате от сегодня (даже без матчей)
   const nextTour = (() => {
-    // Сортируем туры по номеру
-    const sortedTours = (tours || []).sort((a, b) => a.number - b.number);
-    // Ищем первый тур, в котором есть незавершённые матчи (upcoming или live)
-    for (const tour of sortedTours) {
-      const tourMatches = (matches || []).filter(m => m.tour_id === tour.id);
-      const hasUnfinished = tourMatches.some(m => m.status === "upcoming" || m.status === "live");
-      if (hasUnfinished) return tour;
-    }
-    // Если все матчи завершены - показываем последний тур
-    return sortedTours[sortedTours.length - 1] || null;
+    const now = new Date();
+    const today = new Date(now.toDateString());
+    const futureTours = (tours || [])
+      .filter(t => t.date && new Date(t.date) >= today)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    return futureTours[0] || null;
   })();
   
   // Матчи для nextTour (если есть)
