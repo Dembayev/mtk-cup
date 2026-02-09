@@ -1,20 +1,41 @@
 import { } from 'react';
 import { colors } from '../constants/colors';
-import { Header, Card, Button, Badge, Container, Avatar, Input, Select, Icons } from '../components/ui';
+import { Header, Card, Button, Badge, Container, Avatar, Input, Select, Icons, RoleBadges } from '../components/ui';
 import { getDisplayName } from '../utils/helpers';
 import { positionLabels } from '../constants/labels';
 import { } from '../lib/supabase';
 
 export const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, playerStats, tours }) => {
   const liveMatch = matches.find(m => m.status === "live");
-  const upcomingMatches = (matches || []).filter(m => m.status === "upcoming").slice(0, 2);
+  const upcomingMatches = (matches || [])
+    .filter(m => m.status === "upcoming")
+    .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))
+    .slice(0, 2);
   
-  // Находим ближайший тур с матчами
+  // Находим ближайший тур по дате среди туров с upcoming матчами
   const nextTour = (() => {
-    if (upcomingMatches.length === 0) return null;
-    const tourId = upcomingMatches[0]?.tour_id;
-    return (tours || []).find(t => t.id === tourId);
+    const upcomingAll = (matches || []).filter(m => m.status === "upcoming");
+    if (upcomingAll.length === 0) return null;
+    
+    // Собираем уникальные tour_id из upcoming матчей
+    const tourIds = [...new Set(upcomingAll.map(m => m.tour_id).filter(Boolean))];
+    
+    // Находим ближайший тур по дате
+    const upcomingTours = (tours || [])
+      .filter(t => tourIds.includes(t.id))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    return upcomingTours[0] || null;
   })();
+
+  // Показываем матчи только ближайшего тура
+  const nextTourMatches = nextTour 
+    ? (matches || [])
+        .filter(m => m.status === "upcoming" && m.tour_id === nextTour.id)
+        .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))
+        .slice(0, 2)
+    : upcomingMatches;
+
   // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
   const playersWithStats = (players || []).map(player => {
     const stats = (playerStats || []).filter(s => s.player_id === player.id);
@@ -112,7 +133,7 @@ export const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOf
             </>
           )}
 
-          {upcomingMatches.length > 0 && (
+          {nextTourMatches.length > 0 && (
             <>
               {nextTour && (
                 <div style={{ 
@@ -137,7 +158,7 @@ export const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOf
                   )}
                 </div>
               )}
-              {upcomingMatches.map(match => (
+              {nextTourMatches.map(match => (
                 <Card key={match.id} onClick={() => setScreen("schedule")} style={{ marginBottom: "12px", cursor: "pointer" }}><MatchCard match={match} teams={teams} /></Card>
               ))}
               <Button variant="outline" onClick={() => setScreen("schedule")} style={{ width: "100%", marginTop: "8px" }}>Всё расписание</Button>
@@ -223,4 +244,3 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
     </div>
   );
 };
-
