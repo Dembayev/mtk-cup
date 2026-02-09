@@ -7,34 +7,23 @@ import { } from '../lib/supabase';
 
 export const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, playerStats, tours }) => {
   const liveMatch = matches.find(m => m.status === "live");
-  const upcomingMatches = (matches || [])
-    .filter(m => m.status === "upcoming")
-    .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))
-    .slice(0, 2);
   
-  // Находим ближайший тур по дате среди туров с upcoming матчами
+  // Находим ближайший тур по дате от сегодня (независимо от наличия матчей)
+  const now = new Date();
   const nextTour = (() => {
-    const upcomingAll = (matches || []).filter(m => m.status === "upcoming");
-    if (upcomingAll.length === 0) return null;
-    
-    // Собираем уникальные tour_id из upcoming матчей
-    const tourIds = [...new Set(upcomingAll.map(m => m.tour_id).filter(Boolean))];
-    
-    // Находим ближайший тур по дате
-    const upcomingTours = (tours || [])
-      .filter(t => tourIds.includes(t.id))
+    const futureTours = (tours || [])
+      .filter(t => t.date && new Date(t.date) >= new Date(now.toDateString()))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    return upcomingTours[0] || null;
+    return futureTours[0] || null;
   })();
 
-  // Показываем матчи только ближайшего тура
+  // Матчи ближайшего тура (если есть)
   const nextTourMatches = nextTour 
     ? (matches || [])
         .filter(m => m.status === "upcoming" && m.tour_id === nextTour.id)
         .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))
         .slice(0, 2)
-    : upcomingMatches;
+    : [];
 
   // Сортируем игроков по эффективности (очки = атаки + эйсы + блоки)
   const playersWithStats = (players || []).map(player => {
@@ -133,34 +122,40 @@ export const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOf
             </>
           )}
 
-          {nextTourMatches.length > 0 && (
+          {nextTour && (
             <>
-              {nextTour && (
-                <div style={{ 
-                  background: colors.gold, 
-                  color: colors.bg, 
-                  padding: "12px 16px", 
-                  borderRadius: "12px", 
-                  marginBottom: "16px" 
-                }}>
-                  <div style={{ fontSize: "18px", fontWeight: 700 }}>
-                    Тур {nextTour.number}
-                  </div>
-                  {nextTour.date && (
-                    <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <Icons.Calendar />{new Date(nextTour.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}
-                    </div>
-                  )}
-                  {nextTour.location && (
-                    <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <Icons.MapPin />{nextTour.location}{nextTour.address ? `, ${nextTour.address}` : ""}
-                    </div>
-                  )}
+              <div style={{ 
+                background: colors.gold, 
+                color: colors.bg, 
+                padding: "12px 16px", 
+                borderRadius: "12px", 
+                marginBottom: "16px" 
+              }}>
+                <div style={{ fontSize: "18px", fontWeight: 700 }}>
+                  Тур {nextTour.number}
                 </div>
+                {nextTour.date && (
+                  <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Icons.Calendar />{new Date(nextTour.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}
+                  </div>
+                )}
+                {nextTour.location && (
+                  <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Icons.MapPin />{nextTour.location}{nextTour.address ? `, ${nextTour.address}` : ""}
+                  </div>
+                )}
+              </div>
+              {nextTourMatches.length > 0 ? (
+                <>
+                  {nextTourMatches.map(match => (
+                    <Card key={match.id} onClick={() => setScreen("schedule")} style={{ marginBottom: "12px", cursor: "pointer" }}><MatchCard match={match} teams={teams} /></Card>
+                  ))}
+                </>
+              ) : (
+                <Card style={{ marginBottom: "12px", textAlign: "center", padding: "20px" }}>
+                  <div style={{ color: colors.goldDark, fontSize: "14px" }}>Матчи скоро будут добавлены</div>
+                </Card>
               )}
-              {nextTourMatches.map(match => (
-                <Card key={match.id} onClick={() => setScreen("schedule")} style={{ marginBottom: "12px", cursor: "pointer" }}><MatchCard match={match} teams={teams} /></Card>
-              ))}
               <Button variant="outline" onClick={() => setScreen("schedule")} style={{ width: "100%", marginTop: "8px" }}>Всё расписание</Button>
             </>
           )}
@@ -198,7 +193,6 @@ export const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOf
 const MatchCard = ({ match, teams, onTeamClick }) => {
   const team1 = teams.find(t => t.id === match.team1_id);
   const team2 = teams.find(t => t.id === match.team2_id);
-  // Извлекаем время напрямую из строки без конвертации часовых поясов
   const timeString = match.scheduled_time ? match.scheduled_time.substring(11, 16) : "00:00";
 
   return (
