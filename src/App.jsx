@@ -1075,7 +1075,7 @@ const TeamsScreen = ({ setScreen, teams, players, setSelectedTeam, user, myTeamI
                     <h3 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600 }}>
                       {team.name} {isMy && <span style={{ fontSize: "12px", color: colors.gold }}>★</span>}
                     </h3>
-                    <p style={{ margin: 0, fontSize: "13px", color: colors.goldDark }}>{team.wins}В {team.losses}П • {team.points} очков • {(players || []).filter(p => p.team_id === team.id).length} игр.</p>
+                    <p style={{ margin: 0, fontSize: "13px", color: colors.goldDark }}>{team.wins}В {team.losses}П • {team.points} очков • {(() => { const teamPlayers = (players || []).filter(p => p.team_id === team.id); const hasCoachInPlayers = teamPlayers.some(p => p.user_id === team.coach_id); const coachExtra = team.coach_id && !hasCoachInPlayers ? 1 : 0; return teamPlayers.length + coachExtra; })()} игр.</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: "20px", fontWeight: 700, color: colors.gold }}>#{teams.sort((a,b) => (b.points||0)-(a.points||0)).indexOf(team) + 1}</div>
@@ -2003,7 +2003,7 @@ const PlayerDetailScreen = ({ setScreen, goBack, player, teams, setSelectedTeam,
             <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
               {player?.is_captain && <Badge variant="captain">Капитан</Badge>}
               {coachOfTeam && <Badge variant="gold">Тренер ({coachOfTeam.name})</Badge>}
-              {player?.type !== 'coach' && (
+              {player?.type !== 'coach' && !coachOfTeam && (
                 <Badge variant={player?.is_free_agent ? "free" : "gold"}>
                   {player?.is_free_agent ? "Свободный игрок" : "В команде"}
                 </Badge>
