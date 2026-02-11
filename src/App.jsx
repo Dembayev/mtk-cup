@@ -796,14 +796,19 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
 };
 
 const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, setSelectedTeam, playerStats, tours, tournaments, activeTournamentId, setActiveTournamentId }) => {
-  const liveMatch = matches.find(m => m.status === "live");
-  const upcomingMatches = (matches || []).filter(m => m.status === "upcoming").slice(0, 2);
+  // Фильтруем данные по активному турниру
+  const filteredTours = activeTournamentId ? (tours || []).filter(t => t.tournament_id === activeTournamentId) : tours || [];
+  const filteredTourIds = new Set(filteredTours.map(t => t.id));
+  const filteredMatches = activeTournamentId ? (matches || []).filter(m => filteredTourIds.has(m.tour_id)) : matches || [];
+  const filteredTeams = activeTournamentId ? (teams || []).filter(t => t.tournament_id === activeTournamentId) : teams || [];
+
+  const liveMatch = filteredMatches.find(m => m.status === "live");
   
   // Находим ближайший тур по дате от сегодня (даже без матчей)
   const nextTour = (() => {
     const now = new Date();
     const today = new Date(now.toDateString());
-    const futureTours = (tours || [])
+    const futureTours = filteredTours
       .filter(t => t.date && new Date(t.date) >= today)
       .sort((a, b) => new Date(a.date) - new Date(b.date));
     return futureTours[0] || null;
@@ -811,7 +816,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
   
   // Матчи для nextTour (если есть)
   const nextTourMatches = nextTour 
-    ? (matches || []).filter(m => m.tour_id === nextTour.id && m.status === "upcoming").slice(0, 2)
+    ? filteredMatches.filter(m => m.tour_id === nextTour.id && m.status === "upcoming").slice(0, 2)
     : [];
   // Сортируем игроков по эффективности (очки - ошибки по всем элементам)
   const playersWithStats = (players || []).map(player => {
