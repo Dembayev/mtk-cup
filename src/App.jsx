@@ -830,9 +830,28 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
 
   return (
     <div style={{ paddingBottom: "100px" }}>
-      <Header title="Кубок МТК" />
+      <Header title={tournaments?.find(t => t.id === activeTournamentId)?.name || "Кубок МТК"} />
       <Container>
         <div style={{ padding: "20px 0" }}>
+          {tournaments?.length > 1 && (
+            <div style={{ display: "flex", gap: "8px", overflowX: "auto", marginBottom: "16px", paddingBottom: "4px" }}>
+              {tournaments.filter(t => t.is_active).map(t => (
+                <div key={t.id} onClick={() => setActiveTournamentId(t.id)} style={{
+                  padding: "8px 16px",
+                  borderRadius: "20px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  cursor: "pointer",
+                  background: t.id === activeTournamentId ? colors.gold : colors.gray,
+                  color: t.id === activeTournamentId ? "#fff" : colors.text,
+                  border: t.id === activeTournamentId ? "none" : `1px solid ${colors.border}`,
+                }}>
+                  {t.name}
+                </div>
+              ))}
+            </div>
+          )}
           <Card onClick={() => setScreen("profile")} style={{
             background: `linear-gradient(135deg, ${colors.gold} 0%, ${colors.goldDark} 100%)`,
             color: colors.bg,
@@ -884,7 +903,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
             {[
               { label: "Прогнозы", icon: "🎯", screen: "predictions" },
               { label: "Моя команда", icon: "💛", screen: "myteam" },
-              { label: "Команды", icon: "👥", screen: "teams", count: teams.length },
+              { label: "Команды", icon: "👥", screen: "teams", count: filteredTeams.length },
               { label: "Игроки", icon: "⚡", screen: "players" },
             ].map(item => (
               <Card key={item.screen} onClick={() => setScreen(item.screen)} style={{ textAlign: "center", padding: "20px" }}>
@@ -923,7 +942,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
                   marginBottom: "16px" 
                 }}>
                   <div style={{ fontSize: "18px", fontWeight: 700 }}>
-                    Тур {nextTour.number}
+                    {nextTour.name || `Тур ${nextTour.number}`}
                   </div>
                   {nextTour.date && (
                     <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1585,9 +1604,10 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
     </div>
   );
 };
-const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setScreen, goBack }) => {
+const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setScreen, goBack, tournaments, activeTournamentId, setActiveTournamentId }) => {
   const today = new Date();
-  const sortedTours = [...tours].sort((a, b) => {
+  const filteredTours = activeTournamentId ? tours.filter(t => t.tournament_id === activeTournamentId) : tours;
+  const sortedTours = [...filteredTours].sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     const aIsUpcoming = dateA >= today;
@@ -1621,6 +1641,25 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
       <Header title="Расписание" />
       <Container>
         <div style={{ padding: "20px 0" }}>
+          {tournaments?.length > 1 && (
+            <div style={{ display: "flex", gap: "8px", overflowX: "auto", marginBottom: "16px", paddingBottom: "4px" }}>
+              {tournaments.filter(t => t.is_active).map(t => (
+                <div key={t.id} onClick={() => setActiveTournamentId(t.id)} style={{
+                  padding: "8px 16px",
+                  borderRadius: "20px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  cursor: "pointer",
+                  background: t.id === activeTournamentId ? colors.gold : colors.gray,
+                  color: t.id === activeTournamentId ? "#fff" : colors.text,
+                  border: t.id === activeTournamentId ? "none" : `1px solid ${colors.border}`,
+                }}>
+                  {t.name}
+                </div>
+              ))}
+            </div>
+          )}
           {matchesByTour.map(({ tour, matches: tourMatches }) => {
             const tourDate = new Date(tour.date);
             const isPast = tourDate < today;
@@ -1635,7 +1674,7 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
                   marginBottom: "16px" 
                 }}>
                   <div style={{ fontSize: "18px", fontWeight: 700 }}>
-                    Тур {tour.number}
+                    {tour.name || `Тур ${tour.number}`}
                     {isPast && <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "8px" }}>(завершён)</span>}
                   </div>
                   <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -2845,10 +2884,12 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament }) => {
   const [tab, setTab] = useState("tours");
   const [editingTour, setEditingTour] = useState(null);
-  const [tourData, setTourData] = useState({ number: "", date: "", location: "", address: "" });
+  const [tourData, setTourData] = useState({ number: "", name: "", date: "", location: "", address: "", tournament_id: "" });
+  const [tournamentData, setTournamentData] = useState({ name: "", category: "men", season: "" });
+  const [editingTournament, setEditingTournament] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
     sets_team1: 0, sets_team2: 0, status: "upcoming",
@@ -2984,7 +3025,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   
   // Создание тура
   const [showCreateTour, setShowCreateTour] = useState(false);
-  const [newTour, setNewTour] = useState({ number: "", date: "", location: "", address: "" });
+  const [newTour, setNewTour] = useState({ number: "", name: "", date: "", location: "", address: "", tournament_id: "" });
   
   // Создание матча
   const [showCreateMatch, setShowCreateMatch] = useState(false);
@@ -3257,6 +3298,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           {/* Tabs */}
           <div style={{ display: "flex", gap: "6px", marginBottom: "20px", overflowX: "auto" }}>
             {[
+              { id: "tournaments", label: "Турниры" },
               { id: "tours", label: "Туры" },
               { id: "matches", label: "Матчи" },
               { id: "stats", label: "Статистика" },
@@ -3274,6 +3316,60 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
             ))}
           </div>
 
+          {/* Tournaments tab */}
+          {tab === "tournaments" && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Турниры ({tournaments.length})</h3>
+                <Button onClick={() => { setEditingTournament("new"); setTournamentData({ name: "", category: "men", season: "" }); }} style={{ padding: "8px 16px", fontSize: "13px" }}>
+                  + Новый турнир
+                </Button>
+              </div>
+              {editingTournament && (
+                <Card style={{ marginBottom: "16px", background: "#f9f9f9" }}>
+                  <h4 style={{ margin: "0 0 12px", fontSize: "14px" }}>{editingTournament === "new" ? "Новый турнир" : "Редактировать турнир"}</h4>
+                  <Input label="Название" value={tournamentData.name} onChange={v => setTournamentData(p => ({ ...p, name: v }))} placeholder="Кубок МТК" />
+                  <Select label="Категория" value={tournamentData.category} onChange={v => setTournamentData(p => ({ ...p, category: v }))} options={[{ value: "men", label: "Мужчины" }, { value: "women", label: "Женщины" }, { value: "youth", label: "Юноши" }]} />
+                  <Input label="Сезон" value={tournamentData.season} onChange={v => setTournamentData(p => ({ ...p, season: v }))} placeholder="2025/2026" />
+                  <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                    <Button onClick={async () => {
+                      if (!tournamentData.name) { alert("Укажите название"); return; }
+                      if (editingTournament === "new") {
+                        await onCreateTournament(tournamentData);
+                      } else {
+                        await onUpdateTournament(editingTournament, tournamentData);
+                      }
+                      setEditingTournament(null);
+                    }} style={{ flex: 1, padding: "10px" }}>
+                      <Icons.Save /> {editingTournament === "new" ? "Создать" : "Сохранить"}
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditingTournament(null)} style={{ padding: "10px" }}>Отмена</Button>
+                  </div>
+                </Card>
+              )}
+              {(tournaments || []).map(t => (
+                <Card key={t.id} style={{ marginBottom: "8px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: "15px" }}>{t.name}</div>
+                      <div style={{ fontSize: "12px", color: colors.goldDark }}>
+                        {t.category === "men" ? "Мужчины" : t.category === "women" ? "Женщины" : "Юноши"} • {t.season || "—"} • {t.is_active ? "Активен" : "Архив"}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <Button variant="outline" onClick={() => { setEditingTournament(t.id); setTournamentData({ name: t.name, category: t.category, season: t.season || "" }); }} style={{ padding: "6px 12px", fontSize: "12px" }}>
+                        <Icons.Edit />
+                      </Button>
+                      <Button variant="outline" onClick={() => onDeleteTournament(t.id)} style={{ padding: "6px 12px", fontSize: "12px", color: "#dc2626" }}>
+                        <Icons.Trash />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </>
+          )}
+
           {/* Tours tab */}
           {tab === "tours" && (
             <>
@@ -3287,7 +3383,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
               {showCreateTour && (
                 <Card style={{ marginBottom: "16px", background: "#f0fdf4", border: "2px solid #16a34a" }}>
                   <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600, color: "#16a34a" }}>Новый тур</h4>
+                  <Select label="Турнир" value={newTour.tournament_id} onChange={v => setNewTour(p => ({ ...p, tournament_id: v }))} options={[{ value: "", label: "Выберите турнир" }, ...(tournaments || []).map(t => ({ value: t.id, label: t.name }))]} />
                   <Input label="Номер тура" type="number" value={newTour.number} onChange={v => setNewTour(p => ({ ...p, number: v }))} placeholder="1" />
+                  <Input label="Название (необязательно)" value={newTour.name} onChange={v => setNewTour(p => ({ ...p, name: v }))} placeholder="Тур 1 / Финал / Полуфинал" />
                   <Input label="Дата" type="date" value={newTour.date} onChange={v => setNewTour(p => ({ ...p, date: v }))} />
                   <Input label="Место проведения" value={newTour.location} onChange={v => setNewTour(p => ({ ...p, location: v }))} placeholder="СК Олимп" />
                   <Input label="Адрес" value={newTour.address} onChange={v => setNewTour(p => ({ ...p, address: v }))} placeholder="ул. Спортивная, 1" />
@@ -3319,7 +3417,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   {editingTour?.id === tour.id ? (
                     <div>
                       <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600 }}>Редактирование тура</h4>
+                      <Select label="Турнир" value={tourData.tournament_id} onChange={v => setTourData(p => ({ ...p, tournament_id: v }))} options={[{ value: "", label: "Без турнира" }, ...(tournaments || []).map(t => ({ value: t.id, label: t.name }))]} />
                       <Input label="Номер тура" type="number" value={tourData.number} onChange={v => setTourData(p => ({ ...p, number: v }))} />
+                      <Input label="Название" value={tourData.name || ""} onChange={v => setTourData(p => ({ ...p, name: v }))} placeholder="Тур 1 / Финал" />
                       <Input label="Дата" type="date" value={tourData.date} onChange={v => setTourData(p => ({ ...p, date: v }))} />
                       <Input label="Место" value={tourData.location} onChange={v => setTourData(p => ({ ...p, location: v }))} />
                       <Input label="Адрес" value={tourData.address} onChange={v => setTourData(p => ({ ...p, address: v }))} />
@@ -3341,17 +3441,20 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         {tour.number}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: "14px" }}>Тур {tour.number}</div>
+                        <div style={{ fontWeight: 600, fontSize: "14px" }}>{tour.name || `Тур ${tour.number}`}</div>
                         <div style={{ fontSize: "12px", color: colors.goldDark }}>
                           {new Date(tour.date).toLocaleDateString("ru-RU")} • {tour.location}
                         </div>
                         <div style={{ fontSize: "11px", color: colors.goldDark }}>{tour.address}</div>
+                        {tournaments?.find(t => t.id === tour.tournament_id) && (
+                          <div style={{ fontSize: "11px", color: colors.gold, marginTop: "2px" }}>{tournaments.find(t => t.id === tour.tournament_id).name}</div>
+                        )}
                       </div>
                       <Badge>{(matches || []).filter(m => m.tour_id === tour.id).length} матчей</Badge>
                       <div style={{ display: "flex", gap: "4px" }}>
                         <button onClick={() => {
                           setEditingTour(tour);
-                          setTourData({ number: tour.number, date: tour.date, location: tour.location, address: tour.address });
+                          setTourData({ number: tour.number, name: tour.name || "", date: tour.date, location: tour.location, address: tour.address, tournament_id: tour.tournament_id || "" });
                         }} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }}>
                           <Icons.Edit />
                         </button>
@@ -6299,6 +6402,8 @@ export default function MTKCupApp() {
   const [matches, setMatches] = useState([]);
   const [tours, setTours] = useState([]);
   const [players, setPlayers] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
+  const [activeTournamentId, setActiveTournamentId] = useState(null);
   const [offers, setOffers] = useState([]);
   const [teamRequests, setTeamRequests] = useState([]);
   const [users, setUsers] = useState([]);
@@ -6341,7 +6446,9 @@ export default function MTKCupApp() {
   const loadData = async () => {
     try {
       setLoading(true);
-const { data: teamsData } = await supabase.from("teams").select("*, coaches:coach_id(id, first_name, last_name, username, avatar_url)").order("points", { ascending: false });      const { data: toursData } = await supabase.from("tours").select("*").order("number");
+const { data: tournamentsData } = await supabase.from("tournaments").select("*").order("created_at");
+      const { data: teamsData } = await supabase.from("teams").select("*, coaches:coach_id(id, first_name, last_name, username, avatar_url)").order("points", { ascending: false });
+      const { data: toursData } = await supabase.from("tours").select("*").order("number");
       const { data: matchesData } = await supabase.from("matches").select("*").order("scheduled_time");
       const { data: playersData } = await supabase.from("players").select("*");
       const { data: usersData } = await supabase.from("users").select("*");
@@ -6359,6 +6466,10 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
         teams: teamsData?.find(t => t.id === player.team_id) || null,
       }));
 
+      setTournaments(tournamentsData || []);
+      if (!activeTournamentId && tournamentsData?.length > 0) {
+        setActiveTournamentId(tournamentsData.find(t => t.is_active)?.id || tournamentsData[0].id);
+      }
       setTeams(teamsData || []);
       setTours(toursData || []);
       setMatches(matchesData || []);
@@ -7497,15 +7608,70 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
 
 
 
+  // Tournament CRUD
+  const handleCreateTournament = async (data) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.from("tournaments").insert({
+        name: data.name,
+        category: data.category || 'men',
+        season: data.season || '',
+        is_active: true,
+      });
+      if (error) throw error;
+      await loadData();
+      alert("Турнир создан!");
+    } catch (error) {
+      console.error("Error creating tournament:", error);
+      alert("Ошибка создания турнира");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateTournament = async (id, data) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.from("tournaments").update(data).eq("id", id);
+      if (error) throw error;
+      await loadData();
+    } catch (error) {
+      console.error("Error updating tournament:", error);
+      alert("Ошибка обновления турнира");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteTournament = async (id) => {
+    if (!confirm("Удалить турнир? Все привязанные туры и команды потеряют привязку.")) return;
+    try {
+      setActionLoading(true);
+      await supabase.from("tours").update({ tournament_id: null }).eq("tournament_id", id);
+      await supabase.from("teams").update({ tournament_id: null }).eq("tournament_id", id);
+      const { error } = await supabase.from("tournaments").delete().eq("id", id);
+      if (error) throw error;
+      await loadData();
+      alert("Турнир удалён!");
+    } catch (error) {
+      console.error("Error deleting tournament:", error);
+      alert("Ошибка удаления турнира");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Create tour
   const handleCreateTour = async (tourData) => {
     try {
       setActionLoading(true);
       const { error } = await supabase.from("tours").insert({
         number: parseInt(tourData.number),
+        name: tourData.name || null,
         date: tourData.date,
         location: tourData.location,
         address: tourData.address,
+        tournament_id: tourData.tournament_id || activeTournamentId || null,
       });
       if (error) throw error;
       await loadData();
@@ -7523,9 +7689,11 @@ const { data: teamsData } = await supabase.from("teams").select("*, coaches:coac
       setActionLoading(true);
       const { error } = await supabase.from("tours").update({
         number: parseInt(tourData.number),
+        name: tourData.name || null,
         date: tourData.date,
         location: tourData.location,
         address: tourData.address,
+        tournament_id: tourData.tournament_id || activeTournamentId || null,
       }).eq("id", tourId);
       if (error) throw error;
       await loadData();
@@ -8107,7 +8275,7 @@ const handleGuest = () => {
     switch (screen) {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} />;
+      case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
       case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} players={players} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} goBack={goBack} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} goBack={goBack} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} tours={tours} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
@@ -8115,7 +8283,7 @@ const handleGuest = () => {
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
       case "predictions": return <PredictionsScreen matches={matches} teams={teams} tours={tours} sponsors={sponsors} prizes={prizes} predictions={predictions} user={user} onMakePrediction={handleMakePrediction} users={users} />;
-      case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} />;
+      case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack}  tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} />;
       case "servicemanSelect": return <ServicemanMatchSelectScreen matches={matches} teams={teams} tours={tours} onSelectMatch={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} setScreen={setScreen} />;
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
