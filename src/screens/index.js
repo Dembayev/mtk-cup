@@ -1,6 +1,5 @@
 export { OnboardingScreen } from './OnboardingScreen';
 export { WelcomeScreen } from './WelcomeScreen';
-export { HomeScreen } from './HomeScreen';
 export { TeamsScreen } from './TeamsScreen';
 export { TeamDetailScreen } from './TeamDetailScreen';
 export { PredictionsScreen } from './PredictionsScreen';
