@@ -795,7 +795,7 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
   );
 };
 
-const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, setSelectedTeam, playerStats, tours }) => {
+const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, userRoles, setSelectedPlayer, setSelectedTeam, playerStats, tours, tournaments, activeTournamentId, setActiveTournamentId }) => {
   const liveMatch = matches.find(m => m.status === "live");
   const upcomingMatches = (matches || []).filter(m => m.status === "upcoming").slice(0, 2);
   
