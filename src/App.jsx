@@ -845,7 +845,7 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
                   cursor: "pointer",
                   background: t.id === activeTournamentId ? colors.gold : colors.gray,
                   color: t.id === activeTournamentId ? "#fff" : colors.text,
-                  border: t.id === activeTournamentId ? "none" : `1px solid ${colors.border}`,
+                  border: t.id === activeTournamentId ? "none" : `1px solid ${colors.grayBorder}`,
                 }}>
                   {t.name}
                 </div>
@@ -1653,7 +1653,7 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
                   cursor: "pointer",
                   background: t.id === activeTournamentId ? colors.gold : colors.gray,
                   color: t.id === activeTournamentId ? "#fff" : colors.text,
-                  border: t.id === activeTournamentId ? "none" : `1px solid ${colors.border}`,
+                  border: t.id === activeTournamentId ? "none" : `1px solid ${colors.grayBorder}`,
                 }}>
                   {t.name}
                 </div>
@@ -6446,7 +6446,8 @@ export default function MTKCupApp() {
   const loadData = async () => {
     try {
       setLoading(true);
-const { data: tournamentsData } = await supabase.from("tournaments").select("*").order("created_at");
+let tournamentsData = [];
+      try { const res = await supabase.from("tournaments").select("*").order("created_at"); tournamentsData = res.data || []; } catch(e) { console.error("Error loading tournaments:", e); }
       const { data: teamsData } = await supabase.from("teams").select("*, coaches:coach_id(id, first_name, last_name, username, avatar_url)").order("points", { ascending: false });
       const { data: toursData } = await supabase.from("tours").select("*").order("number");
       const { data: matchesData } = await supabase.from("matches").select("*").order("scheduled_time");
