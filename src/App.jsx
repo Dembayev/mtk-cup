@@ -3366,7 +3366,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                         <Icons.Edit />
                       </Button>
                       <Button variant="outline" onClick={() => onDeleteTournament(t.id)} style={{ padding: "6px 12px", fontSize: "12px", color: "#dc2626" }}>
-                        <Icons.Trash />
+                        🗑️
                       </Button>
                     </div>
                   </div>
