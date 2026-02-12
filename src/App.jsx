@@ -1067,9 +1067,10 @@ const MatchCard = ({ match, teams, onTeamClick }) => {
   );
 };
 
-const TeamsScreen = ({ setScreen, teams, players, setSelectedTeam, user, myTeamId }) => {
+const TeamsScreen = ({ setScreen, teams, players, setSelectedTeam, user, myTeamId, activeTournamentId }) => {
+  const filteredTeams = activeTournamentId ? teams.filter(t => t.tournament_id === activeTournamentId) : teams;
   // Сортируем: моя команда / любимая команда вверху
-  const sortedTeams = [...teams].sort((a, b) => {
+  const sortedTeams = [...filteredTeams].sort((a, b) => {
     const aIsMy = a.id === myTeamId || a.id === user?.favorite_team_id;
     const bIsMy = b.id === myTeamId || b.id === user?.favorite_team_id;
     if (aIsMy && !bIsMy) return -1;
@@ -1082,7 +1083,7 @@ const TeamsScreen = ({ setScreen, teams, players, setSelectedTeam, user, myTeamI
       <Header title="Команды" showBack onBack={() => setScreen("home")} />
       <Container>
         <div style={{ padding: "20px 0" }}>
-          <p style={{ color: colors.goldDark, marginBottom: "16px" }}>{teams.length} команд в турнире</p>
+          <p style={{ color: colors.goldDark, marginBottom: "16px" }}>{filteredTeams.length} команд в турнире</p>
           {sortedTeams.map((team, idx) => {
             const isMy = team.id === myTeamId || team.id === user?.favorite_team_id;
             return (
@@ -1257,7 +1258,10 @@ const TeamDetailScreen = ({ setScreen, goBack, team, players, users, setSelected
 
 
 // Экран прогнозов
-const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, predictions, user, onMakePrediction, users }) => {
+const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, predictions, user, onMakePrediction, users, activeTournamentId }) => {
+  const filteredTours = activeTournamentId ? tours.filter(t => t.tournament_id === activeTournamentId) : tours;
+  const filteredTourIds = new Set(filteredTours.map(t => t.id));
+  const filteredMatches = activeTournamentId ? matches.filter(m => filteredTourIds.has(m.tour_id)) : matches;
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [prediction, setPrediction] = useState({ team1: 3, team2: 0 });
   const [expandedTours, setExpandedTours] = useState({});
@@ -1265,7 +1269,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
   
   // Сортируем туры: ближайший первый
   const now = new Date();
-  const sortedTours = [...(tours || [])].sort((a, b) => {
+  const sortedTours = [...(filteredTours || [])].sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     const today = new Date();
@@ -1295,7 +1299,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
   
   // Функция получения лидеров по туру
   const getTourLeaderboard = (tourId) => {
-    const tourMatches = (matches || []).filter(m => m.tour_id === tourId).map(m => m.id);
+    const tourMatches = (filteredMatches || []).filter(m => m.tour_id === tourId).map(m => m.id);
     if (tourMatches.length === 0) return [];
     const scores = {};
     (predictions || []).filter(p => tourMatches.includes(p.match_id)).forEach(p => {
@@ -1332,7 +1336,7 @@ const PredictionsScreen = ({ matches, teams, tours, sponsors, prizes, prediction
   })();
   
   // Ближайшие матчи для прогнозов
-  const upcomingMatches = (matches || [])
+  const upcomingMatches = (filteredMatches || [])
     .filter(m => m.status === "upcoming")
     .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
   
@@ -1713,8 +1717,9 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
   );
 };
 
-const TableScreen = ({ teams, setSelectedTeam, setScreen, goBack }) => {
-  const sortedTeams = [...teams].sort((a, b) => {
+const TableScreen = ({ teams, setSelectedTeam, setScreen, goBack, activeTournamentId }) => {
+  const filteredTeams = activeTournamentId ? teams.filter(t => t.tournament_id === activeTournamentId) : teams;
+  const sortedTeams = [...filteredTeams].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     return ((b.sets_won || 0) - (b.sets_lost || 0)) - ((a.sets_won || 0) - (a.sets_lost || 0));
   });
@@ -1783,7 +1788,8 @@ const TableScreen = ({ teams, setSelectedTeam, setScreen, goBack }) => {
   );
 };
 
-const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId, teams, playerStats, users }) => {
+const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, sentOffers, setSelectedPlayer, user, myPlayerId, teams, playerStats, users, activeTournamentId }) => {
+  const tournamentTeamIds = activeTournamentId ? new Set(teams.filter(t => t.tournament_id === activeTournamentId).map(t => t.id)) : null;
   const [filter, setFilter] = useState("all");
   const [positionFilter, setPositionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1844,6 +1850,8 @@ const PlayersScreen = ({ setScreen, players, userRoles, coachTeam, onSendOffer, 
   });
   
   const filteredPlayers = allPeople.filter(p => {
+    // Фильтр по турниру: показываем только игроков из команд этого турнира + свободных
+    if (tournamentTeamIds && p.team_id && !tournamentTeamIds.has(p.team_id) && !p.is_free_agent) return false;
     if (filter === "free" && !p.is_free_agent) return false;
     if (filter === "team" && (p.is_free_agent || p.type === 'coach')) return false;
     if (filter === "coach" && !p.isCoach) return false;
@@ -8282,15 +8290,15 @@ const handleGuest = () => {
       case "welcome": return <WelcomeScreen onLogin={handleLogin} onGuest={handleGuest} isTelegram={isTelegram} />;
       case "onboarding": return <OnboardingScreen user={user} onComplete={handleCompleteOnboarding} onSubmitRequest={handleSubmitRoleRequest} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
       case "home": return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
-      case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} players={players} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} />;
+      case "teams": return <TeamsScreen setScreen={setScreen} teams={teams} players={players} setSelectedTeam={setSelectedTeam} user={user} myTeamId={userRoles.playerRecord?.team_id} activeTournamentId={activeTournamentId} />;
       case "teamDetail": return <TeamDetailScreen setScreen={setScreen} goBack={goBack} team={selectedTeam} players={players} users={users} setSelectedPlayer={setSelectedPlayer} user={user} onSelectFavoriteTeam={handleSelectFavoriteTeam} userRoles={userRoles} currentPlayer={currentPlayer} onLeaveTeam={handleLeaveTeam} onSendTeamRequest={handleSendTeamRequest} teamRequests={teamRequests} actionLoading={actionLoading} />;
       case "playerDetail": return <PlayerDetailScreen setScreen={setScreen} goBack={goBack} player={selectedPlayer} teams={teams} setSelectedTeam={setSelectedTeam} playerStats={playerStats} matches={matches} tours={tours} user={user} onToggleFavorite={handleToggleFavoritePlayer} userRoles={userRoles} />;
-      case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} users={users} />;
+      case "players": return <PlayersScreen setScreen={setScreen} players={players} userRoles={userRoles} coachTeam={coachTeam} onSendOffer={handleSendOffer} sentOffers={sentOffers} setSelectedPlayer={setSelectedPlayer} user={user} myPlayerId={userRoles.playerRecord?.id} teams={teams} playerStats={playerStats} users={users} activeTournamentId={activeTournamentId} />;
       case "offers": return <OffersScreen setScreen={setScreen} offers={offers.filter(o => o.player_id === currentPlayer?.id)} teams={teams} onAccept={handleAcceptOffer} onReject={handleRejectOffer} loading={actionLoading} isInTeam={!currentPlayer?.is_free_agent} />;
       case "myteam": return <MyTeamScreen setScreen={setScreen} user={user} teams={teams} players={players} coachTeam={coachTeam} currentPlayer={currentPlayer} sentOffers={sentOffers} onRemovePlayer={handleRemovePlayer} onSelectFavoriteTeam={handleSelectFavoriteTeam} onLeaveTeam={handleLeaveTeam} actionLoading={actionLoading} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} teamRequests={teamRequests} onAcceptTeamRequest={handleAcceptTeamRequest} onRejectTeamRequest={handleRejectTeamRequest} onUpdateJerseyNumber={handleUpdateJerseyNumber} onSetCaptain={handleSetCaptain} onSendTeamMessage={handleSendTeamMessage} onCreateTeam={handleCreateTeamAdmin} />;
-      case "predictions": return <PredictionsScreen matches={matches} teams={teams} tours={tours} sponsors={sponsors} prizes={prizes} predictions={predictions} user={user} onMakePrediction={handleMakePrediction} users={users} />;
+      case "predictions": return <PredictionsScreen matches={matches} teams={teams} tours={tours} sponsors={sponsors} prizes={prizes} predictions={predictions} user={user} onMakePrediction={handleMakePrediction} users={users} activeTournamentId={activeTournamentId} />;
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack}  tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
-      case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} />;
+      case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} activeTournamentId={activeTournamentId} />;
       case "servicemanSelect": return <ServicemanMatchSelectScreen matches={matches} teams={teams} tours={tours} onSelectMatch={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} setScreen={setScreen} />;
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
