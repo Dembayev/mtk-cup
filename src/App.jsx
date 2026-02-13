@@ -2897,7 +2897,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour }) => {
   const [tab, setTab] = useState("tours");
   const [editingTour, setEditingTour] = useState(null);
   const [tourData, setTourData] = useState({ number: "", name: "", date: "", location: "", address: "", tournament_id: "" });
@@ -3470,6 +3470,9 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                           setTourData({ number: tour.number, name: tour.name || "", date: tour.date, location: tour.location, address: tour.address, tournament_id: tour.tournament_id || "" });
                         }} style={{ background: "none", border: "none", cursor: "pointer", color: colors.gold, padding: "4px" }}>
                           <Icons.Edit />
+                        </button>
+                        <button onClick={() => onCopyTour(tour.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#2563eb", padding: "4px" }} title="Копировать тур">
+                          📋
                         </button>
                         <button onClick={() => onDeleteTour(tour.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }}>
                           <Icons.X />
@@ -7742,6 +7745,51 @@ let tournamentsData = [];
   };
 
 
+  const handleCopyTour = async (tourId) => {
+    try {
+      setActionLoading(true);
+      const sourceTour = tours.find(t => t.id === tourId);
+      if (!sourceTour) throw new Error("Тур не найден");
+      
+      // Находим максимальный номер тура
+      const maxNumber = Math.max(...tours.map(t => t.number || 0), 0);
+      
+      // Создаём новый тур
+      const { data: newTour, error: tourError } = await supabase.from("tours").insert({
+        number: maxNumber + 1,
+        name: sourceTour.name ? `${sourceTour.name} (копия)` : null,
+        date: sourceTour.date,
+        location: sourceTour.location,
+        address: sourceTour.address,
+        tournament_id: sourceTour.tournament_id,
+      }).select().single();
+      
+      if (tourError) throw tourError;
+      
+      // Копируем матчи тура
+      const tourMatches = matches.filter(m => m.tour_id === tourId);
+      if (tourMatches.length > 0) {
+        const newMatches = tourMatches.map(m => ({
+          tour_id: newTour.id,
+          team1_id: m.team1_id,
+          team2_id: m.team2_id,
+          scheduled_time: m.scheduled_time,
+          status: "upcoming",
+        }));
+        const { error: matchError } = await supabase.from("matches").insert(newMatches);
+        if (matchError) throw matchError;
+      }
+      
+      await loadData();
+      alert(`Тур скопирован! Новый тур #${maxNumber + 1} с ${tourMatches.length} матчами.`);
+    } catch (error) {
+      console.error("Error copying tour:", error);
+      alert("Ошибка копирования тура");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Create match
   const handleCreateMatch = async (matchData) => {
     try {
@@ -8303,7 +8351,7 @@ const handleGuest = () => {
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} />;
+      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
     }
   };
