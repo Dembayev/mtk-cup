@@ -3539,10 +3539,18 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     options={[{ value: "", label: "Выберите тур" }, ...(tours || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).map(t => ({ value: t.id, label: `${t.name || 'Тур ' + t.number} — ${new Date(t.date).toLocaleDateString("ru-RU")}` }))]}
                   />
                   <Select label="Команда 1" value={newMatch.team1_id} onChange={v => setNewMatch(p => ({ ...p, team1_id: v }))}
-                    options={[{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).map(t => ({ value: t.id, label: t.name }))]}
+                    options={(() => {
+                      const selectedTour = (tours || []).find(t => t.id === newMatch.tour_id);
+                      const tid = selectedTour?.tournament_id || adminTournamentFilter;
+                      return [{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => !tid || t.tournament_id === tid).map(t => ({ value: t.id, label: t.name }))];
+                    })()}
                   />
                   <Select label="Команда 2" value={newMatch.team2_id} onChange={v => setNewMatch(p => ({ ...p, team2_id: v }))}
-                    options={[{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => (!adminTournamentFilter || t.tournament_id === adminTournamentFilter) && t.id !== newMatch.team1_id).map(t => ({ value: t.id, label: t.name }))]}
+                    options={(() => {
+                      const selectedTour = (tours || []).find(t => t.id === newMatch.tour_id);
+                      const tid = selectedTour?.tournament_id || adminTournamentFilter;
+                      return [{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => (!tid || t.tournament_id === tid) && t.id !== newMatch.team1_id).map(t => ({ value: t.id, label: t.name }))];
+                    })()}
                   />
                   <Input label="Время начала" type="datetime-local" value={newMatch.scheduled_time} onChange={v => setNewMatch(p => ({ ...p, scheduled_time: v }))} />
                   <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
