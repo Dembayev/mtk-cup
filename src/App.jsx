@@ -2902,6 +2902,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [editingTour, setEditingTour] = useState(null);
   const [tourData, setTourData] = useState({ number: "", name: "", date: "", location: "", address: "", tournament_id: "" });
   const [tournamentData, setTournamentData] = useState({ name: "", category: "men", season: "" });
+  const [adminTournamentFilter, setAdminTournamentFilter] = useState("");
   const [editingTournament, setEditingTournament] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -3046,7 +3047,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [matchInfo, setMatchInfo] = useState({ tour_id: "", team1_id: "", team2_id: "", scheduled_time: "" });
   const [newMatch, setNewMatch] = useState({ tour_id: "", team1_id: "", team2_id: "", scheduled_time: "" });
   const [showCreateTeam, setShowCreateTeam] = useState(false);
-  const [newTeam, setNewTeam] = useState({ name: "", logo_url: "" });
+  const [newTeam, setNewTeam] = useState({ name: "", logo_url: "", tournament_id: "" });
   const [editingTeamInfo, setEditingTeamInfo] = useState(null);
   const [teamInfo, setTeamInfo] = useState({ name: "", logo_url: "" });
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -3329,6 +3330,24 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
             ))}
           </div>
 
+          {/* Фильтр по турниру для туров/матчей/команд */}
+          {(tab === "tours" || tab === "matches" || tab === "teams") && tournaments?.length > 0 && (
+            <div style={{ display: "flex", gap: "6px", marginBottom: "16px", overflowX: "auto", paddingBottom: "4px" }}>
+              <button onClick={() => setAdminTournamentFilter("")} style={{
+                padding: "6px 14px", borderRadius: "16px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                background: !adminTournamentFilter ? colors.gold : colors.gray,
+                color: !adminTournamentFilter ? "#fff" : colors.text,
+              }}>Все</button>
+              {tournaments.map(t => (
+                <button key={t.id} onClick={() => setAdminTournamentFilter(t.id)} style={{
+                  padding: "6px 14px", borderRadius: "16px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                  background: adminTournamentFilter === t.id ? colors.gold : colors.gray,
+                  color: adminTournamentFilter === t.id ? "#fff" : colors.text,
+                }}>{t.name}</button>
+              ))}
+            </div>
+          )}
+
           {/* Tournaments tab */}
           {tab === "tournaments" && (
             <>
@@ -3413,17 +3432,14 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 </Card>
               )}
 
-              {(tours || []).sort((a, b) => {
+              {(tours || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).sort((a, b) => {
                 const now = new Date();
                 const dateA = new Date(a.date);
                 const dateB = new Date(b.date);
                 const isPastA = dateA < now;
                 const isPastB = dateB < now;
-                // Будущие туры сверху, отсортированные по дате (ближайший первый)
                 if (!isPastA && !isPastB) return dateA - dateB;
-                // Прошедшие туры внизу, отсортированные по дате (недавний первый)
                 if (isPastA && isPastB) return dateB - dateA;
-                // Будущие выше прошедших
                 return isPastA ? 1 : -1;
               }).map(tour => (
                 <Card key={tour.id} style={{ marginBottom: "8px", padding: "12px" }}>
@@ -3499,13 +3515,13 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 <Card style={{ marginBottom: "16px", background: "#f0fdf4", border: "2px solid #16a34a" }}>
                   <h4 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 600, color: "#16a34a" }}>Новый матч</h4>
                   <Select label="Тур" value={newMatch.tour_id} onChange={v => setNewMatch(p => ({ ...p, tour_id: v }))}
-                    options={[{ value: "", label: "Выберите тур" }, ...(tours || []).map(t => ({ value: t.id, label: `Тур ${t.number} — ${new Date(t.date).toLocaleDateString("ru-RU")}` }))]}
+                    options={[{ value: "", label: "Выберите тур" }, ...(tours || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).map(t => ({ value: t.id, label: `${t.name || 'Тур ' + t.number} — ${new Date(t.date).toLocaleDateString("ru-RU")}` }))]}
                   />
                   <Select label="Команда 1" value={newMatch.team1_id} onChange={v => setNewMatch(p => ({ ...p, team1_id: v }))}
-                    options={[{ value: "", label: "Выберите команду" }, ...(teams || []).map(t => ({ value: t.id, label: t.name }))]}
+                    options={[{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).map(t => ({ value: t.id, label: t.name }))]}
                   />
                   <Select label="Команда 2" value={newMatch.team2_id} onChange={v => setNewMatch(p => ({ ...p, team2_id: v }))}
-                    options={[{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => t.id !== newMatch.team1_id).map(t => ({ value: t.id, label: t.name }))]}
+                    options={[{ value: "", label: "Выберите команду" }, ...(teams || []).filter(t => (!adminTournamentFilter || t.tournament_id === adminTournamentFilter) && t.id !== newMatch.team1_id).map(t => ({ value: t.id, label: t.name }))]}
                   />
                   <Input label="Время начала" type="datetime-local" value={newMatch.scheduled_time} onChange={v => setNewMatch(p => ({ ...p, scheduled_time: v }))} />
                   <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
@@ -3519,7 +3535,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 </Card>
               )}
 
-              {(tours || []).sort((a, b) => {
+              {(tours || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).sort((a, b) => {
                 const now = new Date();
                 const dateA = new Date(a.date);
                 const dateB = new Date(b.date);
@@ -3825,7 +3841,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 Добавьте ссылки на трансляции (YouTube, VK, Rutube) и записи матчей
               </p>
               
-              {(tours || []).sort((a, b) => {
+              {(tours || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).sort((a, b) => {
                 const now = new Date();
                 const dateA = new Date(a.date);
                 const dateB = new Date(b.date);
@@ -4194,6 +4210,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     onChange={v => setNewTeam(p => ({ ...p, name: v }))} 
                     placeholder="Например: Амур Rockets"
                   />
+                  <Select label="Турнир" value={newTeam.tournament_id} onChange={v => setNewTeam(p => ({ ...p, tournament_id: v }))} options={[{ value: "", label: "Без турнира" }, ...(tournaments || []).map(t => ({ value: t.id, label: t.name }))]} />
                   
                   <div style={{ marginTop: "12px" }}>
                     <label style={{ fontSize: "13px", fontWeight: 500, color: colors.text, display: "block", marginBottom: "6px" }}>
@@ -7457,6 +7474,7 @@ let tournamentsData = [];
       const { error } = await supabase.from("teams").insert({
         name: teamData.name,
         logo_url: teamData.logo_url || null,
+        tournament_id: teamData.tournament_id || null,
       });
       if (error) throw error;
       await loadData();
