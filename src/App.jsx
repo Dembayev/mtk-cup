@@ -839,18 +839,24 @@ const HomeScreen = ({ setScreen, user, teams, matches, players, pendingOffers, u
       <Container>
         <div style={{ padding: "20px 0" }}>
           {tournaments?.length > 1 && (
-            <div style={{ display: "flex", gap: "8px", overflowX: "auto", marginBottom: "16px", paddingBottom: "4px" }}>
+            <div style={{ 
+              display: "flex", gap: "4px", overflowX: "auto", marginBottom: "16px",
+              background: colors.gray, borderRadius: "12px", padding: "4px",
+            }}>
               {tournaments.filter(t => t.is_active).map(t => (
                 <div key={t.id} onClick={() => setActiveTournamentId(t.id)} style={{
-                  padding: "8px 16px",
-                  borderRadius: "20px",
+                  padding: "10px 18px",
+                  borderRadius: "10px",
                   fontSize: "13px",
                   fontWeight: 600,
                   whiteSpace: "nowrap",
                   cursor: "pointer",
-                  background: t.id === activeTournamentId ? colors.gold : colors.gray,
-                  color: t.id === activeTournamentId ? "#fff" : colors.text,
-                  border: t.id === activeTournamentId ? "none" : `1px solid ${colors.grayBorder}`,
+                  flex: 1,
+                  textAlign: "center",
+                  background: t.id === activeTournamentId ? "#fff" : "transparent",
+                  color: t.id === activeTournamentId ? colors.goldDark : colors.textLight,
+                  boxShadow: t.id === activeTournamentId ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  transition: "all 0.2s ease",
                 }}>
                   {t.name}
                 </div>
@@ -1651,18 +1657,24 @@ const ScheduleScreen = ({ matches, teams, tours, isGuest, setSelectedTeam, setSc
       <Container>
         <div style={{ padding: "20px 0" }}>
           {tournaments?.length > 1 && (
-            <div style={{ display: "flex", gap: "8px", overflowX: "auto", marginBottom: "16px", paddingBottom: "4px" }}>
+            <div style={{ 
+              display: "flex", gap: "4px", overflowX: "auto", marginBottom: "16px",
+              background: colors.gray, borderRadius: "12px", padding: "4px",
+            }}>
               {tournaments.filter(t => t.is_active).map(t => (
                 <div key={t.id} onClick={() => setActiveTournamentId(t.id)} style={{
-                  padding: "8px 16px",
-                  borderRadius: "20px",
+                  padding: "10px 18px",
+                  borderRadius: "10px",
                   fontSize: "13px",
                   fontWeight: 600,
                   whiteSpace: "nowrap",
                   cursor: "pointer",
-                  background: t.id === activeTournamentId ? colors.gold : colors.gray,
-                  color: t.id === activeTournamentId ? "#fff" : colors.text,
-                  border: t.id === activeTournamentId ? "none" : `1px solid ${colors.grayBorder}`,
+                  flex: 1,
+                  textAlign: "center",
+                  background: t.id === activeTournamentId ? "#fff" : "transparent",
+                  color: t.id === activeTournamentId ? colors.goldDark : colors.textLight,
+                  boxShadow: t.id === activeTournamentId ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  transition: "all 0.2s ease",
                 }}>
                   {t.name}
                 </div>
@@ -3332,17 +3344,26 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
 
           {/* Фильтр по турниру для туров/матчей/команд */}
           {(tab === "tours" || tab === "matches" || tab === "teams") && tournaments?.length > 0 && (
-            <div style={{ display: "flex", gap: "6px", marginBottom: "16px", overflowX: "auto", paddingBottom: "4px" }}>
+            <div style={{ 
+              display: "flex", gap: "4px", marginBottom: "16px", overflowX: "auto", paddingBottom: "4px",
+              background: colors.gray, borderRadius: "12px", padding: "4px",
+            }}>
               <button onClick={() => setAdminTournamentFilter("")} style={{
-                padding: "6px 14px", borderRadius: "16px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer",
-                background: !adminTournamentFilter ? colors.gold : colors.gray,
-                color: !adminTournamentFilter ? "#fff" : colors.text,
-              }}>Все</button>
+                padding: "8px 16px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                background: !adminTournamentFilter ? "#fff" : "transparent",
+                color: !adminTournamentFilter ? colors.goldDark : colors.textLight,
+                boxShadow: !adminTournamentFilter ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
+              }}>Все турниры</button>
               {tournaments.map(t => (
                 <button key={t.id} onClick={() => setAdminTournamentFilter(t.id)} style={{
-                  padding: "6px 14px", borderRadius: "16px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-                  background: adminTournamentFilter === t.id ? colors.gold : colors.gray,
-                  color: adminTournamentFilter === t.id ? "#fff" : colors.text,
+                  padding: "8px 16px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                  background: adminTournamentFilter === t.id ? "#fff" : "transparent",
+                  color: adminTournamentFilter === t.id ? colors.goldDark : colors.textLight,
+                  boxShadow: adminTournamentFilter === t.id ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  transition: "all 0.2s ease",
+                  whiteSpace: "nowrap",
                 }}>{t.name}</button>
               ))}
             </div>
@@ -4192,7 +4213,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           {tab === "teams" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Управление командами ({teams.length})</h3>
+                <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Управление командами ({(teams || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).length})</h3>
                 <Button onClick={() => setShowCreateTeam(true)} style={{ padding: "8px 16px", fontSize: "13px" }}>
                   <Icons.Plus /> Создать команду
                 </Button>
@@ -4307,7 +4328,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   </div>
                 </Card>
               )}
-              {teams.map(team => {
+              {(teams || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).map(team => {
                 const coach = users.find(u => u.id === team.coach_id);
                 const isEditing = editingTeam?.id === team.id;
                 const isExpanded = expandedTeam === team.id;
