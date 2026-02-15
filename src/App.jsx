@@ -6426,7 +6426,7 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
 export default function MTKCupApp() {
   const [screen, setScreenRaw] = useState("welcome");
   const [adminTab, setAdminTab] = useState("tours");
-  // adminTournamentFilter управляется из App
+  const [adminTournamentFilter, setAdminTournamentFilter] = useState("");
   const [navStack, setNavStack] = useState([]);
   
   // Обёртка для навигации с историей
