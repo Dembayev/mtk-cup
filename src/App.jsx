@@ -2909,12 +2909,12 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour }) => {
-  const [tab, setTab] = useState("tours");
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour, adminTab, setAdminTab, adminTournamentFilter, setAdminTournamentFilter }) => {
+  // tab управляется из App через adminTab/setAdminTab
   const [editingTour, setEditingTour] = useState(null);
   const [tourData, setTourData] = useState({ number: "", name: "", date: "", location: "", address: "", tournament_id: "" });
   const [tournamentData, setTournamentData] = useState({ name: "", category: "men", season: "" });
-  const [adminTournamentFilter, setAdminTournamentFilter] = useState("");
+  // adminTournamentFilter управляется из App
   const [editingTournament, setEditingTournament] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
   const [matchScore, setMatchScore] = useState({ 
@@ -3333,17 +3333,17 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
               { id: "teams", label: "Команды" },
               { id: "predictions", label: "Прогнозы" },
             ].map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)} style={{
+              <button key={t.id} onClick={() => setAdminTab(t.id)} style={{
                 padding: "10px 16px", borderRadius: "20px", border: "none",
-                background: tab === t.id ? "#3b82f6" : colors.gray,
-                color: tab === t.id ? "white" : colors.text,
+                background: adminTab === t.id ? "#3b82f6" : colors.gray,
+                color: adminTab === t.id ? "white" : colors.text,
                 fontWeight: 600, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap",
               }}>{t.label}</button>
             ))}
           </div>
 
           {/* Фильтр по турниру для туров/матчей/команд */}
-          {(tab === "tours" || tab === "matches" || tab === "teams") && tournaments?.length > 0 && (
+          {(adminTab === "tours" || adminTab === "matches" || adminTab === "teams") && tournaments?.length > 0 && (
             <div style={{ 
               display: "flex", gap: "4px", marginBottom: "16px", overflowX: "auto", paddingBottom: "4px",
               background: colors.gray, borderRadius: "12px", padding: "4px",
@@ -3370,7 +3370,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           )}
 
           {/* Tournaments tab */}
-          {tab === "tournaments" && (
+          {adminTab === "tournaments" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Турниры ({tournaments.length})</h3>
@@ -3424,7 +3424,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           )}
 
           {/* Tours tab */}
-          {tab === "tours" && (
+          {adminTab === "tours" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Туры ({tours.length})</h3>
@@ -3523,7 +3523,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           )}
 
           {/* Matches tab */}
-          {tab === "matches" && (
+          {adminTab === "matches" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Матчи</h3>
@@ -3770,7 +3770,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
 
           
           {/* Stats tab */}
-          {tab === "stats" && (
+          {adminTab === "stats" && (
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Статистика игроков по матчам</h3>
               <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "16px" }}>
@@ -3863,7 +3863,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           )}
 
 {/* Videos tab */}
-          {tab === "videos" && (
+          {adminTab === "videos" && (
             <>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 12px" }}>Управление трансляциями и записями</h3>
               <p style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "16px" }}>
@@ -3959,7 +3959,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           )}
 
           {/* Users tab - ИСПРАВЛЕННЫЙ */}
-          {tab === "users" && (
+          {adminTab === "users" && (
             <>
               {/* Заявки на роль */}
               {(roleRequests || []).filter(r => r.status === "pending").length > 0 && (
@@ -4218,7 +4218,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           )}
 
           {/* Teams tab - ИСПРАВЛЕННЫЙ */}
-          {tab === "teams" && (
+          {adminTab === "teams" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Управление командами ({(teams || []).filter(t => !adminTournamentFilter || t.tournament_id === adminTournamentFilter).length})</h3>
@@ -4709,7 +4709,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           )}
 
           {/* Predictions tab */}
-          {tab === "predictions" && (
+          {adminTab === "predictions" && (
             <div>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 16px" }}>Система прогнозов</h3>
               
@@ -6425,6 +6425,8 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
 // Main App
 export default function MTKCupApp() {
   const [screen, setScreenRaw] = useState("welcome");
+  const [adminTab, setAdminTab] = useState("tours");
+  // adminTournamentFilter управляется из App
   const [navStack, setNavStack] = useState([]);
   
   // Обёртка для навигации с историей
@@ -8398,7 +8400,7 @@ const handleGuest = () => {
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} />;
+      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} adminTab={adminTab} setAdminTab={setAdminTab} adminTournamentFilter={adminTournamentFilter} setAdminTournamentFilter={setAdminTournamentFilter} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
     }
   };
