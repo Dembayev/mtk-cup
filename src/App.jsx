@@ -1109,7 +1109,7 @@ const TeamsScreen = ({ setScreen, teams, players, setSelectedTeam, user, myTeamI
                     <p style={{ margin: 0, fontSize: "13px", color: colors.goldDark }}>{team.wins}В {team.losses}П • {team.points} очков • {(() => { const teamPlayers = (players || []).filter(p => p.team_id === team.id); const hasCoachInPlayers = teamPlayers.some(p => p.user_id === team.coach_id); const coachExtra = team.coach_id && !hasCoachInPlayers ? 1 : 0; return teamPlayers.length + coachExtra; })()} игр.</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "20px", fontWeight: 700, color: colors.gold }}>#{teams.sort((a,b) => (b.points||0)-(a.points||0)).indexOf(team) + 1}</div>
+                    <div style={{ fontSize: "20px", fontWeight: 700, color: colors.gold }}>#{filteredTeams.sort((a,b) => (b.points||0)-(a.points||0)).indexOf(team) + 1}</div>
                   </div>
                 </div>
               </Card>
@@ -6491,8 +6491,9 @@ export default function MTKCupApp() {
   const userRoles = getUserRoles(user, players, teams, roleRequests);
   const currentPlayer = userRoles.playerRecord;
   const pendingOffers = offers.filter(o => o.player_id === currentPlayer?.id && o.status === "pending");
-  const coachTeam = teams.find(t => t.coach_id === user?.id);
-  const sentOffers = offers.filter(o => o.team_id === coachTeam?.id);
+  const coachTeams = teams.filter(t => t.coach_id === user?.id);
+  const coachTeam = coachTeams[0] || null;
+  const sentOffers = offers.filter(o => coachTeams.some(ct => ct.id === o.team_id));
 
   useEffect(() => {
     if (tg) {
