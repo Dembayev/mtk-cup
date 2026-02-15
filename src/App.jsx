@@ -6507,12 +6507,26 @@ export default function MTKCupApp() {
     loadData();
   }, []);
 
-  // Live-режим: автообновление данных каждые 30 секунд
+  // Live-режим: Supabase Realtime + fallback polling
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadData(true); // silent refresh
-    }, 30000);
-    return () => clearInterval(interval);
+    // Realtime подписка на ключевые таблицы
+    const channel = supabase.channel('app-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_sets' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'player_match_stats' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tours' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, () => loadData(true))
+      .subscribe();
+
+    // Fallback polling каждые 60 сек на случай если Realtime отвалится
+    const interval = setInterval(() => loadData(true), 60000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, []);
 
   const loadData = async (silent = false) => {
