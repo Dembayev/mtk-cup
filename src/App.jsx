@@ -6507,9 +6507,17 @@ export default function MTKCupApp() {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  // Live-режим: автообновление данных каждые 30 секунд
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadData(true); // silent refresh
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
 let tournamentsData = [];
       try { const res = await supabase.from("tournaments").select("*").order("created_at"); tournamentsData = res.data || []; } catch(e) { console.error("Error loading tournaments:", e); }
       const { data: teamsData } = await supabase.from("teams").select("*, coaches:coach_id(id, first_name, last_name, username, avatar_url)").order("points", { ascending: false });
