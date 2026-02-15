@@ -3382,7 +3382,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                 <Card style={{ marginBottom: "16px", background: "#f9f9f9" }}>
                   <h4 style={{ margin: "0 0 12px", fontSize: "14px" }}>{editingTournament === "new" ? "Новый турнир" : "Редактировать турнир"}</h4>
                   <Input label="Название" value={tournamentData.name} onChange={v => setTournamentData(p => ({ ...p, name: v }))} placeholder="Кубок МТК" />
-                  <Select label="Категория" value={tournamentData.category} onChange={v => setTournamentData(p => ({ ...p, category: v }))} options={[{ value: "men", label: "Мужчины" }, { value: "women", label: "Женщины" }, { value: "youth", label: "Юноши" }]} />
+                  <Select label="Категория" value={tournamentData.category} onChange={v => setTournamentData(p => ({ ...p, category: v }))} options={[{ value: "men", label: "Мужчины" }, { value: "women", label: "Женщины" }, { value: "youth", label: "Юноши" }, { value: "girls", label: "Девушки" }]} />
                   <Input label="Сезон" value={tournamentData.season} onChange={v => setTournamentData(p => ({ ...p, season: v }))} placeholder="2025/2026" />
                   <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                     <Button onClick={async () => {
@@ -3406,7 +3406,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                     <div>
                       <div style={{ fontWeight: 600, fontSize: "15px" }}>{t.name}</div>
                       <div style={{ fontSize: "12px", color: colors.goldDark }}>
-                        {t.category === "men" ? "Мужчины" : t.category === "women" ? "Женщины" : "Юноши"} • {t.season || "—"} • {t.is_active ? "Активен" : "Архив"}
+                        {t.category === "men" ? "Мужчины" : t.category === "women" ? "Женщины" : t.category === "girls" ? "Девушки" : "Юноши"} • {t.season || "—"} • {t.is_active ? "Активен" : "Архив"}
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
@@ -7822,8 +7822,9 @@ let tournamentsData = [];
       const sourceTour = tours.find(t => t.id === tourId);
       if (!sourceTour) throw new Error("Тур не найден");
       
-      // Находим максимальный номер тура
-      const maxNumber = Math.max(...tours.map(t => t.number || 0), 0);
+      // Номер = максимальный в этом турнире + 1
+      const sameTournamentTours = tours.filter(t => t.tournament_id === sourceTour.tournament_id);
+      const maxNumber = Math.max(...sameTournamentTours.map(t => t.number || 0), 0);
       
       // Создаём новый тур
       const { data: newTour, error: tourError } = await supabase.from("tours").insert({
