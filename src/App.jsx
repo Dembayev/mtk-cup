@@ -2137,6 +2137,15 @@ const PlayerDetailScreen = ({ setScreen, goBack, player, teams, setSelectedTeam,
                   <span style={{ fontWeight: 600 }}>{new Date(player.birth_date).toLocaleDateString("ru-RU")}</span>
                 </div>
               )}
+              {player?.sport_rank && (() => {
+                const rl = {"3": "3 разряд", "2": "2 разряд", "1": "1 разряд", "kms": "КМС", "ms": "МС", "msmk": "МСМК", "zms": "ЗМС"};
+                return (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: colors.goldDark }}>Разряд</span>
+                    <span style={{ fontWeight: 600 }}>{rl[player.sport_rank] || player.sport_rank}{player.rank_date ? ` (${new Date(player.rank_date).toLocaleDateString("ru-RU")})` : ""}</span>
+                  </div>
+                );
+              })()}
             </div>
           </Card>
 
@@ -3159,6 +3168,10 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
   const [playerHeight, setPlayerHeight] = useState("");
   const [playerJumpHeight, setPlayerJumpHeight] = useState("");
   const [playerMeasurementDate, setPlayerMeasurementDate] = useState("");
+  const [playerBirthDate, setPlayerBirthDate] = useState("");
+  const [playerBio, setPlayerBio] = useState("");
+  const [playerSportRank, setPlayerSportRank] = useState("");
+  const [playerRankDate, setPlayerRankDate] = useState("");
 
   const startEditPlayer = (player) => {
     setEditingPlayer(player);
@@ -3167,6 +3180,10 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     setPlayerHeight(player.users?.height || "");
     setPlayerJumpHeight(player.users?.jump_height || "");
     setPlayerMeasurementDate(player.users?.measurement_date || "");
+    setPlayerBirthDate(player.birth_date || "");
+    setPlayerBio(player.bio || "");
+    setPlayerSportRank(player.sport_rank || "");
+    setPlayerRankDate(player.rank_date || "");
   };
 
   const savePlayer = async () => {
@@ -3174,7 +3191,11 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
     // Сохраняем данные игрока в players
     await onUpdatePlayer(editingPlayer.id, {
       jersey_number: playerJersey || null,
-      positions: playerPositions || []
+      positions: playerPositions || [],
+      birth_date: playerBirthDate || null,
+      bio: playerBio || null,
+      sport_rank: playerSportRank || null,
+      rank_date: playerRankDate || null,
     });
     // Сохраняем рост/прыжок в users
     if (editingPlayer.user_id) {
@@ -4644,6 +4665,33 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                           <button key={pos} onClick={() => togglePosition(pos)} style={{ padding: "4px 8px", borderRadius: "12px", border: "none", fontSize: "11px", cursor: "pointer", background: playerPositions.includes(pos) ? colors.gold : colors.grayBorder, color: playerPositions.includes(pos) ? "white" : colors.text }}>{positionLabels[pos]}</button>
                                         ))}
                                       </div>
+                                    </div>
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark }}>Дата рождения:</label>
+                                      <input type="date" value={playerBirthDate} onChange={e => setPlayerBirthDate(e.target.value)} style={{ width: "100%", marginTop: "4px", padding: "6px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "13px" }} />
+                                    </div>
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark }}>Разряд:</label>
+                                      <select value={playerSportRank} onChange={e => setPlayerSportRank(e.target.value)} style={{ width: "100%", marginTop: "4px", padding: "6px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "13px" }}>
+                                        <option value="">Не указан</option>
+                                        <option value="3">3 разряд</option>
+                                        <option value="2">2 разряд</option>
+                                        <option value="1">1 разряд</option>
+                                        <option value="kms">КМС</option>
+                                        <option value="ms">МС</option>
+                                        <option value="msmk">МСМК</option>
+                                        <option value="zms">ЗМС</option>
+                                      </select>
+                                    </div>
+                                    {playerSportRank && (
+                                      <div style={{ marginBottom: "8px" }}>
+                                        <label style={{ fontSize: "12px", color: colors.goldDark }}>Дата присвоения разряда:</label>
+                                        <input type="date" value={playerRankDate} onChange={e => setPlayerRankDate(e.target.value)} style={{ width: "100%", marginTop: "4px", padding: "6px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "13px" }} />
+                                      </div>
+                                    )}
+                                    <div style={{ marginBottom: "8px" }}>
+                                      <label style={{ fontSize: "12px", color: colors.goldDark }}>О себе:</label>
+                                      <textarea value={playerBio} onChange={e => setPlayerBio(e.target.value)} placeholder="Краткое описание..." style={{ width: "100%", marginTop: "4px", padding: "6px 8px", borderRadius: "4px", border: `1px solid ${colors.grayBorder}`, fontSize: "13px", minHeight: "50px", resize: "vertical", boxSizing: "border-box" }} />
                                     </div>
                                     <div style={{ display: "flex", gap: "6px" }}>
                                       <button onClick={savePlayer} style={{ flex: 1, padding: "6px", background: colors.gold, color: "white", border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Сохранить</button>
