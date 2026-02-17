@@ -2918,7 +2918,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour, adminTab, setAdminTab, adminTournamentFilter, setAdminTournamentFilter }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, onStartLineup, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour, adminTab, setAdminTab, adminTournamentFilter, setAdminTournamentFilter }) => {
   // tab управляется из App через adminTab/setAdminTab
   const [editingTour, setEditingTour] = useState(null);
   const [tourData, setTourData] = useState({ number: "", name: "", date: "", location: "", address: "", tournament_id: "" });
@@ -3773,6 +3773,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               }} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", padding: "4px" }} title="Редактировать информацию">
                                 ⚙️
                               </button>
+                              <button onClick={() => onStartLineup(match)} style={{ background: "#0284c7", border: "none", cursor: "pointer", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }} title="Стартовый состав">📋</button>
                               <button onClick={() => onStartServiceman(match)} style={{ background: "#16a34a", border: "none", cursor: "pointer", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }} title="Вести статистику">📊</button>
                               <button onClick={() => onDeleteMatch(match.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }} title="Удалить матч">
                                 <Icons.X />
@@ -5295,6 +5296,263 @@ const ServicemanMatchSelectScreen = ({ matches, teams, tours, onSelectMatch, set
   );
 };
 
+
+// ==================== LINEUP SCREEN ====================
+const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => {
+  const [saving, setSaving] = useState(false);
+  const [activeTeam, setActiveTeam] = useState("team1");
+  const [setNumber, setSetNumber] = useState(1);
+  const [selectedPlayers, setSelectedPlayers] = useState({ team1: {}, team2: {} }); // { zone1: playerId, ... }
+  const [liberos, setLiberos] = useState({ team1: null, team2: null });
+
+  const team1 = teams.find(t => t.id === match?.team1_id);
+  const team2 = teams.find(t => t.id === match?.team2_id);
+  const team1Players = players.filter(p => p.team_id === match?.team1_id);
+  const team2Players = players.filter(p => p.team_id === match?.team2_id);
+
+  const currentTeamId = activeTeam === "team1" ? match?.team1_id : match?.team2_id;
+  const currentPlayers = activeTeam === "team1" ? team1Players : team2Players;
+  const currentSelected = selectedPlayers[activeTeam];
+  const currentLibero = liberos[activeTeam];
+
+  // Загрузка существующих lineups при монтировании
+  useEffect(() => {
+    if (!match?.id || !lineups) return;
+    const matchLineups = lineups.filter(l => l.match_id === match.id && l.set_number === setNumber);
+    const t1 = {}, t2 = {};
+    let lib1 = null, lib2 = null;
+    matchLineups.forEach(l => {
+      const side = l.team_id === match.team1_id ? "team1" : "team2";
+      if (l.is_libero) {
+        if (side === "team1") lib1 = l.player_id;
+        else lib2 = l.player_id;
+      } else if (l.position_zone) {
+        if (side === "team1") t1[`zone${l.position_zone}`] = l.player_id;
+        else t2[`zone${l.position_zone}`] = l.player_id;
+      }
+    });
+    setSelectedPlayers({ team1: t1, team2: t2 });
+    setLiberos({ team1: lib1, team2: lib2 });
+  }, [match?.id, lineups, setNumber]);
+
+  const selectedIds = new Set([...Object.values(currentSelected), currentLibero].filter(Boolean));
+
+  const assignToZone = (zone, playerId) => {
+    setSelectedPlayers(prev => ({
+      ...prev,
+      [activeTeam]: { ...prev[activeTeam], [zone]: playerId }
+    }));
+  };
+
+  const removeFromZone = (zone) => {
+    setSelectedPlayers(prev => {
+      const updated = { ...prev[activeTeam] };
+      delete updated[zone];
+      return { ...prev, [activeTeam]: updated };
+    });
+  };
+
+  const setAsLibero = (playerId) => {
+    setLiberos(prev => ({ ...prev, [activeTeam]: prev[activeTeam] === playerId ? null : playerId }));
+  };
+
+  const getPlayerName = (playerId) => {
+    const p = players.find(pl => pl.id === playerId);
+    if (!p) return "—";
+    const name = ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim();
+    return p.jersey_number ? `#${p.jersey_number} ${name}` : name;
+  };
+
+  const getPlayerShort = (playerId) => {
+    const p = players.find(pl => pl.id === playerId);
+    if (!p) return null;
+    return { name: p.users?.last_name || p.users?.first_name || "?", number: p.jersey_number, avatar: p.users?.avatar_url };
+  };
+
+  const saveLineup = async () => {
+    setSaving(true);
+    try {
+      // Удаляем старые lineups для этого матча/сета
+      await supabase.from("match_lineups").delete().match({ match_id: match.id, set_number: setNumber });
+
+      const rows = [];
+      // Обе команды
+      ["team1", "team2"].forEach(side => {
+        const teamId = side === "team1" ? match.team1_id : match.team2_id;
+        Object.entries(selectedPlayers[side]).forEach(([zone, playerId]) => {
+          if (playerId) {
+            rows.push({ match_id: match.id, team_id: teamId, set_number: setNumber, player_id: playerId, position_zone: parseInt(zone.replace("zone", "")), is_libero: false });
+          }
+        });
+        if (liberos[side]) {
+          rows.push({ match_id: match.id, team_id: teamId, set_number: setNumber, player_id: liberos[side], position_zone: null, is_libero: true });
+        }
+      });
+
+      if (rows.length > 0) {
+        const { error } = await supabase.from("match_lineups").insert(rows);
+        if (error) throw error;
+      }
+      alert("Состав сохранён!");
+    } catch (e) {
+      console.error("Save lineup error:", e);
+      alert("Ошибка: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const zones = ["zone1", "zone2", "zone3", "zone4", "zone5", "zone6"];
+  const zoneLabels = { zone1: "Зона 1", zone2: "Зона 2", zone3: "Зона 3", zone4: "Зона 4", zone5: "Зона 5", zone6: "Зона 6" };
+  const filledCount = Object.values(currentSelected).filter(Boolean).length;
+
+  return (
+    <div style={{ paddingBottom: "100px" }}>
+      <Header title="Стартовый состав" showBack onBack={() => goBack ? goBack() : setScreen("home")} />
+      <Container>
+        <div style={{ padding: "20px 0" }}>
+          {/* Матч */}
+          <Card style={{ marginBottom: "16px", textAlign: "center" }}>
+            <div style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "8px" }}>Сет #{setNumber}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+              <span style={{ fontWeight: 700, fontSize: "15px" }}>{team1?.name || "Команда 1"}</span>
+              <span style={{ color: colors.goldDark }}>vs</span>
+              <span style={{ fontWeight: 700, fontSize: "15px" }}>{team2?.name || "Команда 2"}</span>
+            </div>
+            <div style={{ display: "flex", gap: "4px", justifyContent: "center", marginTop: "12px" }}>
+              {[1,2,3,4,5].map(s => (
+                <button key={s} onClick={() => setSetNumber(s)} style={{
+                  padding: "6px 14px", borderRadius: "8px", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer",
+                  background: s === setNumber ? colors.gold : colors.gray,
+                  color: s === setNumber ? "#fff" : colors.text,
+                }}>{s}</button>
+              ))}
+            </div>
+          </Card>
+
+          {/* Переключатель команд */}
+          <div style={{ display: "flex", gap: "4px", marginBottom: "16px", background: colors.gray, borderRadius: "12px", padding: "4px" }}>
+            {[{ key: "team1", team: team1 }, { key: "team2", team: team2 }].map(({ key, team }) => (
+              <div key={key} onClick={() => setActiveTeam(key)} style={{
+                flex: 1, padding: "10px", borderRadius: "10px", textAlign: "center", cursor: "pointer", fontSize: "13px", fontWeight: 600,
+                background: activeTeam === key ? "#fff" : "transparent",
+                color: activeTeam === key ? colors.goldDark : colors.textLight,
+                boxShadow: activeTeam === key ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                transition: "all 0.2s ease",
+              }}>
+                {team?.name || key}
+              </div>
+            ))}
+          </div>
+
+          {/* Площадка - схема зон */}
+          <Card style={{ marginBottom: "16px" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>РАССТАНОВКА ({filledCount}/6)</h3>
+            <div style={{ 
+              display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px",
+              background: "#e8f5e9", borderRadius: "12px", padding: "12px", position: "relative"
+            }}>
+              {/* Сетка: верхний ряд 4-3-2, нижний 5-6-1 (вид сверху) */}
+              {[["zone4","zone3","zone2"],["zone5","zone6","zone1"]].map((row, ri) => 
+                row.map(zone => {
+                  const playerId = currentSelected[zone];
+                  const info = playerId ? getPlayerShort(playerId) : null;
+                  return (
+                    <div key={zone} style={{ 
+                      background: playerId ? colors.gold : "#fff", 
+                      borderRadius: "10px", padding: "10px", textAlign: "center", minHeight: "60px",
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                      border: playerId ? "none" : "2px dashed " + colors.grayBorder,
+                      color: playerId ? "#fff" : colors.textLight,
+                      position: "relative",
+                    }}>
+                      <div style={{ fontSize: "10px", opacity: 0.7 }}>{zoneLabels[zone]}</div>
+                      {info ? (
+                        <>
+                          <div style={{ fontSize: "18px", fontWeight: 700 }}>#{info.number || "?"}</div>
+                          <div style={{ fontSize: "11px", fontWeight: 600, maxWidth: "80px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{info.name}</div>
+                          <button onClick={() => removeFromZone(zone)} style={{ position: "absolute", top: "2px", right: "4px", background: "none", border: "none", color: "#fff", fontSize: "14px", cursor: "pointer" }}>✕</button>
+                        </>
+                      ) : (
+                        <div style={{ fontSize: "22px" }}>+</div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            {/* Сетка label */}
+            <div style={{ textAlign: "center", margin: "4px 0", fontSize: "11px", color: colors.goldDark, borderTop: "2px solid " + colors.gold, paddingTop: "4px" }}>СЕТКА</div>
+
+            {/* Либеро */}
+            <div style={{ marginTop: "12px", padding: "8px 12px", background: currentLibero ? "#e0f2fe" : colors.gray, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: currentLibero ? "#0284c7" : colors.textLight }}>
+                Либеро: {currentLibero ? getPlayerName(currentLibero) : "Не назначен"}
+              </span>
+              {currentLibero && (
+                <button onClick={() => setAsLibero(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "14px" }}>✕</button>
+              )}
+            </div>
+          </Card>
+
+          {/* Список доступных игроков */}
+          <Card>
+            <h3 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, marginBottom: "12px" }}>СОСТАВ КОМАНДЫ</h3>
+            {currentPlayers.length === 0 ? (
+              <p style={{ color: colors.textLight, fontSize: "13px" }}>Нет игроков в команде</p>
+            ) : (
+              currentPlayers.sort((a,b) => (parseInt(a.jersey_number)||99) - (parseInt(b.jersey_number)||99)).map(p => {
+                const isSelected = selectedIds.has(p.id);
+                const isLibero = currentLibero === p.id;
+                const name = ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || p.users?.username || "?";
+                const emptyZone = zones.find(z => !currentSelected[z]);
+                return (
+                  <div key={p.id} style={{ 
+                    display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", 
+                    borderBottom: "1px solid " + colors.grayBorder,
+                    opacity: isSelected ? 0.5 : 1,
+                  }}>
+                    <Avatar name={name} size={36} url={p.users?.avatar_url} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "14px", fontWeight: 600 }}>
+                        {p.jersey_number ? `#${p.jersey_number} ` : ""}{name}
+                      </div>
+                      <div style={{ fontSize: "11px", color: colors.goldDark }}>
+                        {p.positions?.map(pos => positionLabels[pos] || pos).join(", ") || "—"}
+                      </div>
+                    </div>
+                    {isLibero ? (
+                      <Badge variant="gold">Либеро</Badge>
+                    ) : isSelected ? (
+                      <Badge variant="default">На площадке</Badge>
+                    ) : (
+                      <div style={{ display: "flex", gap: "4px" }}>
+                        {emptyZone && filledCount < 6 && (
+                          <button onClick={() => assignToZone(emptyZone, p.id)} style={{ padding: "6px 10px", background: colors.gold, color: "#fff", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
+                            + Поле
+                          </button>
+                        )}
+                        <button onClick={() => setAsLibero(p.id)} style={{ padding: "6px 10px", background: "#e0f2fe", color: "#0284c7", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
+                          Либеро
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </Card>
+
+          {/* Кнопка сохранения */}
+          <Button onClick={saveLineup} disabled={saving} style={{ width: "100%", marginTop: "16px", padding: "14px" }}>
+            <Icons.Save /> {saving ? "Сохранение..." : "Сохранить состав"}
+          </Button>
+        </div>
+      </Container>
+    </div>
+  );
+};
+
 const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUpdateMatch, setScreen }) => {
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
@@ -6522,6 +6780,7 @@ export default function MTKCupApp() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [servicemanMatch, setServicemanMatch] = useState(null);
+  const [lineups, setLineups] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [playerStats, setPlayerStats] = useState([]);
   const [sponsors, setSponsors] = useState([]);
@@ -6567,6 +6826,7 @@ export default function MTKCupApp() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => loadData(true))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tours' }, () => loadData(true))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_lineups' }, () => loadData(true))
       .subscribe();
 
     // Fallback polling каждые 60 сек на случай если Realtime отвалится
@@ -6595,6 +6855,7 @@ let tournamentsData = [];
       const { data: sponsorsData } = await supabase.from("sponsors").select("*").order("created_at", { ascending: false });
       const { data: prizesData } = await supabase.from("prizes").select("*").order("created_at", { ascending: false });
       const { data: predictionsData } = await supabase.from("predictions").select("*").order("created_at", { ascending: false });
+      const { data: lineupsData } = await supabase.from("match_lineups").select("*");
 
       const playersWithDetails = (playersData || []).map(player => ({
         ...player,
@@ -6618,6 +6879,7 @@ let tournamentsData = [];
       setSponsors(sponsorsData || []);
       setPrizes(prizesData || []);
       setPredictions(predictionsData || []);
+      setLineups(lineupsData || []);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -8469,10 +8731,11 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack}  tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} activeTournamentId={activeTournamentId} />;
       case "servicemanSelect": return <ServicemanMatchSelectScreen matches={matches} teams={teams} tours={tours} onSelectMatch={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} setScreen={setScreen} />;
+      case "lineup": return <LineupScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} />;
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} adminTab={adminTab} setAdminTab={setAdminTab} adminTournamentFilter={adminTournamentFilter} setAdminTournamentFilter={setAdminTournamentFilter} />;
+      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} onStartLineup={(match) => { setServicemanMatch(match); setScreen("lineup"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} adminTab={adminTab} setAdminTab={setAdminTab} adminTournamentFilter={adminTournamentFilter} setAdminTournamentFilter={setAdminTournamentFilter} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
     }
   };
