@@ -2918,7 +2918,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, onStartLineup, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour, adminTab, setAdminTab, adminTournamentFilter, setAdminTournamentFilter }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, onStartLineup, onStartBroadcaster, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour, adminTab, setAdminTab, adminTournamentFilter, setAdminTournamentFilter }) => {
   // tab управляется из App через adminTab/setAdminTab
   const [editingTour, setEditingTour] = useState(null);
   const [tourData, setTourData] = useState({ number: "", name: "", date: "", location: "", address: "", tournament_id: "" });
@@ -3773,6 +3773,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               }} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", padding: "4px" }} title="Редактировать информацию">
                                 ⚙️
                               </button>
+                              <button onClick={() => { if (typeof onStartBroadcaster === "function") onStartBroadcaster(match); }} style={{ background: "#7c3aed", border: "none", cursor: "pointer", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }} title="Панель ведущего">🎙️</button>
                               <button onClick={() => onStartLineup(match)} style={{ background: "#0284c7", border: "none", cursor: "pointer", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }} title="Стартовый состав">📋</button>
                               <button onClick={() => onStartServiceman(match)} style={{ background: "#16a34a", border: "none", cursor: "pointer", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }} title="Вести статистику">📊</button>
                               <button onClick={() => onDeleteMatch(match.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }} title="Удалить матч">
@@ -5547,6 +5548,143 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
           <Button onClick={saveLineup} disabled={saving} style={{ width: "100%", marginTop: "16px", padding: "14px" }}>
             <Icons.Save /> {saving ? "Сохранение..." : "Сохранить состав"}
           </Button>
+        </div>
+      </Container>
+    </div>
+  );
+};
+
+
+// ==================== BROADCASTER SCREEN ====================
+const BroadcasterScreen = ({ match, teams, players, lineups, setScreen, goBack }) => {
+  const [setNumber, setSetNumber] = useState(1);
+  
+  const team1 = teams.find(t => t.id === match?.team1_id);
+  const team2 = teams.find(t => t.id === match?.team2_id);
+
+  const getLineup = (teamId) => {
+    if (!lineups || !match) return { starters: [], libero: null };
+    const ml = lineups.filter(l => l.match_id === match.id && l.set_number === setNumber && l.team_id === teamId);
+    const starters = ml.filter(l => !l.is_libero && l.position_zone).sort((a,b) => a.position_zone - b.position_zone);
+    const libero = ml.find(l => l.is_libero);
+    return { starters, libero };
+  };
+
+  const getPlayer = (playerId) => players.find(p => p.id === playerId);
+  
+  const rankLabels = {"3": "III разряд", "2": "II разряд", "1": "I разряд", "kms": "КМС", "ms": "МС", "msmk": "МСМК", "zms": "ЗМС"};
+
+  const PlayerCard = ({ playerId, zone, isLibero }) => {
+    const p = getPlayer(playerId);
+    if (!p) return null;
+    const name = ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || p.users?.username || "?";
+    const age = p.birth_date ? (() => { const today = new Date(); const b = new Date(p.birth_date); let a = today.getFullYear() - b.getFullYear(); const m = today.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && today.getDate() < b.getDate())) a--; return a; })() : null;
+    
+    return (
+      <div style={{ 
+        display: "flex", alignItems: "center", gap: "12px", padding: "12px", 
+        background: isLibero ? "#e0f2fe" : "#fff", borderRadius: "12px", marginBottom: "8px",
+        border: isLibero ? "2px solid #0284c7" : "1px solid " + colors.grayBorder,
+      }}>
+        <Avatar name={name} size={48} url={p.users?.avatar_url} />
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {p.jersey_number && <span style={{ fontSize: "22px", fontWeight: 800, color: colors.gold }}>#{p.jersey_number}</span>}
+            <span style={{ fontSize: "16px", fontWeight: 700 }}>{name}</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "4px", fontSize: "12px", color: colors.goldDark }}>
+            {p.positions?.length > 0 && <span>{p.positions.map(pos => positionLabels[pos] || pos).join(", ")}</span>}
+            {p.users?.height && <span>📏 {p.users.height} см</span>}
+            {age && <span>🎂 {age} лет</span>}
+            {p.sport_rank && <span>🏅 {rankLabels[p.sport_rank] || p.sport_rank}</span>}
+          </div>
+          {p.bio && <div style={{ fontSize: "12px", color: colors.textLight, marginTop: "4px", fontStyle: "italic" }}>{p.bio}</div>}
+        </div>
+        <div style={{ textAlign: "center", fontSize: "11px", color: isLibero ? "#0284c7" : colors.goldDark, fontWeight: 600 }}>
+          {isLibero ? "Либеро" : `Зона ${zone}`}
+        </div>
+      </div>
+    );
+  };
+
+  const TeamLineup = ({ teamId, teamName }) => {
+    const { starters, libero } = getLineup(teamId);
+    const teamAllPlayers = players.filter(p => p.team_id === teamId);
+    const starterIds = new Set(starters.map(s => s.player_id));
+    if (libero) starterIds.add(libero.player_id);
+    const bench = teamAllPlayers.filter(p => !starterIds.has(p.id));
+    
+    return (
+      <div style={{ marginBottom: "24px" }}>
+        <div style={{ 
+          background: `linear-gradient(135deg, ${colors.gold} 0%, ${colors.goldDark} 100%)`,
+          color: "#fff", padding: "14px 16px", borderRadius: "12px 12px 0 0", fontWeight: 700, fontSize: "18px",
+          display: "flex", justifyContent: "space-between", alignItems: "center"
+        }}>
+          <span>{teamName}</span>
+          <span style={{ fontSize: "13px", opacity: 0.8 }}>{starters.length} в поле</span>
+        </div>
+        <div style={{ background: colors.gray, padding: "12px", borderRadius: "0 0 12px 12px" }}>
+          {starters.length > 0 ? (
+            starters.map(s => <PlayerCard key={s.id} playerId={s.player_id} zone={s.position_zone} />)
+          ) : (
+            <div style={{ textAlign: "center", padding: "20px", color: colors.textLight, fontSize: "14px" }}>Состав не заявлен</div>
+          )}
+          {libero && <PlayerCard playerId={libero.player_id} isLibero />}
+          
+          {bench.length > 0 && (
+            <>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: colors.goldDark, margin: "12px 0 8px", paddingTop: "8px", borderTop: "1px solid " + colors.grayBorder }}>ЗАПАСНЫЕ ({bench.length})</div>
+              {bench.map(p => {
+                const name = ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || p.users?.username || "?";
+                return (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", background: "#fff", borderRadius: "8px", marginBottom: "4px", fontSize: "13px", border: "1px solid " + colors.grayBorder }}>
+                    <Avatar name={name} size={28} url={p.users?.avatar_url} />
+                    <span style={{ fontWeight: 600 }}>{p.jersey_number ? `#${p.jersey_number} ` : ""}{name}</span>
+                    <span style={{ fontSize: "11px", color: colors.goldDark, marginLeft: "auto" }}>{p.positions?.map(pos => positionLabels[pos] || pos).join(", ") || ""}</span>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ paddingBottom: "100px" }}>
+      <Header title="Панель ведущего" showBack onBack={() => goBack ? goBack() : setScreen("home")} />
+      <Container>
+        <div style={{ padding: "20px 0" }}>
+          {/* Инфо о матче */}
+          <Card style={{ marginBottom: "16px", textAlign: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
+              <div style={{ textAlign: "center" }}>
+                {team1?.logo_url && team1.logo_url.startsWith("http") ? <img src={team1.logo_url} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} /> : <div style={{ width: 40, height: 40, background: colors.goldLight, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>🏐</div>}
+                <div style={{ fontSize: "15px", fontWeight: 700, marginTop: "4px" }}>{team1?.name}</div>
+              </div>
+              <div style={{ fontSize: "24px", fontWeight: 800, color: colors.gold }}>
+                {match?.status === "finished" || match?.status === "live" ? `${match?.sets_team1 || 0} : ${match?.sets_team2 || 0}` : "VS"}
+              </div>
+              <div style={{ textAlign: "center" }}>
+                {team2?.logo_url && team2.logo_url.startsWith("http") ? <img src={team2.logo_url} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} /> : <div style={{ width: 40, height: 40, background: colors.goldLight, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>🏐</div>}
+                <div style={{ fontSize: "15px", fontWeight: 700, marginTop: "4px" }}>{team2?.name}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "4px", justifyContent: "center", marginTop: "12px" }}>
+              {[1,2,3,4,5].map(s => (
+                <button key={s} onClick={() => setSetNumber(s)} style={{
+                  padding: "6px 14px", borderRadius: "8px", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer",
+                  background: s === setNumber ? colors.gold : colors.gray,
+                  color: s === setNumber ? "#fff" : colors.text,
+                }}>{s} сет</button>
+              ))}
+            </div>
+          </Card>
+
+          <TeamLineup teamId={match?.team1_id} teamName={team1?.name || "Команда 1"} />
+          <TeamLineup teamId={match?.team2_id} teamName={team2?.name || "Команда 2"} />
         </div>
       </Container>
     </div>
@@ -8731,11 +8869,12 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack}  tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} activeTournamentId={activeTournamentId} />;
       case "servicemanSelect": return <ServicemanMatchSelectScreen matches={matches} teams={teams} tours={tours} onSelectMatch={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} setScreen={setScreen} />;
+      case "broadcaster": return <BroadcasterScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} />;
       case "lineup": return <LineupScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} />;
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} onStartLineup={(match) => { setServicemanMatch(match); setScreen("lineup"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} adminTab={adminTab} setAdminTab={setAdminTab} adminTournamentFilter={adminTournamentFilter} setAdminTournamentFilter={setAdminTournamentFilter} />;
+      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} onStartLineup={(match) => { setServicemanMatch(match); setScreen("lineup"); }} onStartBroadcaster={(match) => { setServicemanMatch(match); setScreen("broadcaster"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} adminTab={adminTab} setAdminTab={setAdminTab} adminTournamentFilter={adminTournamentFilter} setAdminTournamentFilter={setAdminTournamentFilter} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
     }
   };
