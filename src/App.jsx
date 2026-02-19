@@ -3352,6 +3352,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
               { id: "videos", label: "Видео" },
               { id: "users", label: "Пользователи" },
               { id: "teams", label: "Команды" },
+              { id: "transfers", label: `Трансферы${(transferRequests || []).filter(tr => tr.status === "pending").length > 0 ? " (" + (transferRequests || []).filter(tr => tr.status === "pending").length + ")" : ""}` },
               { id: "predictions", label: "Прогнозы" },
             ].map(t => (
               <button key={t.id} onClick={() => setAdminTab(t.id)} style={{
@@ -4803,6 +4804,11 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                                   await supabase.from("offers").update({ status: "rejected" }).eq("player_id", tr.player_id).eq("status", "pending").neq("id", tr.offer_id);
                                   // Обновляем игрока
                                   await supabase.from("players").update({ team_id: tr.team_to_id, is_free_agent: false }).eq("id", tr.player_id);
+                                  // Очищаем favourite_team_id
+                                  const trPlayer = players.find(p => p.id === tr.player_id);
+                                  if (trPlayer?.user_id) {
+                                    await supabase.from("users").update({ favorite_team_id: null }).eq("id", trPlayer.user_id);
+                                  }
                                   // Логируем как completed
                                   await supabase.from("transfer_requests").insert({
                                     player_id: tr.player_id,
@@ -5404,6 +5410,7 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
   const [saving, setSaving] = useState(false);
   const [activeTeam, setActiveTeam] = useState("team1");
   const [setNumber, setSetNumber] = useState(1);
+  const [activeZone, setActiveZone] = useState(null); // зона ожидающая выбора игрока
   const [selectedPlayers, setSelectedPlayers] = useState({ team1: {}, team2: {} }); // { zone1: playerId, ... }
   const [liberos, setLiberos] = useState({ team1: null, team2: null });
 
@@ -5564,7 +5571,7 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
                       background: playerId ? colors.gold : "#fff", 
                       borderRadius: "10px", padding: "10px", textAlign: "center", minHeight: "60px",
                       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                      border: playerId ? "none" : "2px dashed " + colors.grayBorder,
+                      border: playerId ? "none" : zone === activeZone ? "2px solid " + colors.gold : "2px dashed " + colors.grayBorder,
                       color: playerId ? "#fff" : colors.textLight,
                       position: "relative",
                     }}>
@@ -5629,9 +5636,12 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
                       <Badge variant="default">На площадке</Badge>
                     ) : (
                       <div style={{ display: "flex", gap: "4px" }}>
-                        {emptyZone && filledCount < 6 && (
-                          <button onClick={() => assignToZone(emptyZone, p.id)} style={{ padding: "6px 10px", background: colors.gold, color: "#fff", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
-                            + Поле
+                        {(activeZone || emptyZone) && filledCount < 6 && (
+                          <button onClick={() => { 
+                            const targetZone = activeZone && !currentSelected[activeZone] ? activeZone : emptyZone;
+                            if (targetZone) { assignToZone(targetZone, p.id); setActiveZone(null); }
+                          }} style={{ padding: "6px 10px", background: colors.gold, color: "#fff", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
+                            {activeZone && !currentSelected[activeZone] ? `→ ${zoneLabels[activeZone]}` : "+ Поле"}
                           </button>
                         )}
                         <button onClick={() => setAsLibero(p.id)} style={{ padding: "6px 10px", background: "#e0f2fe", color: "#0284c7", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
@@ -5803,6 +5813,8 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   // Раздельное хранение счёта для каждой команды
   const [teamProgress, setTeamProgress] = useState({});
   
+  const [substitutions, setSubstitutions] = useState({}); // { "team1_set1": [{out: id, in: id, time: Date}], ... }
+  
   // Загружаем из localStorage при смене матча
   useEffect(() => {
     if (!match?.id) return;
@@ -5849,7 +5861,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [showSubstitutionModal, setShowSubstitutionModal] = useState(false);
   const [onCourtPlayers, setOnCourtPlayers] = useState({ team1: [], team2: [] }); // Игроки на площадке
   const [teamLocked, setTeamLocked] = useState(false); // Команда зафиксирована
-  const [substitutions, setSubstitutions] = useState({}); // { "team1_set1": [{out: id, in: id, time: Date}], ... }
+
   const [showLineupSelect, setShowLineupSelect] = useState(false); // Экран выбора стартового состава
   const [selectedLineup, setSelectedLineup] = useState([]); // Выбранные игроки для состава
   const [liveScore, setLiveScore] = useState({ team1: 0, team2: 0 }); // Синхронизированный счёт
@@ -7136,6 +7148,7 @@ export default function MTKCupApp() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tours' }, () => loadData(true))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, () => loadData(true))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'match_lineups' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transfer_requests' }, () => loadData(true))
       .subscribe();
 
     // Fallback polling каждые 60 сек на случай если Realtime отвалится
