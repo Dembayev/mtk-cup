@@ -2918,7 +2918,7 @@ const PlayerStatInput = ({ player, matchId, existingStat, onSave }) => {
 };
 
 // Admin Panel Screen - РАСШИРЕННАЯ ВЕРСИЯ
-const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, onStartLineup, onStartBroadcaster, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour, adminTab, setAdminTab, adminTournamentFilter, setAdminTournamentFilter }) => {
+const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerStats, roleRequests, sponsors, prizes, predictions, onUpdateMatch, onUpdateUserRole, onUpdateUser, onAssignCoach, onDeleteTeam, onSetCaptain, onCreateTour, onUpdateTour, onDeleteTour, onCreateMatch, onUpdateMatchInfo, onDeleteMatch, onUpdateMatchVideo, onSavePlayerStat, onMakePlayer, onDeleteUser, onApproveRequest, onRejectRequest, actionLoading, loadData, onUpdatePlayer, onChangeGameRole, onCreateTeam, onUpdateTeamInfo, onStartServiceman, onStartLineup, onStartBroadcaster, tournaments, activeTournamentId, onCreateTournament, onUpdateTournament, onDeleteTournament, onCopyTour, adminTab, setAdminTab, adminTournamentFilter, setAdminTournamentFilter, transferRequests }) => {
   // tab управляется из App через adminTab/setAdminTab
   const [editingTour, setEditingTour] = useState(null);
   const [tourData, setTourData] = useState({ number: "", name: "", date: "", location: "", address: "", tournament_id: "" });
@@ -3395,7 +3395,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>Турниры ({tournaments.length})</h3>
-                <Button onClick={() => { setEditingTournament("new"); setTournamentData({ name: "", category: "men", season: "" }); }} style={{ padding: "8px 16px", fontSize: "13px" }}>
+                <Button onClick={() => { setEditingTournament("new"); setTournamentData({ name: "", category: "men", season: "", transfer_window: "open", max_transfers: 1 }); }} style={{ padding: "8px 16px", fontSize: "13px" }}>
                   + Новый турнир
                 </Button>
               </div>
@@ -3405,6 +3405,10 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                   <Input label="Название" value={tournamentData.name} onChange={v => setTournamentData(p => ({ ...p, name: v }))} placeholder="Кубок МТК" />
                   <Select label="Категория" value={tournamentData.category} onChange={v => setTournamentData(p => ({ ...p, category: v }))} options={[{ value: "men", label: "Мужчины" }, { value: "women", label: "Женщины" }, { value: "youth", label: "Юноши" }, { value: "girls", label: "Девушки" }]} />
                   <Input label="Сезон" value={tournamentData.season} onChange={v => setTournamentData(p => ({ ...p, season: v }))} placeholder="2025/2026" />
+                  <Select label="Трансферное окно" value={tournamentData.transfer_window || "open"} onChange={v => setTournamentData(p => ({ ...p, transfer_window: v }))} options={[{ value: "open", label: "Открыто (свободные переходы)" }, { value: "limited", label: "Ограничено (макс 1 переход)" }, { value: "closed", label: "Закрыто (переходы запрещены)" }]} />
+                  {tournamentData.transfer_window === "limited" && (
+                    <Input label="Макс переходов за сезон" type="number" value={tournamentData.max_transfers || 1} onChange={v => setTournamentData(p => ({ ...p, max_transfers: parseInt(v) || 1 }))} />
+                  )}
                   <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                     <Button onClick={async () => {
                       if (!tournamentData.name) { alert("Укажите название"); return; }
@@ -3428,6 +3432,7 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                       <div style={{ fontWeight: 600, fontSize: "15px" }}>{t.name}</div>
                       <div style={{ fontSize: "12px", color: colors.goldDark }}>
                         {t.category === "men" ? "Мужчины" : t.category === "women" ? "Женщины" : t.category === "girls" ? "Девушки" : "Юноши"} • {t.season || "—"} • {t.is_active ? "Активен" : "Архив"}
+                        {t.transfer_window && t.transfer_window !== "open" && <span> • {t.transfer_window === "limited" ? `Переходы: макс ${t.max_transfers || 1}` : "Переходы закрыты"}</span>}
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
@@ -4759,6 +4764,102 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
           )}
 
           {/* Predictions tab */}
+          
+          {/* Transfer Requests */}
+          {adminTab === "transfers" && (
+            <div>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 16px" }}>Запросы на переход</h3>
+              {(() => {
+                const pending = (transferRequests || []).filter(tr => tr.status === "pending");
+                const history = (transferRequests || []).filter(tr => tr.status !== "pending");
+                return (
+                  <>
+                    {pending.length === 0 ? (
+                      <Card style={{ textAlign: "center", color: colors.textLight, padding: "24px" }}>Нет активных запросов</Card>
+                    ) : (
+                      pending.map(tr => {
+                        const player = players.find(p => p.id === tr.player_id);
+                        const teamFrom = teams.find(t => t.id === tr.team_from_id);
+                        const teamTo = teams.find(t => t.id === tr.team_to_id);
+                        const tournament = tournaments.find(t => t.id === tr.tournament_id);
+                        const playerName = player ? ((player.users?.first_name || "") + " " + (player.users?.last_name || "")).trim() || player.users?.username : "?";
+                        return (
+                          <Card key={tr.id} style={{ marginBottom: "8px" }}>
+                            <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "4px" }}>{playerName}</div>
+                            <div style={{ fontSize: "13px", color: colors.goldDark, marginBottom: "8px" }}>
+                              {teamFrom?.name || "Без команды"} → {teamTo?.name || "?"} • {tournament?.name || ""}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "#dc2626", marginBottom: "8px" }}>
+                              ⚠️ Превышен лимит переходов ({tr.transfers_used + 1} из {tournament?.max_transfers || 1})
+                            </div>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <Button onClick={async () => {
+                                try {
+                                  // Одобряем запрос
+                                  await supabase.from("transfer_requests").update({ status: "approved" }).eq("id", tr.id);
+                                  // Принимаем оффер
+                                  await supabase.from("offers").update({ status: "accepted" }).eq("id", tr.offer_id);
+                                  // Отклоняем другие pending офферы
+                                  await supabase.from("offers").update({ status: "rejected" }).eq("player_id", tr.player_id).eq("status", "pending").neq("id", tr.offer_id);
+                                  // Обновляем игрока
+                                  await supabase.from("players").update({ team_id: tr.team_to_id, is_free_agent: false }).eq("id", tr.player_id);
+                                  // Логируем как completed
+                                  await supabase.from("transfer_requests").insert({
+                                    player_id: tr.player_id,
+                                    offer_id: tr.offer_id,
+                                    team_from_id: tr.team_from_id,
+                                    team_to_id: tr.team_to_id,
+                                    tournament_id: tr.tournament_id,
+                                    status: "completed",
+                                    transfers_used: tr.transfers_used,
+                                  });
+                                  alert("Переход одобрен!");
+                                  loadData();
+                                } catch(e) { alert("Ошибка: " + e.message); }
+                              }} style={{ flex: 1, padding: "10px" }}>
+                                ✅ Одобрить
+                              </Button>
+                              <Button variant="outline" onClick={async () => {
+                                try {
+                                  await supabase.from("transfer_requests").update({ status: "rejected" }).eq("id", tr.id);
+                                  alert("Запрос отклонён");
+                                  loadData();
+                                } catch(e) { alert("Ошибка: " + e.message); }
+                              }} style={{ flex: 1, padding: "10px", color: "#dc2626" }}>
+                                ❌ Отклонить
+                              </Button>
+                            </div>
+                          </Card>
+                        );
+                      })
+                    )}
+                    {history.length > 0 && (
+                      <>
+                        <h4 style={{ fontSize: "14px", fontWeight: 600, color: colors.goldDark, margin: "20px 0 8px" }}>История переходов</h4>
+                        {history.slice(0, 20).map(tr => {
+                          const player = players.find(p => p.id === tr.player_id);
+                          const teamFrom = teams.find(t => t.id === tr.team_from_id);
+                          const teamTo = teams.find(t => t.id === tr.team_to_id);
+                          const playerName = player ? ((player.users?.first_name || "") + " " + (player.users?.last_name || "")).trim() || player.users?.username : "?";
+                          return (
+                            <div key={tr.id} style={{ padding: "8px 0", borderBottom: "1px solid " + colors.grayBorder, fontSize: "13px" }}>
+                              <span style={{ fontWeight: 600 }}>{playerName}</span>
+                              <span style={{ color: colors.goldDark }}> {teamFrom?.name || "—"} → {teamTo?.name || "—"}</span>
+                              <Badge variant={tr.status === "completed" ? "free" : tr.status === "approved" ? "gold" : "default"} style={{ marginLeft: "8px" }}>
+                                {tr.status === "completed" ? "✅" : tr.status === "approved" ? "👍" : tr.status === "rejected" ? "❌" : "⏳"}
+                              </Badge>
+                              <span style={{ fontSize: "11px", color: colors.textLight, marginLeft: "8px" }}>{new Date(tr.created_at).toLocaleDateString("ru-RU")}</span>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
           {adminTab === "predictions" && (
             <div>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 16px" }}>Система прогнозов</h3>
@@ -6919,6 +7020,7 @@ export default function MTKCupApp() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [servicemanMatch, setServicemanMatch] = useState(null);
   const [lineups, setLineups] = useState([]);
+  const [transferRequests, setTransferRequests] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [playerStats, setPlayerStats] = useState([]);
   const [sponsors, setSponsors] = useState([]);
@@ -6994,6 +7096,8 @@ let tournamentsData = [];
       const { data: prizesData } = await supabase.from("prizes").select("*").order("created_at", { ascending: false });
       const { data: predictionsData } = await supabase.from("predictions").select("*").order("created_at", { ascending: false });
       const { data: lineupsData } = await supabase.from("match_lineups").select("*");
+      let transferRequestsData = [];
+      try { const res = await supabase.from("transfer_requests").select("*").order("created_at", { ascending: false }); transferRequestsData = res.data || []; } catch(e) {}
 
       const playersWithDetails = (playersData || []).map(player => ({
         ...player,
@@ -7018,6 +7122,7 @@ let tournamentsData = [];
       setPrizes(prizesData || []);
       setPredictions(predictionsData || []);
       setLineups(lineupsData || []);
+      setTransferRequests(transferRequestsData || []);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -7081,6 +7186,61 @@ let tournamentsData = [];
     try {
       setActionLoading(true);
       
+      // === ТРАНСФЕРНАЯ ПРОВЕРКА ===
+      // Определяем турнир команды
+      const targetTeam = teams.find(t => t.id === teamId);
+      const tournament = targetTeam?.tournament_id ? tournaments.find(t => t.id === targetTeam.tournament_id) : null;
+      
+      if (tournament?.transfer_window === "closed") {
+        alert("Трансферное окно закрыто. Переходы в этом турнире запрещены.");
+        setActionLoading(false);
+        return;
+      }
+      
+      if (tournament?.transfer_window === "limited") {
+        const maxTransfers = tournament.max_transfers || 1;
+        // Считаем переходы игрока в этом турнире
+        const playerTransfers = transferRequests.filter(tr => 
+          tr.player_id === currentPlayer.id && 
+          tr.tournament_id === tournament.id && 
+          tr.status === "completed"
+        );
+        
+        if (playerTransfers.length >= maxTransfers) {
+          // Нужно одобрение админа
+          const existingRequest = transferRequests.find(tr => 
+            tr.player_id === currentPlayer.id && 
+            tr.offer_id === offerId && 
+            tr.status === "pending"
+          );
+          
+          if (existingRequest) {
+            alert("Запрос на переход уже отправлен администратору. Ожидайте одобрения.");
+            setActionLoading(false);
+            return;
+          }
+          
+          // Создаём запрос на одобрение
+          const { error: trError } = await supabase.from("transfer_requests").insert({
+            player_id: currentPlayer.id,
+            offer_id: offerId,
+            team_from_id: currentPlayer.team_id,
+            team_to_id: teamId,
+            tournament_id: tournament.id,
+            status: "pending",
+            transfers_used: playerTransfers.length,
+          });
+          
+          if (trError) throw trError;
+          
+          alert(`Вы уже использовали ${playerTransfers.length} из ${maxTransfers} переход(ов). Запрос отправлен организатору на одобрение.`);
+          await loadData();
+          setActionLoading(false);
+          return;
+        }
+      }
+      // === КОНЕЦ ТРАНСФЕРНОЙ ПРОВЕРКИ ===
+      
       // Проверка: не тренирую ли я другую команду
       const coachOfOtherTeam = teams?.find(t => 
         t.coach_id === currentPlayer.user_id && 
@@ -7107,6 +7267,21 @@ let tournamentsData = [];
       await supabase.from("users").update({ favorite_team_id: null }).eq("id", user.id);
       setUser(prev => ({ ...prev, favorite_team_id: null }));
       console.log("🏐 AcceptOffer: Success! Player joined team:", teamId);
+      // Логируем переход для трансферных лимитов
+      const targetTeamForLog = teams.find(t => t.id === teamId);
+      if (targetTeamForLog?.tournament_id) {
+        try {
+          await supabase.from("transfer_requests").insert({
+            player_id: currentPlayer.id,
+            offer_id: offerId,
+            team_from_id: currentPlayer.team_id,
+            team_to_id: teamId,
+            tournament_id: targetTeamForLog.tournament_id,
+            status: "completed",
+            transfers_used: 0,
+          });
+        } catch(e) { console.error("Transfer log error:", e); }
+      }
       await loadData();
       alert("Вы приняты в команду!");
       setScreen("home");
@@ -8874,7 +9049,7 @@ const handleGuest = () => {
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
-      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} onStartLineup={(match) => { setServicemanMatch(match); setScreen("lineup"); }} onStartBroadcaster={(match) => { setServicemanMatch(match); setScreen("broadcaster"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} adminTab={adminTab} setAdminTab={setAdminTab} adminTournamentFilter={adminTournamentFilter} setAdminTournamentFilter={setAdminTournamentFilter} />;
+      case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} onStartLineup={(match) => { setServicemanMatch(match); setScreen("lineup"); }} onStartBroadcaster={(match) => { setServicemanMatch(match); setScreen("broadcaster"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} adminTab={adminTab} setAdminTab={setAdminTab} adminTournamentFilter={adminTournamentFilter} setAdminTournamentFilter={setAdminTournamentFilter} transferRequests={transferRequests} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
     }
   };
