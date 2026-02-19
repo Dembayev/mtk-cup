@@ -5821,15 +5821,26 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
     // НЕ сбрасываем liveScore/currentSet здесь - они загрузятся при выборе команды
     setSelectedTeamId(null);
     setTeamLocked(false);
+    // Загружаем замены
+    try {
+      const savedSubs = localStorage.getItem(`matchSubs_${match.id}`);
+      if (savedSubs) setSubstitutions(JSON.parse(savedSubs));
+      else setSubstitutions({});
+    } catch(e) { setSubstitutions({}); }
   }, [match?.id]);
   
   // Сохраняем teamProgress в localStorage при изменении
   useEffect(() => {
     if (match?.id && Object.keys(teamProgress).length > 0) {
       localStorage.setItem(`matchProgress_${match.id}`, JSON.stringify(teamProgress));
-      console.log("💾 Сохранён прогресс в localStorage:", teamProgress);
     }
   }, [teamProgress, match?.id]);
+  // Сохраняем замены
+  useEffect(() => {
+    if (match?.id && Object.keys(substitutions).length > 0) {
+      localStorage.setItem(`matchSubs_${match.id}`, JSON.stringify(substitutions));
+    }
+  }, [substitutions, match?.id]);
   const [localStats, setLocalStats] = useState({});
   const [statusText, setStatusText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -5838,11 +5849,20 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
   const [showSubstitutionModal, setShowSubstitutionModal] = useState(false);
   const [onCourtPlayers, setOnCourtPlayers] = useState({ team1: [], team2: [] }); // Игроки на площадке
   const [teamLocked, setTeamLocked] = useState(false); // Команда зафиксирована
+  const [substitutions, setSubstitutions] = useState({}); // { "team1_set1": [{out: id, in: id, time: Date}], ... }
   const [showLineupSelect, setShowLineupSelect] = useState(false); // Экран выбора стартового состава
   const [selectedLineup, setSelectedLineup] = useState([]); // Выбранные игроки для состава
   const [liveScore, setLiveScore] = useState({ team1: 0, team2: 0 }); // Синхронизированный счёт
   const [showAutoEndSetModal, setShowAutoEndSetModal] = useState(false); // Модалка автозавершения партии
   const [autoEndShownForSet, setAutoEndShownForSet] = useState(0); // Для какой партии уже показывали модалку
+  
+  const getSubKey = (teamId, set) => {
+    const side = teamId === match?.team1_id ? "team1" : "team2";
+    return `${side}_set${set}`;
+  };
+  const currentSubKey = selectedTeamId ? getSubKey(selectedTeamId, currentSet) : null;
+  const currentSubs = currentSubKey ? (substitutions[currentSubKey] || []) : [];
+  const MAX_SUBS_PER_SET = 6;
   
   const team1 = teams?.find(t => t.id === match?.team1_id);
   const team2 = teams?.find(t => t.id === match?.team2_id);
@@ -6273,7 +6293,7 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
           {/* Игроки */}
           <div style={{ width: "80px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
             <button onClick={() => setShowSubstitutionModal(true)} style={{ width: "100%", padding: "4px 2px", marginBottom: "4px", background: "#dbeafe", border: "1px solid #3b82f6", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "11px", color: "#1d4ed8" }}>
-              🔄 Замена
+              🔄 Замена ({currentSubs.length}/{MAX_SUBS_PER_SET})
             </button>
             {currentPlayers.map((p, idx) => (
               <button key={p.id} onClick={() => { setSelectedPlayerId(p.id); setSelectedAction(null); }}
@@ -6457,6 +6477,34 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
           <div style={{ background: "white", borderRadius: "16px", padding: "24px", maxWidth: "360px", width: "100%", maxHeight: "80vh", overflow: "auto" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "18px", textAlign: "center" }}>Замена игрока</h3>
             
+            {/* Счётчик замен */}
+            <div style={{ 
+              display: "flex", justifyContent: "space-between", alignItems: "center", 
+              padding: "10px 14px", borderRadius: "10px", marginBottom: "16px",
+              background: currentSubs.length >= MAX_SUBS_PER_SET ? "#fef2f2" : currentSubs.length >= 4 ? "#fffbeb" : "#f0fdf4",
+              border: `1px solid ${currentSubs.length >= MAX_SUBS_PER_SET ? "#fca5a5" : currentSubs.length >= 4 ? "#fde68a" : "#bbf7d0"}`
+            }}>
+              <span style={{ fontWeight: 600, fontSize: "14px" }}>Замен в сете:</span>
+              <span style={{ fontWeight: 800, fontSize: "18px", color: currentSubs.length >= MAX_SUBS_PER_SET ? "#dc2626" : colors.gold }}>{currentSubs.length} / {MAX_SUBS_PER_SET}</span>
+            </div>
+            
+            {/* Лог замен */}
+            {currentSubs.length > 0 && (
+              <div style={{ marginBottom: "16px", padding: "8px 12px", background: colors.gray, borderRadius: "8px", fontSize: "12px" }}>
+                {currentSubs.map((sub, i) => (
+                  <div key={i} style={{ padding: "3px 0", color: colors.goldDark }}>
+                    {i + 1}. #{sub.out_number || "?"} {sub.out_name} → #{sub.in_number || "?"} {sub.in_name}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {currentSubs.length >= MAX_SUBS_PER_SET && (
+              <div style={{ padding: "12px", background: "#fef2f2", borderRadius: "8px", textAlign: "center", color: "#dc2626", fontWeight: 600, marginBottom: "16px" }}>
+                Лимит замен исчерпан!
+              </div>
+            )}
+            
             <div style={{ marginBottom: "16px" }}>
               <div style={{ fontSize: "13px", fontWeight: 600, color: colors.goldDark, marginBottom: "8px" }}>На площадке:</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -6482,13 +6530,34 @@ const ServicemanScreen = ({ match, teams, players, playerStats, onSaveStat, onUp
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {benchPlayers.map(p => (
                     <button key={p.id} onClick={() => {
+                      // Проверяем лимит замен
+                      if (currentSubs.length >= MAX_SUBS_PER_SET) {
+                        alert(`Лимит замен исчерпан (${MAX_SUBS_PER_SET} из ${MAX_SUBS_PER_SET})`);
+                        return;
+                      }
                       // Выполняем замену
                       const teamKey = selectedTeamId === match?.team1_id ? "team1" : "team2";
+                      const outPlayer = currentPlayers.find(cp => cp.id === selectedPlayerId);
+                      const inPlayer = p;
                       setOnCourtPlayers(prev => ({
                         ...prev,
                         [teamKey]: prev[teamKey].map(id => id === selectedPlayerId ? p.id : id)
                       }));
-                      setStatusText("Замена: " + ((currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.first_name || "") + " " + (currentPlayers.find(cp => cp.id === selectedPlayerId)?.users?.last_name || "")).trim() + " → " + ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim());
+                      // Логируем замену
+                      const subKey = getSubKey(selectedTeamId, currentSet);
+                      setSubstitutions(prev => ({
+                        ...prev,
+                        [subKey]: [...(prev[subKey] || []), {
+                          out_id: selectedPlayerId,
+                          in_id: p.id,
+                          out_name: ((outPlayer?.users?.first_name || "") + " " + (outPlayer?.users?.last_name || "")).trim(),
+                          in_name: ((inPlayer.users?.first_name || "") + " " + (inPlayer.users?.last_name || "")).trim(),
+                          out_number: outPlayer?.jersey_number,
+                          in_number: inPlayer.jersey_number,
+                          time: new Date().toISOString(),
+                        }]
+                      }));
+                      setStatusText("Замена: #" + (outPlayer?.jersey_number || "?") + " → #" + (inPlayer.jersey_number || "?"));
                       
                       setSelectedPlayerId(null);
                       setShowSubstitutionModal(false);
