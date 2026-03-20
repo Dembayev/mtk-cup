@@ -272,6 +272,34 @@ const syncAvatar = async (telegramId) => {
 
 const tg = window.Telegram?.WebApp;
 
+// Парсинг initData вручную (fallback если initDataUnsafe пуст)
+const parseTgInitData = () => {
+  try {
+    if (!tg) return null;
+    // Сначала пробуем initDataUnsafe
+    if (tg.initDataUnsafe?.user?.id) {
+      console.log("✅ initDataUnsafe.user найден:", tg.initDataUnsafe.user.id);
+      return tg.initDataUnsafe.user;
+    }
+    // Fallback: парсим initData строку
+    if (tg.initData) {
+      console.log("🔍 initDataUnsafe пуст, парсим initData...");
+      const params = new URLSearchParams(tg.initData);
+      const userStr = params.get("user");
+      if (userStr) {
+        const user = JSON.parse(decodeURIComponent(userStr));
+        console.log("✅ Parsed user from initData:", user.id, user.first_name);
+        return user;
+      }
+    }
+    console.warn("⚠️ Не удалось получить user ни из initDataUnsafe, ни из initData");
+    return null;
+  } catch(e) {
+    console.error("❌ Ошибка парсинга initData:", e);
+    return null;
+  }
+};
+
 // Icons
 const Icons = {
   Home: () => (
@@ -7131,7 +7159,8 @@ export default function MTKCupApp() {
       if (tg.requestFullscreen) tg.requestFullscreen();
       if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
       document.body.style.backgroundColor = colors.bg;
-      if (tg.initDataUnsafe?.user) handleTelegramLogin(tg.initDataUnsafe.user);
+      const tgUser = parseTgInitData();
+      if (tgUser) handleTelegramLogin(tgUser);
     }
     loadData();
   }, []);
@@ -8817,8 +8846,15 @@ const handleTelegramLogin = async (tgUser, retryCount = 0) => {
   };
 
   const handleLogin = () => {
-    if (isTelegram && tg?.initDataUnsafe?.user) handleTelegramLogin(tg.initDataUnsafe.user);
-    else {
+    if (isTelegram) {
+      const tgUser = parseTgInitData();
+      if (tgUser) {
+        handleTelegramLogin(tgUser);
+      } else {
+        console.error("❌ Telegram WebApp открыт, но user не найден. initData:", tg?.initData?.substring(0, 100));
+        alert("Ошибка: не удалось получить данные пользователя из Telegram. Попробуйте закрыть и открыть приложение заново.");
+      }
+    } else {
       setUser({ first_name: "Тестовый", last_name: "Пользователь", username: "test_user", role: "fan" });
       setIsGuest(false);
       setScreen("home");
