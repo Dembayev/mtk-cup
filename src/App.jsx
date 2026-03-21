@@ -7193,16 +7193,48 @@ export default function MTKCupApp() {
   const sentOffers = offers.filter(o => coachTeams.some(ct => ct.id === o.team_id));
 
   useEffect(() => {
-    if (tg) {
-      setIsTelegram(true);
-      tg.ready();
-      tg.expand();
-      if (tg.requestFullscreen) tg.requestFullscreen();
-      if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-      document.body.style.backgroundColor = colors.bg;
-      const tgUser = parseTgInitData();
-      if (tgUser) handleTelegramLogin(tgUser);
-    }
+    // Telegram может инъектировать WebApp с задержкой — ждём
+    const tryInit = (attempt = 0) => {
+      const webapp = window.Telegram?.WebApp;
+      console.log("🔍 tryInit attempt", attempt, "webapp:", !!webapp, "initData:", !!webapp?.initData);
+      
+      if (webapp) {
+        setIsTelegram(true);
+        webapp.ready();
+        webapp.expand();
+        if (webapp.requestFullscreen) webapp.requestFullscreen();
+        if (webapp.disableVerticalSwipes) webapp.disableVerticalSwipes();
+        document.body.style.backgroundColor = colors.bg;
+        const tgUser = parseTgInitData();
+        if (tgUser) {
+          handleTelegramLogin(tgUser);
+        } else if (attempt < 5) {
+          // initData может быть ещё не готов — ждём
+          console.log("⏳ WebApp есть, но user пуст. Ждём...", attempt);
+          setTimeout(() => tryInit(attempt + 1), 500);
+        } else {
+          console.error("❌ WebApp найден, но user не получен после 5 попыток");
+          // Показываем диагностику
+          const debugInfo = [
+            "webapp: true",
+            "initData: " + (webapp.initData ? webapp.initData.substring(0, 100) : "ПУСТО"),
+            "initDataUnsafe: " + JSON.stringify(webapp.initDataUnsafe || {}).substring(0, 100),
+            "version: " + (webapp.version || "?"),
+            "platform: " + (webapp.platform || "?"),
+            "url: " + window.location.href.substring(0, 150),
+          ].join("\n");
+          alert("Ошибка авторизации Telegram:\n\n" + debugInfo);
+        }
+      } else if (attempt < 10) {
+        // WebApp ещё не загрузился — ждём
+        console.log("⏳ WebApp не найден, ждём...", attempt);
+        setTimeout(() => tryInit(attempt + 1), 300);
+      } else {
+        console.log("ℹ️ Не Telegram среда");
+      }
+    };
+    
+    tryInit();
     loadData();
   }, []);
 
@@ -8887,21 +8919,22 @@ const handleTelegramLogin = async (tgUser, retryCount = 0) => {
   };
 
   const handleLogin = () => {
-    if (isTelegram) {
+    const webapp = window.Telegram?.WebApp;
+    if (webapp) {
       const tgUser = parseTgInitData();
       if (tgUser) {
         handleTelegramLogin(tgUser);
       } else {
-        const webapp = window.Telegram?.WebApp;
         const debugInfo = [
-          "webapp: " + (!!webapp),
-          "initData: " + (webapp?.initData?.substring(0, 50) || "пусто"),
-          "initDataUnsafe: " + JSON.stringify(webapp?.initDataUnsafe || {}).substring(0, 80),
-          "version: " + (webapp?.version || "?"),
-          "platform: " + (webapp?.platform || "?"),
+          "webapp: true",
+          "initData: " + (webapp.initData ? webapp.initData.substring(0, 100) : "ПУСТО"),
+          "initDataUnsafe: " + JSON.stringify(webapp.initDataUnsafe || {}).substring(0, 100),
+          "version: " + (webapp.version || "?"),
+          "platform: " + (webapp.platform || "?"),
+          "url: " + window.location.href.substring(0, 150),
         ].join("\n");
         console.error("❌ Debug:", debugInfo);
-        alert("Ошибка авторизации. Отправьте разработчику:\n\n" + debugInfo);
+        alert("Ошибка авторизации Telegram. Отправьте скриншот разработчику:\n\n" + debugInfo);
       }
     } else {
       setUser({ first_name: "Тестовый", last_name: "Пользователь", username: "test_user", role: "fan" });
