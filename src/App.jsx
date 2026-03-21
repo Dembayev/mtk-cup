@@ -275,16 +275,24 @@ const tg = window.Telegram?.WebApp;
 // Парсинг initData вручную (fallback если initDataUnsafe пуст)
 const parseTgInitData = () => {
   try {
-    if (!tg) return null;
-    // Сначала пробуем initDataUnsafe
-    if (tg.initDataUnsafe?.user?.id) {
-      console.log("✅ initDataUnsafe.user найден:", tg.initDataUnsafe.user.id);
-      return tg.initDataUnsafe.user;
+    // Читаем WebApp в момент вызова (не при загрузке модуля!)
+    const webapp = window.Telegram?.WebApp;
+    console.log("🔍 parseTgInitData called. webapp exists:", !!webapp);
+    console.log("🔍 initDataUnsafe:", JSON.stringify(webapp?.initDataUnsafe)?.substring(0, 200));
+    console.log("🔍 initData string:", webapp?.initData?.substring(0, 200));
+    
+    if (!webapp) return null;
+    
+    // Способ 1: initDataUnsafe.user
+    if (webapp.initDataUnsafe?.user?.id) {
+      console.log("✅ initDataUnsafe.user найден:", webapp.initDataUnsafe.user.id);
+      return webapp.initDataUnsafe.user;
     }
-    // Fallback: парсим initData строку
-    if (tg.initData) {
-      console.log("🔍 initDataUnsafe пуст, парсим initData...");
-      const params = new URLSearchParams(tg.initData);
+    
+    // Способ 2: парсим initData строку
+    if (webapp.initData) {
+      console.log("🔍 initDataUnsafe пуст, парсим initData строку...");
+      const params = new URLSearchParams(webapp.initData);
       const userStr = params.get("user");
       if (userStr) {
         const user = JSON.parse(decodeURIComponent(userStr));
@@ -292,7 +300,40 @@ const parseTgInitData = () => {
         return user;
       }
     }
-    console.warn("⚠️ Не удалось получить user ни из initDataUnsafe, ни из initData");
+    
+    // Способ 3: URL hash параметры (некоторые версии TG передают через hash)
+    const hash = window.location.hash;
+    if (hash) {
+      console.log("🔍 Проверяем hash:", hash.substring(0, 200));
+      const hashParams = new URLSearchParams(hash.replace('#', ''));
+      const tgWebAppData = hashParams.get('tgWebAppData');
+      if (tgWebAppData) {
+        const dataParams = new URLSearchParams(tgWebAppData);
+        const userStr = dataParams.get("user");
+        if (userStr) {
+          const user = JSON.parse(decodeURIComponent(userStr));
+          console.log("✅ Parsed user from hash:", user.id, user.first_name);
+          return user;
+        }
+      }
+    }
+    
+    // Способ 4: URL search параметры
+    const search = window.location.search;
+    if (search) {
+      console.log("🔍 Проверяем search:", search.substring(0, 200));
+      const searchParams = new URLSearchParams(search);
+      const userStr = searchParams.get("user");
+      if (userStr) {
+        const user = JSON.parse(decodeURIComponent(userStr));
+        console.log("✅ Parsed user from search:", user.id, user.first_name);
+        return user;
+      }
+    }
+    
+    console.warn("⚠️ Все способы получения user не сработали");
+    console.warn("⚠️ window.Telegram:", JSON.stringify(Object.keys(window.Telegram || {})));
+    console.warn("⚠️ location:", window.location.href.substring(0, 300));
     return null;
   } catch(e) {
     console.error("❌ Ошибка парсинга initData:", e);
@@ -758,7 +799,7 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
   // Автоматический вход при загрузке в Telegram
   useEffect(() => {
     if (isTelegram) {
-      const timer = setTimeout(() => onLogin(), 500);
+      const timer = setTimeout(() => onLogin(), 1500);
       return () => clearTimeout(timer);
     }
   }, [isTelegram, onLogin]);
@@ -8851,8 +8892,16 @@ const handleTelegramLogin = async (tgUser, retryCount = 0) => {
       if (tgUser) {
         handleTelegramLogin(tgUser);
       } else {
-        console.error("❌ Telegram WebApp открыт, но user не найден. initData:", tg?.initData?.substring(0, 100));
-        alert("Ошибка: не удалось получить данные пользователя из Telegram. Попробуйте закрыть и открыть приложение заново.");
+        const webapp = window.Telegram?.WebApp;
+        const debugInfo = [
+          "webapp: " + (!!webapp),
+          "initData: " + (webapp?.initData?.substring(0, 50) || "пусто"),
+          "initDataUnsafe: " + JSON.stringify(webapp?.initDataUnsafe || {}).substring(0, 80),
+          "version: " + (webapp?.version || "?"),
+          "platform: " + (webapp?.platform || "?"),
+        ].join("\n");
+        console.error("❌ Debug:", debugInfo);
+        alert("Ошибка авторизации. Отправьте разработчику:\n\n" + debugInfo);
       }
     } else {
       setUser({ first_name: "Тестовый", last_name: "Пользователь", username: "test_user", role: "fan" });
