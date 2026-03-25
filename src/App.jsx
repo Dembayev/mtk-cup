@@ -5479,6 +5479,7 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
   const [saving, setSaving] = useState(false);
   const [activeTeam, setActiveTeam] = useState("team1");
   const [setNumber, setSetNumber] = useState(1);
+  const [sortMode, setSortMode] = useState("zone"); // "zone" | "number"
   const [activeZone, setActiveZone] = useState(null); // зона ожидающая выбора игрока
   const [selectedPlayers, setSelectedPlayers] = useState({ team1: {}, team2: {} }); // { zone1: playerId, ... }
   const [liberos, setLiberos] = useState({ team1: null, team2: null });
@@ -5736,7 +5737,7 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
 
 
 // ==================== BROADCASTER SCREEN ====================
-const BroadcasterScreen = ({ match, teams, players, lineups, setScreen, goBack }) => {
+const BroadcasterScreen = ({ match, teams, players, lineups, setScreen, goBack, setSelectedPlayer }) => {
   const [setNumber, setSetNumber] = useState(1);
   
   const team1 = teams.find(t => t.id === match?.team1_id);
@@ -5745,7 +5746,14 @@ const BroadcasterScreen = ({ match, teams, players, lineups, setScreen, goBack }
   const getLineup = (teamId) => {
     if (!lineups || !match) return { starters: [], libero: null };
     const ml = lineups.filter(l => l.match_id === match.id && l.set_number === setNumber && l.team_id === teamId);
-    const starters = ml.filter(l => !l.is_libero && l.position_zone).sort((a,b) => a.position_zone - b.position_zone);
+    const starters = ml.filter(l => !l.is_libero && l.position_zone).sort((a,b) => {
+      if (sortMode === "number") {
+        const pA = players.find(p => p.id === a.player_id);
+        const pB = players.find(p => p.id === b.player_id);
+        return (parseInt(pA?.jersey_number) || 99) - (parseInt(pB?.jersey_number) || 99);
+      }
+      return a.position_zone - b.position_zone;
+    });
     const libero = ml.find(l => l.is_libero);
     return { starters, libero };
   };
@@ -5761,10 +5769,16 @@ const BroadcasterScreen = ({ match, teams, players, lineups, setScreen, goBack }
     const age = p.birth_date ? (() => { const today = new Date(); const b = new Date(p.birth_date); let a = today.getFullYear() - b.getFullYear(); const m = today.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && today.getDate() < b.getDate())) a--; return a; })() : null;
     
     return (
-      <div style={{ 
+      <div onClick={() => {
+        if (setSelectedPlayer) {
+          const pl = getPlayer(playerId);
+          if (pl) { setSelectedPlayer(pl); setScreen("playerDetail"); }
+        }
+      }} style={{ 
         display: "flex", alignItems: "center", gap: "12px", padding: "12px", 
         background: isLibero ? "#e0f2fe" : "#fff", borderRadius: "12px", marginBottom: "8px",
         border: isLibero ? "2px solid #0284c7" : "1px solid " + colors.grayBorder,
+        cursor: "pointer",
       }}>
         <Avatar name={name} size={48} url={p.users?.avatar_url} />
         <div style={{ flex: 1 }}>
@@ -5862,6 +5876,18 @@ const BroadcasterScreen = ({ match, teams, players, lineups, setScreen, goBack }
               ))}
             </div>
           </Card>
+
+          {/* Сортировка */}
+          <div style={{ display: "flex", gap: "4px", marginBottom: "16px", background: colors.gray, borderRadius: "10px", padding: "3px" }}>
+            {[{ key: "zone", label: "По зонам" }, { key: "number", label: "По номеру" }].map(s => (
+              <div key={s.key} onClick={() => setSortMode(s.key)} style={{
+                flex: 1, padding: "8px", borderRadius: "8px", textAlign: "center", cursor: "pointer", fontSize: "13px", fontWeight: 600,
+                background: sortMode === s.key ? "#fff" : "transparent",
+                color: sortMode === s.key ? colors.goldDark : colors.textLight,
+                boxShadow: sortMode === s.key ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              }}>{s.label}</div>
+            ))}
+          </div>
 
           <TeamLineup teamId={match?.team1_id} teamName={team1?.name || "Команда 1"} />
           <TeamLineup teamId={match?.team2_id} teamName={team2?.name || "Команда 2"} />
@@ -6808,8 +6834,15 @@ const HelpScreen = ({ setScreen }) => {
   );
 };
 
-const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone, currentPlayer, onUpdatePosition, setRoleRequestData, setShowRoleRequestForm }) => {
+const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pendingOffers, userRoles, onUpdateNotifications, roleRequests, onSubmitRoleRequest, onRequestPhone, currentPlayer, onUpdatePosition, setRoleRequestData, setShowRoleRequestForm, onUpdateProfile }) => {
   const displayName = getDisplayName(user);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editHeight, setEditHeight] = useState(user?.height || "");
+  const [editBirthDate, setEditBirthDate] = useState(currentPlayer?.birth_date || "");
+  const [editBio, setEditBio] = useState(currentPlayer?.bio || "");
+  const [editSportRank, setEditSportRank] = useState(currentPlayer?.sport_rank || "");
+  const [editRankDate, setEditRankDate] = useState(currentPlayer?.rank_date || "");
+  const [savingProfile, setSavingProfile] = useState(false);
   const [showNotifySettings, setShowNotifySettings] = useState(false);
   const [showContactOrganizers, setShowContactOrganizers] = useState(false);
   const [organizerMessage, setOrganizerMessage] = useState("");
@@ -6849,6 +6882,68 @@ const ProfileScreen = ({ user, onLogout, isGuest, isTelegram, setScreen, pending
               <RoleBadges roles={userRoles.roles} />
             </div>
           </Card>
+
+          {/* Редактирование профиля (для игроков) */}
+          {!isGuest && currentPlayer && (
+            <Card style={{ marginBottom: "20px" }}>
+              <div onClick={() => setShowEditProfile(!showEditProfile)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>✏️ Моя информация</h4>
+                <span style={{ fontSize: "12px", color: colors.goldDark }}>{showEditProfile ? "Свернуть" : "Редактировать"}</span>
+              </div>
+              {showEditProfile && (
+                <div style={{ marginTop: "16px" }}>
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ fontSize: "13px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Рост (см)</label>
+                    <input type="number" min="100" max="250" value={editHeight} onChange={e => setEditHeight(e.target.value)} placeholder="185" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid " + colors.grayBorder, fontSize: "15px", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ fontSize: "13px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Дата рождения</label>
+                    <input type="date" value={editBirthDate} onChange={e => setEditBirthDate(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid " + colors.grayBorder, fontSize: "15px", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ fontSize: "13px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Разряд</label>
+                    <select value={editSportRank} onChange={e => setEditSportRank(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid " + colors.grayBorder, fontSize: "15px", boxSizing: "border-box" }}>
+                      <option value="">Не указан</option>
+                      <option value="3">3 разряд</option>
+                      <option value="2">2 разряд</option>
+                      <option value="1">1 разряд</option>
+                      <option value="kms">КМС</option>
+                      <option value="ms">МС</option>
+                      <option value="msmk">МСМК</option>
+                      <option value="zms">ЗМС</option>
+                    </select>
+                  </div>
+                  {editSportRank && (
+                    <div style={{ marginBottom: "12px" }}>
+                      <label style={{ fontSize: "13px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>Дата присвоения разряда</label>
+                      <input type="date" value={editRankDate} onChange={e => setEditRankDate(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid " + colors.grayBorder, fontSize: "15px", boxSizing: "border-box" }} />
+                    </div>
+                  )}
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ fontSize: "13px", color: colors.goldDark, display: "block", marginBottom: "4px" }}>О себе</label>
+                    <textarea value={editBio} onChange={e => setEditBio(e.target.value)} placeholder="Расскажите о себе..." style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid " + colors.grayBorder, fontSize: "15px", minHeight: "80px", resize: "vertical", boxSizing: "border-box" }} />
+                  </div>
+                  <Button onClick={async () => {
+                    setSavingProfile(true);
+                    try {
+                      await onUpdateProfile({
+                        height: editHeight ? parseInt(editHeight) : null,
+                        birth_date: editBirthDate || null,
+                        bio: editBio || null,
+                        sport_rank: editSportRank || null,
+                        rank_date: editRankDate || null,
+                      });
+                      setShowEditProfile(false);
+                      alert("Профиль обновлён!");
+                    } catch(e) { alert("Ошибка: " + e.message); }
+                    finally { setSavingProfile(false); }
+                  }} disabled={savingProfile} style={{ width: "100%", padding: "12px" }}>
+                    <Icons.Save /> {savingProfile ? "Сохранение..." : "Сохранить"}
+                  </Button>
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Кнопка добавления номера телефона */}
           {!isGuest && isTelegram && !user?.phone && (
@@ -8474,6 +8569,30 @@ let tournamentsData = [];
   };
 
   // Send team message
+  const handleUpdateProfile = async (data) => {
+    if (!user?.id || !currentPlayer?.id) return;
+    try {
+      // Сохраняем рост в users
+      if (data.height !== undefined) {
+        await supabase.from('users').update({ height: data.height }).eq('id', user.id);
+        setUser(prev => ({ ...prev, height: data.height }));
+      }
+      // Сохраняем остальное в players
+      const playerData = {};
+      if (data.birth_date !== undefined) playerData.birth_date = data.birth_date;
+      if (data.bio !== undefined) playerData.bio = data.bio;
+      if (data.sport_rank !== undefined) playerData.sport_rank = data.sport_rank;
+      if (data.rank_date !== undefined) playerData.rank_date = data.rank_date;
+      if (Object.keys(playerData).length > 0) {
+        await supabase.from('players').update(playerData).eq('id', currentPlayer.id);
+      }
+      await loadData();
+    } catch(e) {
+      console.error("Error updating profile:", e);
+      throw e;
+    }
+  };
+
   const handleSendTeamMessage = async (teamId, teamName, message) => {
     const senderName = `${user?.first_name || user?.username || "Администратор"} ${user?.last_name || ""}`.trim();
     return await sendTeamMessage(teamId, teamName, message, senderName);
@@ -9244,11 +9363,11 @@ const handleGuest = () => {
       case "schedule": return <ScheduleScreen matches={matches} teams={teams} tours={tours} isGuest={isGuest} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack}  tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} activeTournamentId={activeTournamentId} />;
       case "servicemanSelect": return <ServicemanMatchSelectScreen matches={matches} teams={teams} tours={tours} onSelectMatch={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} setScreen={setScreen} />;
-      case "broadcaster": return <BroadcasterScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} />;
+      case "broadcaster": return <BroadcasterScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} setSelectedPlayer={setSelectedPlayer} />;
       case "lineup": return <LineupScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} />;
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
-      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} />;
+      case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} onUpdateProfile={handleUpdateProfile} />;
       case "admin": if (!userRoles.isAdmin) { setScreen("home"); return null; } return <AdminScreen setScreen={setScreen} matches={matches} teams={teams} users={users} players={players} tours={tours} playerStats={playerStats} roleRequests={roleRequests} sponsors={sponsors} prizes={prizes} predictions={predictions} onUpdateMatch={handleUpdateMatch} onUpdateUserRole={handleUpdateUserRole} onUpdateUser={handleUpdateUser} onAssignCoach={handleAssignCoach} onDeleteTeam={handleDeleteTeam} onSetCaptain={handleSetCaptain} onCreateTour={handleCreateTour} onUpdateTour={handleUpdateTour} onDeleteTour={handleDeleteTour} onCreateMatch={handleCreateMatch} onDeleteMatch={handleDeleteMatch} onUpdateMatchInfo={handleUpdateMatchInfo} onUpdateMatchVideo={handleUpdateMatchVideo} onSavePlayerStat={handleSavePlayerStat} onMakePlayer={handleMakePlayer} onDeleteUser={handleDeleteUser} onApproveRequest={handleApproveRoleRequest} onRejectRequest={handleRejectRoleRequest} actionLoading={actionLoading} loadData={loadData} onUpdatePlayer={handleUpdatePlayer} onChangeGameRole={handleChangeGameRole} onCreateTeam={handleCreateTeamAdmin} onUpdateTeamInfo={handleUpdateTeamInfo} onStartServiceman={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} onStartLineup={(match) => { setServicemanMatch(match); setScreen("lineup"); }} onStartBroadcaster={(match) => { setServicemanMatch(match); setScreen("broadcaster"); }} tournaments={tournaments} activeTournamentId={activeTournamentId} onCreateTournament={handleCreateTournament} onUpdateTournament={handleUpdateTournament} onDeleteTournament={handleDeleteTournament} onCopyTour={handleCopyTour} adminTab={adminTab} setAdminTab={setAdminTab} adminTournamentFilter={adminTournamentFilter} setAdminTournamentFilter={setAdminTournamentFilter} transferRequests={transferRequests} />;
       default: return <HomeScreen setScreen={setScreen} user={user} teams={teams} matches={matches} players={players} pendingOffers={pendingOffers} userRoles={userRoles} setSelectedPlayer={setSelectedPlayer} setSelectedTeam={setSelectedTeam} playerStats={playerStats} tours={tours} tournaments={tournaments} activeTournamentId={activeTournamentId} setActiveTournamentId={setActiveTournamentId} />;
     }
