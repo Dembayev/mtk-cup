@@ -5739,6 +5739,7 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
 // ==================== BROADCASTER SCREEN ====================
 const BroadcasterScreen = ({ match, teams, players, lineups, setScreen, goBack, setSelectedPlayer }) => {
   const [setNumber, setSetNumber] = useState(1);
+  const [sortMode, setSortMode] = useState("zone");
   
   const team1 = teams.find(t => t.id === match?.team1_id);
   const team2 = teams.find(t => t.id === match?.team2_id);
