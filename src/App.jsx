@@ -3848,7 +3848,6 @@ const AdminScreen = ({ setScreen, matches, teams, users, players, tours, playerS
                               }} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", padding: "4px" }} title="Редактировать информацию">
                                 ⚙️
                               </button>
-                              <button onClick={() => { if (typeof onStartBroadcaster === "function") onStartBroadcaster(match); }} style={{ background: "#7c3aed", border: "none", cursor: "pointer", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }} title="Панель ведущего">🎙️</button>
                               <button onClick={() => onStartLineup(match)} style={{ background: "#0284c7", border: "none", cursor: "pointer", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }} title="Стартовый состав">📋</button>
                               <button onClick={() => onStartServiceman(match)} style={{ background: "#16a34a", border: "none", cursor: "pointer", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }} title="Вести статистику">📊</button>
                               <button onClick={() => onDeleteMatch(match.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px" }} title="Удалить матч">
@@ -5475,14 +5474,23 @@ const ServicemanMatchSelectScreen = ({ matches, teams, tours, onSelectMatch, set
 
 
 // ==================== LINEUP SCREEN ====================
-const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => {
+const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack, setSelectedPlayer }) => {
   const [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState("edit"); // "edit" | "view" 
   const [activeTeam, setActiveTeam] = useState("team1");
   const [setNumber, setSetNumber] = useState(1);
   const [sortMode, setSortMode] = useState("zone"); // "zone" | "number"
   const [activeZone, setActiveZone] = useState(null); // зона ожидающая выбора игрока
   const [selectedPlayers, setSelectedPlayers] = useState({ team1: {}, team2: {} }); // { zone1: playerId, ... }
-  const [liberos, setLiberos] = useState({ team1: null, team2: null });
+  const [liberos, setLiberos] = useState({ team1: [], team2: [] }); // массив ID либеро
+  const [isDirty, setIsDirty] = useState(false); // есть несохранённые изменения
+  
+  // Сброс isDirty при смене сета
+  const changeSet = (newSet) => {
+    if (isDirty && !confirm("Есть несохранённые изменения. Переключить сет?")) return;
+    setIsDirty(false);
+    setSetNumber(newSet);
+  };
 
   const team1 = teams.find(t => t.id === match?.team1_id);
   const team2 = teams.find(t => t.id === match?.team2_id);
@@ -5492,19 +5500,19 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
   const currentTeamId = activeTeam === "team1" ? match?.team1_id : match?.team2_id;
   const currentPlayers = activeTeam === "team1" ? team1Players : team2Players;
   const currentSelected = selectedPlayers[activeTeam];
-  const currentLibero = liberos[activeTeam];
+  const currentLiberos = liberos[activeTeam] || [];
 
-  // Загрузка существующих lineups при монтировании
+  // Загрузка существующих lineups при монтировании / смене сета
   useEffect(() => {
-    if (!match?.id || !lineups) return;
+    if (!match?.id || !lineups || isDirty) return;
     const matchLineups = lineups.filter(l => l.match_id === match.id && l.set_number === setNumber);
     const t1 = {}, t2 = {};
-    let lib1 = null, lib2 = null;
+    const lib1 = [], lib2 = [];
     matchLineups.forEach(l => {
       const side = l.team_id === match.team1_id ? "team1" : "team2";
       if (l.is_libero) {
-        if (side === "team1") lib1 = l.player_id;
-        else lib2 = l.player_id;
+        if (side === "team1") lib1.push(l.player_id);
+        else lib2.push(l.player_id);
       } else if (l.position_zone) {
         if (side === "team1") t1[`zone${l.position_zone}`] = l.player_id;
         else t2[`zone${l.position_zone}`] = l.player_id;
@@ -5512,15 +5520,37 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
     });
     setSelectedPlayers({ team1: t1, team2: t2 });
     setLiberos({ team1: lib1, team2: lib2 });
-  }, [match?.id, lineups, setNumber]);
+  }, [match?.id, setNumber]);
+  
+  // При первой загрузке lineups — подгружаем данные
+  useEffect(() => {
+    if (!match?.id || !lineups || isDirty) return;
+    const matchLineups = lineups.filter(l => l.match_id === match.id && l.set_number === setNumber);
+    if (matchLineups.length === 0) return;
+    const t1 = {}, t2 = {};
+    const lib1 = [], lib2 = [];
+    matchLineups.forEach(l => {
+      const side = l.team_id === match.team1_id ? "team1" : "team2";
+      if (l.is_libero) {
+        if (side === "team1") lib1.push(l.player_id);
+        else lib2.push(l.player_id);
+      } else if (l.position_zone) {
+        if (side === "team1") t1[`zone${l.position_zone}`] = l.player_id;
+        else t2[`zone${l.position_zone}`] = l.player_id;
+      }
+    });
+    setSelectedPlayers({ team1: t1, team2: t2 });
+    setLiberos({ team1: lib1, team2: lib2 });
+  }, [lineups]);
 
-  const selectedIds = new Set([...Object.values(currentSelected), currentLibero].filter(Boolean));
+  const selectedIds = new Set([...Object.values(currentSelected), ...currentLiberos].filter(Boolean));
 
   const assignToZone = (zone, playerId) => {
     setSelectedPlayers(prev => ({
       ...prev,
       [activeTeam]: { ...prev[activeTeam], [zone]: playerId }
     }));
+    setIsDirty(true);
   };
 
   const removeFromZone = (zone) => {
@@ -5529,10 +5559,22 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
       delete updated[zone];
       return { ...prev, [activeTeam]: updated };
     });
+    setIsDirty(true);
   };
 
   const setAsLibero = (playerId) => {
-    setLiberos(prev => ({ ...prev, [activeTeam]: prev[activeTeam] === playerId ? null : playerId }));
+    setLiberos(prev => {
+      const current = prev[activeTeam] || [];
+      if (current.includes(playerId)) {
+        return { ...prev, [activeTeam]: current.filter(id => id !== playerId) };
+      }
+      if (current.length >= 2) {
+        alert("Максимум 2 либеро");
+        return prev;
+      }
+      return { ...prev, [activeTeam]: [...current, playerId] };
+    });
+    setIsDirty(true);
   };
 
   const getPlayerName = (playerId) => {
@@ -5563,15 +5605,18 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
             rows.push({ match_id: match.id, team_id: teamId, set_number: setNumber, player_id: playerId, position_zone: parseInt(zone.replace("zone", "")), is_libero: false });
           }
         });
-        if (liberos[side]) {
-          rows.push({ match_id: match.id, team_id: teamId, set_number: setNumber, player_id: liberos[side], position_zone: null, is_libero: true });
-        }
+        (liberos[side] || []).forEach(libId => {
+          if (libId) {
+            rows.push({ match_id: match.id, team_id: teamId, set_number: setNumber, player_id: libId, position_zone: null, is_libero: true });
+          }
+        });
       });
 
       if (rows.length > 0) {
         const { error } = await supabase.from("match_lineups").insert(rows);
         if (error) throw error;
       }
+      setIsDirty(false);
       alert("Состав сохранён!");
     } catch (e) {
       console.error("Save lineup error:", e);
@@ -5587,7 +5632,21 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
 
   return (
     <div style={{ paddingBottom: "100px" }}>
-      <Header title="Стартовый состав" showBack onBack={() => goBack ? goBack() : setScreen("home")} />
+      <Header title="Составы" showBack onBack={() => goBack ? goBack() : setScreen("home")} />
+      {/* Переключатель режимов */}
+      <div style={{ padding: "0 16px" }}>
+        <div style={{ display: "flex", gap: "4px", background: colors.gray, borderRadius: "12px", padding: "4px", marginBottom: "4px" }}>
+          {[{ key: "edit", label: "✏️ Редактирование" }, { key: "view", label: "🎙️ Ведущий" }].map(m => (
+            <div key={m.key} onClick={() => setMode(m.key)} style={{
+              flex: 1, padding: "10px", borderRadius: "10px", textAlign: "center", cursor: "pointer", fontSize: "13px", fontWeight: 600,
+              background: mode === m.key ? "#fff" : "transparent",
+              color: mode === m.key ? colors.goldDark : colors.textLight,
+              boxShadow: mode === m.key ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              transition: "all 0.2s ease",
+            }}>{m.label}</div>
+          ))}
+        </div>
+      </div>
       <Container>
         <div style={{ padding: "20px 0" }}>
           {/* Матч */}
@@ -5600,7 +5659,7 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
             </div>
             <div style={{ display: "flex", gap: "4px", justifyContent: "center", marginTop: "12px" }}>
               {[1,2,3,4,5].map(s => (
-                <button key={s} onClick={() => setSetNumber(s)} style={{
+                <button key={s} onClick={() => changeSet(s)} style={{
                   padding: "6px 14px", borderRadius: "8px", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer",
                   background: s === setNumber ? colors.gold : colors.gray,
                   color: s === setNumber ? "#fff" : colors.text,
@@ -5609,6 +5668,7 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
             </div>
           </Card>
 
+          {mode === "edit" && (<>
           {/* Переключатель команд */}
           <div style={{ display: "flex", gap: "4px", marginBottom: "16px", background: colors.gray, borderRadius: "12px", padding: "4px" }}>
             {[{ key: "team1", team: team1 }, { key: "team2", team: team2 }].map(({ key, team }) => (
@@ -5664,12 +5724,15 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
             <div style={{ textAlign: "center", margin: "4px 0", fontSize: "11px", color: colors.goldDark, borderTop: "2px solid " + colors.gold, paddingTop: "4px" }}>СЕТКА</div>
 
             {/* Либеро */}
-            <div style={{ marginTop: "12px", padding: "8px 12px", background: currentLibero ? "#e0f2fe" : colors.gray, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: currentLibero ? "#0284c7" : colors.textLight }}>
-                Либеро: {currentLibero ? getPlayerName(currentLibero) : "Не назначен"}
-              </span>
-              {currentLibero && (
-                <button onClick={() => setAsLibero(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "14px" }}>✕</button>
+            <div style={{ marginTop: "12px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: colors.goldDark, marginBottom: "6px" }}>ЛИБЕРО ({currentLiberos.length}/2)</div>
+              {currentLiberos.length > 0 ? currentLiberos.map(libId => (
+                <div key={libId} style={{ padding: "8px 12px", background: "#e0f2fe", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#0284c7" }}>{getPlayerName(libId)}</span>
+                  <button onClick={() => setAsLibero(libId)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "14px" }}>✕</button>
+                </div>
+              )) : (
+                <div style={{ padding: "8px 12px", background: colors.gray, borderRadius: "8px", fontSize: "13px", color: colors.textLight }}>Не назначены</div>
               )}
             </div>
           </Card>
@@ -5714,9 +5777,11 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
                             {activeZone && !currentSelected[activeZone] ? `→ ${zoneLabels[activeZone]}` : "+ Поле"}
                           </button>
                         )}
-                        <button onClick={() => setAsLibero(p.id)} style={{ padding: "6px 10px", background: "#e0f2fe", color: "#0284c7", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
-                          Либеро
-                        </button>
+                        {currentLiberos.length < 2 && (
+                          <button onClick={() => setAsLibero(p.id)} style={{ padding: "6px 10px", background: "#e0f2fe", color: "#0284c7", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
+                            Либеро
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -5729,6 +5794,76 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack }) => 
           <Button onClick={saveLineup} disabled={saving} style={{ width: "100%", marginTop: "16px", padding: "14px" }}>
             <Icons.Save /> {saving ? "Сохранение..." : "Сохранить состав"}
           </Button>
+          </>)}
+          
+          {/* Режим просмотра (ведущий) */}
+          {mode === "view" && (() => {
+            const rankLabels = {"3": "III разряд", "2": "II разряд", "1": "I разряд", "kms": "КМС", "ms": "МС", "msmk": "МСМК", "zms": "ЗМС"};
+            const getLineupView = (teamId) => {
+              if (!lineups || !match) return { starters: [], liberoPlayers: [] };
+              const ml = lineups.filter(l => l.match_id === match.id && l.set_number === setNumber && l.team_id === teamId);
+              const starters = ml.filter(l => !l.is_libero && l.position_zone).sort((a,b) => a.position_zone - b.position_zone);
+              const liberoPlayers = ml.filter(l => l.is_libero);
+              return { starters, liberoPlayers };
+            };
+            
+            const ViewPlayerCard = ({ playerId, zone, isLibero }) => {
+              const p = players.find(pl => pl.id === playerId);
+              if (!p) return null;
+              const name = ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || "?";
+              const age = p.birth_date ? (() => { const today = new Date(); const b = new Date(p.birth_date); let a = today.getFullYear() - b.getFullYear(); const m = today.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && today.getDate() < b.getDate())) a--; return a; })() : null;
+              return (
+                <div onClick={() => { setSelectedPlayer && setSelectedPlayer(p); setScreen("playerDetail"); }} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: isLibero ? "#e0f2fe" : "#fff", borderRadius: "12px", marginBottom: "8px", border: isLibero ? "2px solid #0284c7" : "1px solid " + colors.grayBorder, cursor: "pointer" }}>
+                  <Avatar name={name} size={48} url={p.users?.avatar_url} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      {p.jersey_number && <span style={{ fontSize: "22px", fontWeight: 800, color: colors.gold }}>#{p.jersey_number}</span>}
+                      <span style={{ fontSize: "16px", fontWeight: 700 }}>{name}</span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "4px", fontSize: "12px", color: colors.goldDark }}>
+                      {p.positions?.length > 0 && <span>{p.positions.map(pos => positionLabels[pos] || pos).join(", ")}</span>}
+                      {p.users?.height && <span>📏 {p.users.height} см</span>}
+                      {age && <span>🎂 {age} лет</span>}
+                      {p.sport_rank && <span>🏅 {rankLabels[p.sport_rank] || p.sport_rank}</span>}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: "11px", color: isLibero ? "#0284c7" : colors.goldDark, fontWeight: 600 }}>{isLibero ? "Либеро" : `Зона ${zone}`}</div>
+                </div>
+              );
+            };
+
+            const ViewTeam = ({ teamId, teamName }) => {
+              const { starters, liberoPlayers } = getLineupView(teamId);
+              const allTeamPlayers = players.filter(p => p.team_id === teamId);
+              const usedIds = new Set([...starters.map(s => s.player_id), ...liberoPlayers.map(l => l.player_id)]);
+              const bench = allTeamPlayers.filter(p => !usedIds.has(p.id));
+              return (
+                <div style={{ marginBottom: "20px" }}>
+                  <div style={{ background: `linear-gradient(135deg, ${colors.gold} 0%, ${colors.goldDark} 100%)`, color: "#fff", padding: "12px 16px", borderRadius: "12px 12px 0 0", fontWeight: 700, fontSize: "16px" }}>{teamName} ({starters.length} в поле)</div>
+                  <div style={{ background: colors.gray, padding: "12px", borderRadius: "0 0 12px 12px" }}>
+                    {starters.length > 0 ? starters.map(s => <ViewPlayerCard key={s.id} playerId={s.player_id} zone={s.position_zone} />) : <div style={{ textAlign: "center", padding: "16px", color: colors.textLight }}>Состав не заявлен</div>}
+                    {liberoPlayers.map(l => <ViewPlayerCard key={l.id} playerId={l.player_id} isLibero />)}
+                    {bench.length > 0 && (
+                      <>
+                        <div style={{ fontSize: "12px", fontWeight: 600, color: colors.goldDark, margin: "12px 0 8px", paddingTop: "8px", borderTop: "1px solid " + colors.grayBorder }}>ЗАПАСНЫЕ ({bench.length})</div>
+                        {bench.map(p => {
+                          const name = ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || "?";
+                          return <div key={p.id} onClick={() => { setSelectedPlayer && setSelectedPlayer(p); setScreen("playerDetail"); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", background: "#fff", borderRadius: "8px", marginBottom: "4px", fontSize: "13px", border: "1px solid " + colors.grayBorder, cursor: "pointer" }}><Avatar name={name} size={28} url={p.users?.avatar_url} /><span style={{ fontWeight: 600 }}>{p.jersey_number ? `#${p.jersey_number} ` : ""}{name}</span><span style={{ fontSize: "11px", color: colors.goldDark, marginLeft: "auto" }}>{p.positions?.map(pos => positionLabels[pos] || pos).join(", ") || ""}</span></div>;
+                        })}
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <>
+                <ViewTeam teamId={match?.team1_id} teamName={team1?.name || "Команда 1"} />
+                <ViewTeam teamId={match?.team2_id} teamName={team2?.name || "Команда 2"} />
+              </>
+            );
+          })()}
         </div>
       </Container>
     </div>
@@ -9365,7 +9500,7 @@ const handleGuest = () => {
       case "table": return <TableScreen teams={teams} setSelectedTeam={setSelectedTeam} setScreen={setScreen} goBack={goBack} activeTournamentId={activeTournamentId} />;
       case "servicemanSelect": return <ServicemanMatchSelectScreen matches={matches} teams={teams} tours={tours} onSelectMatch={(match) => { setServicemanMatch(match); setScreen("serviceman"); }} setScreen={setScreen} />;
       case "broadcaster": return <BroadcasterScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} setSelectedPlayer={setSelectedPlayer} />;
-      case "lineup": return <LineupScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} />;
+      case "lineup": return <LineupScreen match={servicemanMatch} teams={teams} players={players} lineups={lineups} setScreen={setScreen} goBack={() => setScreen("admin")} setSelectedPlayer={setSelectedPlayer} />;
       case "serviceman": return <ServicemanScreen match={servicemanMatch} teams={teams} players={players} playerStats={playerStats} onSaveStat={handleSavePlayerStat} onUpdateMatch={handleUpdateMatch} setScreen={setScreen} />;
       case "help": return <HelpScreen setScreen={setScreen} />;
       case "profile": return <ProfileScreen user={user} onLogout={handleLogout} isGuest={isGuest} isTelegram={isTelegram} setScreen={setScreen} pendingOffers={pendingOffers} userRoles={userRoles} onUpdateNotifications={handleUpdateNotifications} roleRequests={roleRequests} onSubmitRoleRequest={handleSubmitRoleRequest} onRequestPhone={handleRequestPhone} currentPlayer={currentPlayer} onUpdatePosition={handleUpdatePosition} setRoleRequestData={setRoleRequestData} setShowRoleRequestForm={setShowRoleRequestForm} onUpdateProfile={handleUpdateProfile} />;
