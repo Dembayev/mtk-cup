@@ -799,7 +799,7 @@ const WelcomeScreen = ({ onLogin, onGuest, isTelegram }) => {
   // Автоматический вход при загрузке в Telegram
   useEffect(() => {
     if (isTelegram) {
-      const timer = setTimeout(() => onLogin(), 1500);
+      const timer = setTimeout(() => onLogin(), 2000);
       return () => clearTimeout(timer);
     }
   }, [isTelegram, onLogin]);
@@ -9192,9 +9192,7 @@ const handleTelegramLogin = async (tgUser, retryCount = 0) => {
       }
     } catch (error) {
       console.error("Error during Telegram login:", error);
-      setUser({ first_name: tgUser.first_name, username: tgUser.username, role: "fan" });
-      setIsGuest(false);
-      setScreen("home");
+      alert("Ошибка подключения к серверу. Проверьте интернет и попробуйте снова.");
     }
   };
 
@@ -9207,27 +9205,35 @@ const handleTelegramLogin = async (tgUser, retryCount = 0) => {
       return;
     }
     
-    // Определяем — мы в Telegram или нет
+    // Проверяем — мы в Telegram или в браузере?
+    // isTelegram уже мог быть установлен в tryInit
     const url = window.location.href;
-    const isTgEnv = webapp || url.includes("tgWebAppData") || url.includes("tgWebAppVersion") || document.referrer.includes("telegram");
+    const hash = window.location.hash || "";
+    const isTgEnv = isTelegram || webapp || 
+      url.includes("tgWebAppData") || url.includes("tgWebAppVersion") ||
+      hash.includes("tgWebAppData") || hash.includes("tgWebAppVersion") ||
+      document.referrer.includes("telegram") || document.referrer.includes("t.me");
     
     if (isTgEnv) {
-      // Мы в Telegram, но user не получен — показываем ошибку
+      // Мы в Telegram, но user не получен
       const debugInfo = [
         "webapp: " + (!!webapp),
-        "initData: " + (webapp?.initData ? webapp.initData.substring(0, 100) : "ПУСТО"),
-        "initDataUnsafe: " + JSON.stringify(webapp?.initDataUnsafe || {}).substring(0, 100),
+        "initData: " + (webapp?.initData ? webapp.initData.substring(0, 80) : "нет"),
+        "initDataUnsafe.user: " + JSON.stringify(webapp?.initDataUnsafe?.user || "нет").substring(0, 80),
         "version: " + (webapp?.version || "?"),
         "platform: " + (webapp?.platform || "?"),
-        "url: " + url.substring(0, 200),
+        "hash: " + hash.substring(0, 100),
       ].join("\n");
-      console.error("❌ Telegram среда, но user не получен:", debugInfo);
-      alert("Ошибка авторизации Telegram. Попробуйте обновить Telegram и перезайти.\n\nОтправьте скриншот разработчику:\n" + debugInfo);
-    } else {
-      // Не Telegram — тестовый аккаунт для разработки
+      console.error("❌ Telegram, но user не получен:", debugInfo);
+      alert("Не удалось войти. Попробуйте:\n1. Обновить Telegram до последней версии\n2. Очистить кеш Telegram\n3. Перезайти в приложение\n\nДиагностика:\n" + debugInfo);
+    } else if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      // Только для локальной разработки
       setUser({ first_name: "Тестовый", last_name: "Пользователь", username: "test_user", role: "fan" });
       setIsGuest(false);
       setScreen("home");
+    } else {
+      // Продакшен в браузере (не в Telegram) — вход как гость
+      alert("Это приложение работает внутри Telegram. Откройте его через бота @MTK_CupBot.");
     }
   };
 
