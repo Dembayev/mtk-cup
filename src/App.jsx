@@ -7461,7 +7461,32 @@ export default function MTKCupApp() {
         console.log("⏳ WebApp не найден, ждём...", attempt);
         setTimeout(() => tryInit(attempt + 1), 300);
       } else {
-        console.log("ℹ️ Не Telegram среда");
+        // Последний шанс — парсим из URL
+        const url = window.location.href;
+        const isTgUrl = url.includes("tgWebAppData") || url.includes("tgWebAppVersion");
+        if (isTgUrl) {
+          console.log("🔍 WebApp не загрузился, но URL содержит tgWebApp параметры. Парсим...");
+          setIsTelegram(true);
+          // Пытаемся получить user из URL hash
+          try {
+            const hash = window.location.hash?.replace("#", "");
+            const hashParams = new URLSearchParams(hash);
+            const tgData = hashParams.get("tgWebAppData");
+            if (tgData) {
+              const dataParams = new URLSearchParams(tgData);
+              const userStr = dataParams.get("user");
+              if (userStr) {
+                const user = JSON.parse(decodeURIComponent(userStr));
+                console.log("✅ Parsed user from URL hash:", user.id);
+                handleTelegramLogin(user);
+                return;
+              }
+            }
+          } catch(e) { console.error("URL parse error:", e); }
+          console.warn("⚠️ Telegram URL найден, но user не распарсен");
+        } else {
+          console.log("ℹ️ Не Telegram среда");
+        }
       }
     };
     
@@ -9175,23 +9200,31 @@ const handleTelegramLogin = async (tgUser, retryCount = 0) => {
 
   const handleLogin = () => {
     const webapp = window.Telegram?.WebApp;
-    if (webapp) {
-      const tgUser = parseTgInitData();
-      if (tgUser) {
-        handleTelegramLogin(tgUser);
-      } else {
-        const debugInfo = [
-          "webapp: true",
-          "initData: " + (webapp.initData ? webapp.initData.substring(0, 100) : "ПУСТО"),
-          "initDataUnsafe: " + JSON.stringify(webapp.initDataUnsafe || {}).substring(0, 100),
-          "version: " + (webapp.version || "?"),
-          "platform: " + (webapp.platform || "?"),
-          "url: " + window.location.href.substring(0, 150),
-        ].join("\n");
-        console.error("❌ Debug:", debugInfo);
-        alert("Ошибка авторизации Telegram. Отправьте скриншот разработчику:\n\n" + debugInfo);
-      }
+    const tgUser = parseTgInitData();
+    
+    if (tgUser) {
+      handleTelegramLogin(tgUser);
+      return;
+    }
+    
+    // Определяем — мы в Telegram или нет
+    const url = window.location.href;
+    const isTgEnv = webapp || url.includes("tgWebAppData") || url.includes("tgWebAppVersion") || document.referrer.includes("telegram");
+    
+    if (isTgEnv) {
+      // Мы в Telegram, но user не получен — показываем ошибку
+      const debugInfo = [
+        "webapp: " + (!!webapp),
+        "initData: " + (webapp?.initData ? webapp.initData.substring(0, 100) : "ПУСТО"),
+        "initDataUnsafe: " + JSON.stringify(webapp?.initDataUnsafe || {}).substring(0, 100),
+        "version: " + (webapp?.version || "?"),
+        "platform: " + (webapp?.platform || "?"),
+        "url: " + url.substring(0, 200),
+      ].join("\n");
+      console.error("❌ Telegram среда, но user не получен:", debugInfo);
+      alert("Ошибка авторизации Telegram. Попробуйте обновить Telegram и перезайти.\n\nОтправьте скриншот разработчику:\n" + debugInfo);
     } else {
+      // Не Telegram — тестовый аккаунт для разработки
       setUser({ first_name: "Тестовый", last_name: "Пользователь", username: "test_user", role: "fan" });
       setIsGuest(false);
       setScreen("home");
