@@ -5745,7 +5745,7 @@ const LineupScreen = ({ match, teams, players, lineups, setScreen, goBack, setSe
             ) : (
               currentPlayers.sort((a,b) => (parseInt(a.jersey_number)||99) - (parseInt(b.jersey_number)||99)).map(p => {
                 const isSelected = selectedIds.has(p.id);
-                const isLibero = currentLibero === p.id;
+                const isLibero = currentLiberos.includes(p.id);
                 const name = ((p.users?.first_name || "") + " " + (p.users?.last_name || "")).trim() || p.users?.username || "?";
                 const emptyZone = zones.find(z => !currentSelected[z]);
                 return (
